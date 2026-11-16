@@ -1,0 +1,4 @@
+.active-user
+node_modules/
+.env*
+.next/

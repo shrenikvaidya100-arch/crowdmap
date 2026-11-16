@@ -1,0 +1,35 @@
+# Who may change which files. Read by scripts/check-ownership.sh.
+# Format: <owner> <path prefix>
+# Owners: user1, user2, shared. Shared paths change only when BOTH users agree
+# (commit with ALLOW_SHARED=1, message tag [shared]).
+# Anything not listed is shared. "anyone" paths may be changed by either user.
+
+anyone docs/HANDOFF-NOTES.md
+
+# --- User 1: map, places, crowd engine ---
+user1 src/features/map/
+user1 src/features/places/
+user1 src/features/crowd/
+user1 src/features/search/
+user1 src/app/(map)/
+user1 supabase/migrations/1
+user1 scripts/user1/
+user1 tests/user1/
+user1 messages/en/user1.json
+user1 messages/hi/user1.json
+user1 docs/user1/
+
+# --- User 2: accounts area, media, comments, admin, trust and safety ---
+user2 src/features/media/
+user2 src/features/comments/
+user2 src/features/profile/
+user2 src/features/admin/
+user2 src/features/trust/
+user2 src/app/(account)/
+user2 src/app/admin/
+user2 supabase/migrations/2
+user2 scripts/user2/
+user2 tests/user2/
+user2 messages/en/user2.json
+user2 messages/hi/user2.json
+user2 docs/user2/

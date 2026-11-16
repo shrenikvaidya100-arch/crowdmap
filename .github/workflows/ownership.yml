@@ -1,0 +1,24 @@
+name: ownership
+on: pull_request
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Branch only touches its owner's files
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          case "$HEAD_REF" in
+            user1/*) user=user1 ;;
+            user2/*) user=user2 ;;
+            *) echo "Branch must start with user1/ or user2/ (shared changes: title starts with [shared])"
+               case "$PR_TITLE" in "[shared]"*) exit 0 ;; *) exit 1 ;; esac ;;
+          esac
+          mapfile -t files < <(git diff --name-only "origin/$BASE_REF...HEAD")
+          scripts/check-ownership.sh "$user" "${files[@]}"
