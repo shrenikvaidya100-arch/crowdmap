@@ -8,7 +8,8 @@ import pg from "pg";
 const OVERPASS = "https://overpass-api.de/api/interpreter";
 
 // Search radius around each city centre, in metres.
-const CITY_RADIUS = { indore: 12000, pondicherry: 8000, vadodara: 10000, chennai: 14000, delhi: 14000 };
+// Mumbai is long north-south: 20 km reaches Colaba (Gateway of India) from the centre.
+const CITY_RADIUS = { indore: 12000, delhi: 14000, mumbai: 20000 };
 
 // Most places per category per city, keeping the best-documented ones.
 const CAP = {
@@ -89,7 +90,28 @@ function toPlaces(elements, cityId) {
     });
   }
   return Object.entries(byCat).flatMap(([cat, list]) =>
-    list.sort((a, b) => b.score - a.score).slice(0, CAP[cat] ?? 50));
+    dedupe(list.sort((a, b) => b.score - a.score)).slice(0, CAP[cat] ?? 50));
+}
+
+// Spam that sometimes gets into OpenStreetMap names (ads, links, keyword lists).
+const JUNK = /[|]|https?:|www\.|\bmassage\b|\bspa in\b|call girl|escort/i;
+
+const metres = (a, b) => {
+  const toRad = (d) => (d * Math.PI) / 180;
+  const x = toRad(b.lng - a.lng) * Math.cos(toRad((a.lat + b.lat) / 2));
+  return Math.hypot(x, toRad(b.lat - a.lat)) * 6371000;
+};
+
+/** Drops junk names and the same place mapped twice (same name within 200 m). Best-scored copy wins. */
+function dedupe(list) {
+  const kept = [];
+  for (const p of list) {
+    if (JUNK.test(p.name)) continue;
+    const key = p.name.toLowerCase().replace(/[^a-z0-9ऀ-ॿ]/g, "");
+    if (kept.some((k) => k.key === key && metres(k, p) < 200)) continue;
+    kept.push({ ...p, key });
+  }
+  return kept.map(({ key: _key, ...p }) => p);
 }
 
 async function main() {
@@ -102,18 +124,20 @@ async function main() {
   for (const city of cities) {
     console.log(`${city.id}: querying OpenStreetMap…`);
     const places = toPlaces(await fetchCity(city), city.id);
-    let added = 0;
-    for (const p of places) {
-      const r = await db.query(
-        `insert into public.places (osm_type, osm_id, city_id, name, name_hi, category, lat, lng, radius_m, address)
-         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-         on conflict (osm_type, osm_id) do update set
-           name = excluded.name, name_hi = excluded.name_hi, category = excluded.category,
-           lat = excluded.lat, lng = excluded.lng, address = excluded.address
-         returning (xmax = 0) as inserted`,
-        [p.osm_type, p.osm_id, p.city_id, p.name, p.name_hi, p.category, p.lat, p.lng, p.radius_m, p.address]);
-      if (r.rows[0].inserted) added++;
-    }
+    // One round trip for the whole city (the database is far away; per-row inserts are slow).
+    const rows = places.map(({ score: _score, ...p }) => p);
+    const r = await db.query(
+      `insert into public.places (osm_type, osm_id, city_id, name, name_hi, category, lat, lng, radius_m, address)
+       select osm_type, osm_id, city_id, name, name_hi, category, lat, lng, radius_m, address
+       from jsonb_to_recordset($1::jsonb) as x(osm_type text, osm_id bigint, city_id text, name text, name_hi text,
+                                               category text, lat double precision, lng double precision,
+                                               radius_m int, address text)
+       on conflict (osm_type, osm_id) do update set
+         name = excluded.name, name_hi = excluded.name_hi, category = excluded.category,
+         lat = excluded.lat, lng = excluded.lng, address = excluded.address
+       returning (xmax = 0) as inserted`,
+      [JSON.stringify(rows)]);
+    const added = r.rows.filter((x) => x.inserted).length;
     const counts = places.reduce((m, p) => ({ ...m, [p.category]: (m[p.category] ?? 0) + 1 }), {});
     console.log(`  ${places.length} places (${added} new):`, counts);
     // Be polite to the free Overpass server between cities.

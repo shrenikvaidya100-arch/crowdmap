@@ -38,7 +38,7 @@ const away = (p) => [p.lat + 0.01, p.lng];
 test("places were imported for every city", async () => {
   const { rows } = await db.query("select city_id, count(*)::int as n from public.places group by 1");
   const counts = Object.fromEntries(rows.map((r) => [r.city_id, r.n]));
-  for (const c of ["indore", "pondicherry", "vadodara", "chennai", "delhi"]) assert.ok(counts[c] > 50, `${c}: ${counts[c]}`);
+  for (const c of ["indore", "delhi", "mumbai"]) assert.ok(counts[c] > 50, `${c}: ${counts[c]}`);
 });
 
 test("crowd_map gives every place a 1-5 level, even without reports", () => inTx(async () => {

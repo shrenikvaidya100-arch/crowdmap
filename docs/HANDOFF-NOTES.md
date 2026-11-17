@@ -18,3 +18,9 @@ From User 1 (2026-11-17), crowd reports milestone (`supabase/migrations/1001_cro
 - Until `user_trust` / `is_removed` exist, crowd levels weight reports by `profiles.trust_score` and skip profiles whose `status` is not `active`. Removing a bot (status `removed`) hides its reports immediately.
 
 Shared follow-up (needs both of us): `src/app/page.tsx` still loads `places` for `MapView`, which now ignores them and loads per city from `/api/crowd`. The query can be dropped from the page.
+
+From User 1 (2026-11-17), please confirm: cities changed to **Indore, Delhi, Mumbai** (migration `1002`).
+Pondicherry, Vadodara and Chennai were removed with their imported places (no reports existed).
+Shared files touched for this: `docs/SPEC.md` (section 2), `tests/foundation.test.mjs` (city list),
+`package.json` (`test:db` now runs test files one at a time: the audit-log TRUNCATE test deadlocks
+with other files' audit inserts when they run in parallel).
