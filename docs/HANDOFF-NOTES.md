@@ -33,3 +33,14 @@ From User 1 (2026-11-18), plan my visit (migrations `1005`, `1006`):
 - **`special_days`** (holidays/festivals): fixed-date ones are seeded. Lunar festivals (Diwali, Holi, Eid,
   Ganesh Chaturthi, Navratri...) need their dates added each year; an admin screen for this would fit the admin area.
 - Audit actions: `plan.create`, `plan.cancel`.
+
+From User 1 (2026-11-18), add a missing place (migration `1007`):
+- Users add places via `add_place()`; they start as `places.status = 'unconfirmed'` with `added_by` set.
+  Two other people at the spot confirming (`place_confirmations.exists_here`) makes them `listed`;
+  2+ "doesn't exist" votes outnumbering confirmations set `removed`.
+- Rules in the database: account older than 24 h, active, GPS at the spot, inside a launch city,
+  no similar name within 50 m, 3 new places per user per day.
+- Audit actions: `place.add`, `place.add_rejected`, `place.confirm`, `place.edit`, `place.delete`,
+  `system.place_listed`, `system.place_removed`. Good bot signals: many `place.add_rejected`, many removed places by one user.
+- `location_checks.source` now also has `add_place` and `confirm_place`.
+- **My activity** could list `places where added_by = auth.uid()` (readable: places are public unless removed).

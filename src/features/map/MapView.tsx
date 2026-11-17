@@ -10,6 +10,8 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { crowdConfig, quickIcon } from "@/features/crowd/config";
 import { PlaceSheet } from "@/features/crowd/PlaceSheet";
+import { AddPlaceSheet } from "@/features/places/AddPlaceSheet";
+import { messages as placeMessages } from "@/features/places/messages";
 import { FilterSheet, PlaceList } from "@/features/search/Explore";
 import { applyFilters, countActive, DEFAULT_FILTERS, type Filters } from "@/features/search/filters";
 import { messages as searchMessages } from "@/features/search/messages";
@@ -27,7 +29,7 @@ export type MapPlace = { id: string; name: string; name_hi: string | null; categ
 
 type CrowdPlace = {
   id: string; name: string; name_hi: string | null; category: string; lat: number; lng: number;
-  level: number; source: "live" | "estimated"; reports: number;
+  level: number; source: "live" | "estimated"; reports: number; status?: "listed" | "unconfirmed";
 };
 type Alert = { id: string; kind: string; place_id: string | null; lat: number; lng: number };
 type CrowdData = { city: string; places: CrowdPlace[]; alerts: Alert[] };
@@ -39,9 +41,12 @@ const LEVEL_COLOR = ["match", ["get", "level"],
 export function MapView({ lang, cities }: { lang: Language; cities: MapCity[]; places?: MapPlace[] }) {
   const t = translator(messages, lang);
   const ts = translator(searchMessages, lang);
+  const tp = translator(placeMessages, lang);
   const box = useRef<HTMLDivElement>(null);
   const map = useRef<MLMap | null>(null);
   const alertMarkers = useRef<Marker[]>([]);
+  const newPin = useRef<Marker | null>(null);
+  const [adding, setAdding] = useState(false);
   const startCity = cities.find((c) => c.id === config.defaultCity) ?? cities[0] ?? null;
   const [ready, setReady] = useState(false);
   const [activeCity, setActiveCity] = useState<string | null>(startCity?.id ?? null);
@@ -76,8 +81,9 @@ export function MapView({ lang, cities }: { lang: Language; cities: MapCity[]; p
           "circle-radius": ["interpolate", ["linear"], ["zoom"], 10, ["case", ["==", ["get", "live"], 1], 5, 3], 15, ["case", ["==", ["get", "live"], 1], 11, 8]],
           "circle-color": LEVEL_COLOR,
           "circle-opacity": ["case", ["==", ["get", "live"], 1], 1, 0.55],
-          "circle-stroke-color": "#ffffff",
-          "circle-stroke-width": ["case", ["==", ["get", "live"], 1], 2.5, 1],
+          // Purple ring = added by a user, not confirmed yet.
+          "circle-stroke-color": ["case", ["==", ["get", "unconfirmed"], 1], "#7c3aed", "#ffffff"],
+          "circle-stroke-width": ["case", ["==", ["get", "unconfirmed"], 1], 3, ["==", ["get", "live"], 1], 2.5, 1],
         },
       });
       m.on("click", "places", (e: MapLayerMouseEvent) => {
@@ -125,7 +131,7 @@ export function MapView({ lang, cities }: { lang: Language; cities: MapCity[]; p
       features: visible.map((p) => ({
         type: "Feature",
         geometry: { type: "Point", coordinates: [p.lng, p.lat] },
-        properties: { id: p.id, level: p.level, live: p.source === "live" ? 1 : 0 },
+        properties: { id: p.id, level: p.level, live: p.source === "live" ? 1 : 0, unconfirmed: p.status === "unconfirmed" ? 1 : 0 },
       })),
     });
   }, [visible, ready]);
@@ -157,6 +163,21 @@ export function MapView({ lang, cities }: { lang: Language; cities: MapCity[]; p
     setSelected(p.id);
     if (window.matchMedia("(max-width: 639px)").matches) setPanel(null);
     map.current?.flyTo({ center: [p.lng, p.lat], zoom: Math.max(map.current.getZoom(), 15), essential: true });
+  }
+
+  /** Shows a temporary pin where a new place will go. */
+  function showNewPin(lat: number, lng: number) {
+    const m = map.current;
+    if (!m) return;
+    newPin.current?.remove();
+    newPin.current = new Marker({ color: "#7c3aed" }).setLngLat([lng, lat]).addTo(m);
+    m.flyTo({ center: [lng, lat], zoom: 17, essential: true });
+  }
+
+  function closeAdding() {
+    setAdding(false);
+    newPin.current?.remove();
+    newPin.current = null;
   }
 
   function nearestCity(lat: number, lng: number) {
@@ -208,6 +229,10 @@ export function MapView({ lang, cities }: { lang: Language; cities: MapCity[]; p
                   onClick={() => setPanel(panel === "list" ? null : "list")}>
             <span aria-hidden>☰</span> <span className="hidden sm:inline">{ts("list")}</span>
           </button>
+          <button type="button" className={toolBtn(adding)} aria-label={tp("addButton")}
+                  onClick={() => { setSelected(null); setPanel(null); setAdding(true); }}>
+            <span aria-hidden>＋</span> <span className="hidden lg:inline">{tp("addButton")}</span>
+          </button>
         </div>
         <div className="flex gap-2 overflow-x-auto [scrollbar-width:none]">
           {cities.map((c) => (
@@ -236,6 +261,18 @@ export function MapView({ lang, cities }: { lang: Language; cities: MapCity[]; p
       {panel === "filters" && (
         <FilterSheet lang={lang} filters={filters} onChange={setFilters} onClose={() => setPanel(null)}
                      origin={me ? "me" : "centre"} onUseLocation={() => locate(false)} locError={locError} />
+      )}
+
+      {adding && (
+        <AddPlaceSheet lang={lang} onClose={closeAdding}
+                       onLocated={(f) => showNewPin(f.lat, f.lng)}
+                       onOpenPlace={(id) => { closeAdding(); setSelected(id); }}
+                       onAdded={(p) => {
+                         closeAdding();
+                         if (p.cityId !== activeCity) setActiveCity(p.cityId); else void loadCity(p.cityId);
+                         setSelected(p.id);
+                         map.current?.flyTo({ center: [p.lng, p.lat], zoom: 17, essential: true });
+                       }} />
       )}
 
       {selected && (
