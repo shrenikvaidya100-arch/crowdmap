@@ -54,3 +54,8 @@ From User 1 (2026-11-18), live presence and instant updates (migration `1008`):
   reports, alerts, places or presence change. Anyone viewing can subscribe with the publishable key.
   If an admin action should refresh maps instantly (e.g. removing a bot's reports), changing those rows already triggers it.
 - `live_level()` now also returns `here`; `place_crowd_now` has a `here` column.
+
+From User 1 (2026-11-18), privacy fix found by User 2's tests (migration `1011`):
+- `quick_reports.user_id` is no longer readable by signed-in users (it revealed who posted active alerts).
+- Read your own alerts with **`public.my_quick_reports()`** (id, kind, created_at, expires_at, still_there, gone,
+  place_id, place_name, place_name_hi, city_id). Deleting your own alert still works as before.

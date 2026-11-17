@@ -144,3 +144,18 @@ test("signed-out visitors can read the map but not report", () => inTx(async () 
   await db.query("rollback to savepoint s");
   await asOwner();
 }));
+
+test("alert authors are private: others can see the alert, not who posted it", () => inTx(async () => {
+  const [author, other] = [await newUser(), await newUser()];
+  await db.query(`insert into public.quick_reports (user_id, kind, place_id, city_id, lat, lng, expires_at)
+                  values ($1, 'police', $2, 'indore', $3, $4, now() + interval '1 hour')`, [author, indore.id, indore.lat, indore.lng]);
+  await actAs(other);
+  assert.equal((await db.query("select id from public.quick_reports where place_id = $1", [indore.id])).rowCount, 1);
+  await db.query("savepoint s");
+  await assert.rejects(db.query("select user_id from public.quick_reports"), /permission denied/);
+  await db.query("rollback to savepoint s");
+  assert.equal((await db.query("select * from public.my_quick_reports()")).rowCount, 0);
+  await actAs(author);
+  assert.equal((await db.query("select * from public.my_quick_reports()")).rowCount, 1);
+  await asOwner();
+}));
