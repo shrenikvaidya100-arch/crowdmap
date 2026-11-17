@@ -24,3 +24,12 @@ Pondicherry, Vadodara and Chennai were removed with their imported places (no re
 Shared files touched for this: `docs/SPEC.md` (section 2), `tests/foundation.test.mjs` (city list),
 `package.json` (`test:db` now runs test files one at a time: the audit-log TRUNCATE test deadlocks
 with other files' audit inserts when they run in parallel).
+
+From User 1 (2026-11-18), plan my visit (migrations `1005`, `1006`):
+- **`visit_plans`** (`id, user_id, place_id, planned_for, created_at`): a user's "I'm planning to go" entries.
+  RLS limits rows to the owner; owners can delete (audited as `plan.cancel`). `public.my_upcoming_plans()`
+  returns the caller's upcoming plans with place names, ready for **My activity**.
+- `planned_for` is always a whole hour in India time (stored as timestamptz, so it is :30 in UTC).
+- **`special_days`** (holidays/festivals): fixed-date ones are seeded. Lunar festivals (Diwali, Holi, Eid,
+  Ganesh Chaturthi, Navratri...) need their dates added each year; an admin screen for this would fit the admin area.
+- Audit actions: `plan.create`, `plan.cancel`.
