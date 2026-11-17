@@ -44,3 +44,13 @@ From User 1 (2026-11-18), add a missing place (migration `1007`):
   `system.place_listed`, `system.place_removed`. Good bot signals: many `place.add_rejected`, many removed places by one user.
 - `location_checks.source` now also has `add_place` and `confirm_place`.
 - **My activity** could list `places where added_by = auth.uid()` (readable: places are public unless removed).
+
+From User 1 (2026-11-18), live presence and instant updates (migration `1008`):
+- **`presence`**: one row per user sharing their location (latest position only, counted for 10 min,
+  deleted after 1 h). Readable by the user and admins only. **`presence_hourly`**: public peak counts per place per hour.
+- Presence only ever *raises* a place's live level (many users at once can't be "empty"); it never lowers it.
+- Teleporting heartbeats are refused and logged in `location_checks` with `source = 'presence'`.
+- **Realtime**: the database broadcasts `{place_id, kind}` on channel `crowd:<city_id>` (event `changed`) whenever
+  reports, alerts, places or presence change. Anyone viewing can subscribe with the publishable key.
+  If an admin action should refresh maps instantly (e.g. removing a bot's reports), changing those rows already triggers it.
+- `live_level()` now also returns `here`; `place_crowd_now` has a `here` column.
