@@ -13,6 +13,7 @@ export const messages = {
     "level.busy": "Busy",
     "level.packed": "Packed",
     "legend.counts": "{places} places · {live} live now · faded = estimated",
+    "legend.filtered": "Showing {shown} of {places} places · {live} live now",
   },
   hi: {
     mapLabel: "भीड़ का नक्शा",
@@ -26,5 +27,6 @@ export const messages = {
     "level.busy": "व्यस्त",
     "level.packed": "खचाखच",
     "legend.counts": "{places} जगहें · {live} अभी लाइव · हल्का रंग = अनुमान",
+    "legend.filtered": "{places} में से {shown} जगहें · {live} अभी लाइव",
   },
 } satisfies Messages;
