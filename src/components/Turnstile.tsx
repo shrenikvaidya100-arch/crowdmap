@@ -49,6 +49,8 @@ export function Turnstile({
         sitekey: siteKey,
         language: lang,
         theme: "auto",
+        // The parent form owns the hidden token input; don't add a second one.
+        "response-field": false,
         callback: (t: string) => onTokenRef.current(t),
         "expired-callback": () => onTokenRef.current(""),
         "error-callback": () => onTokenRef.current(""),
