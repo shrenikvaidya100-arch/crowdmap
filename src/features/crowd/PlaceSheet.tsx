@@ -21,7 +21,7 @@ type Details = {
     status: "listed" | "unconfirmed"; added_by_me: boolean;
   };
   confirmations: Confirmations;
-  crowd: { level: number; source: "live" | "estimated"; reports: number; last_report_at: string | null };
+  crowd: { level: number; source: "live" | "estimated"; reports: number; last_report_at: string | null; here: number };
   alerts: { id: string; kind: string; still_there: number; gone: number; created_at: string; mine: boolean }[];
   my_report: { id: string; level: number; created_at: string; editable: boolean } | null;
   signed_in: boolean;
@@ -30,9 +30,11 @@ type Details = {
 const levelColor = (l: number) => config.crowd.levels.find((x) => x.level === l)?.color ?? config.crowd.noDataColor;
 
 export function PlaceSheet({
-  placeId, lang, onClose, onChanged,
+  placeId, version = 0, lang, onClose, onChanged,
 }: {
   placeId: string;
+  /** Bumped by the map when a live update touches this place. */
+  version?: number;
   lang: Language;
   onClose: () => void;
   onChanged: () => void;
@@ -65,7 +67,7 @@ export function PlaceSheet({
       .then((d) => { if (!cancelled) { setData(d); setNow(Date.now()); setLoadError(false); } })
       .catch(() => { if (!cancelled) setLoadError(true); });
     return () => { cancelled = true; };
-  }, [placeId]);
+  }, [placeId, version]);
 
   function ago(iso: string) {
     const min = Math.round(((now ?? 0) - new Date(iso).getTime()) / 60000);
@@ -141,6 +143,9 @@ export function PlaceSheet({
                   ? `${t("liveHint", { n: data.crowd.reports })}${data.crowd.last_report_at ? ` · ${t("updated", { ago: ago(data.crowd.last_report_at) })}` : ""}`
                   : t("estimatedHint")}
               </p>
+              {data.crowd.here > 0 && (
+                <p className="mt-0.5 text-xs font-medium text-blue-600">📱 {t(data.crowd.here === 1 ? "hereOne" : "hereMany", { n: data.crowd.here })}</p>
+              )}
             </div>
           </section>
 

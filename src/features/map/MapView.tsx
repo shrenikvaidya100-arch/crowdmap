@@ -10,6 +10,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { crowdConfig, quickIcon } from "@/features/crowd/config";
 import { PlaceSheet } from "@/features/crowd/PlaceSheet";
+import { loadPresencePreference, savePresencePreference, usePresence } from "@/features/crowd/usePresence";
 import { AddPlaceSheet } from "@/features/places/AddPlaceSheet";
 import { messages as placeMessages } from "@/features/places/messages";
 import { FilterSheet, PlaceList } from "@/features/search/Explore";
@@ -19,6 +20,7 @@ import { SearchBox, type SearchHit } from "@/features/search/SearchBox";
 import { config, type Language } from "@/lib/config";
 import { translator } from "@/lib/i18n";
 import { messages } from "./messages";
+import { useCityUpdates } from "./useCityUpdates";
 
 // Worker file is copied into public/ by scripts/copy-map-worker.mjs.
 setWorkerUrl("/maplibre-gl-worker.js");
@@ -29,7 +31,7 @@ export type MapPlace = { id: string; name: string; name_hi: string | null; categ
 
 type CrowdPlace = {
   id: string; name: string; name_hi: string | null; category: string; lat: number; lng: number;
-  level: number; source: "live" | "estimated"; reports: number; status?: "listed" | "unconfirmed";
+  level: number; source: "live" | "estimated"; reports: number; status?: "listed" | "unconfirmed"; here?: number;
 };
 type Alert = { id: string; kind: string; place_id: string | null; lat: number; lng: number };
 type CrowdData = { city: string; places: CrowdPlace[]; alerts: Alert[] };
@@ -47,6 +49,15 @@ export function MapView({ lang, cities }: { lang: Language; cities: MapCity[]; p
   const alertMarkers = useRef<Marker[]>([]);
   const newPin = useRef<Marker | null>(null);
   const [adding, setAdding] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const [placeVersion, setPlaceVersion] = useState(0);
+  const presence = usePresence(sharing);
+
+  // Restore "share my location" after the page has loaded (browser-only setting).
+  useEffect(() => { queueMicrotask(() => setSharing(loadPresencePreference())); }, []);
+  function toggleSharing() {
+    setSharing((on) => { savePresencePreference(!on); return !on; });
+  }
   const startCity = cities.find((c) => c.id === config.defaultCity) ?? cities[0] ?? null;
   const [ready, setReady] = useState(false);
   const [activeCity, setActiveCity] = useState<string | null>(startCity?.id ?? null);
@@ -73,6 +84,21 @@ export function MapView({ lang, cities }: { lang: Language; cities: MapCity[]; p
     m.on("moveend", () => { const c = m.getCenter(); setCentre({ lat: c.lat, lng: c.lng }); });
     m.on("load", () => {
       m.addSource("places", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      // Blue halo where CrowdMap users are right now (drawn under the dots).
+      m.addLayer({
+        id: "presence",
+        type: "circle",
+        source: "places",
+        filter: [">", ["get", "here"], 0],
+        paint: {
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 10, 8, 15, 20],
+          "circle-color": "#3b82f6",
+          "circle-opacity": 0.25,
+          "circle-stroke-color": "#3b82f6",
+          "circle-stroke-width": 1,
+          "circle-stroke-opacity": 0.6,
+        },
+      });
       m.addLayer({
         id: "places",
         type: "circle",
@@ -118,6 +144,12 @@ export function MapView({ lang, cities }: { lang: Language; cities: MapCity[]; p
     return () => { cancelled = true; clearInterval(id); };
   }, [activeCity, loadCity]);
 
+  // Instant updates: reload the city when anything changes, and the open panel if it's affected.
+  useCityUpdates(activeCity, (ids) => {
+    if (activeCity) void loadCity(activeCity);
+    if (selected && ids.has(selected)) setPlaceVersion((v) => v + 1);
+  });
+
   // Places that pass the filters, sorted; distances from me, or else the map centre.
   const cityPlaces = useMemo(() => (data && data.city === activeCity ? data.places : []), [data, activeCity]);
   const visible = useMemo(() => applyFilters(cityPlaces, filters, me ?? centre), [cityPlaces, filters, me, centre]);
@@ -131,7 +163,10 @@ export function MapView({ lang, cities }: { lang: Language; cities: MapCity[]; p
       features: visible.map((p) => ({
         type: "Feature",
         geometry: { type: "Point", coordinates: [p.lng, p.lat] },
-        properties: { id: p.id, level: p.level, live: p.source === "live" ? 1 : 0, unconfirmed: p.status === "unconfirmed" ? 1 : 0 },
+        properties: {
+          id: p.id, level: p.level, live: p.source === "live" ? 1 : 0,
+          unconfirmed: p.status === "unconfirmed" ? 1 : 0, here: p.here ?? 0,
+        },
       })),
     });
   }, [visible, ready]);
@@ -246,11 +281,33 @@ export function MapView({ lang, cities }: { lang: Language; cities: MapCity[]; p
 
       <div className="absolute bottom-36 right-2.5 z-10 flex flex-col items-end gap-2 sm:bottom-28">
         {locError && panel !== "filters" && <p className="max-w-56 rounded-md bg-white px-2 py-1 text-xs shadow dark:bg-gray-900">{locError}</p>}
+        <button type="button" onClick={toggleSharing} aria-pressed={sharing} title={t(sharing ? "shareOn" : "share")}
+                aria-label={t(sharing ? "shareOn" : "share")}
+                className={`grid h-10 w-10 place-items-center rounded-full text-lg shadow ${sharing ? "bg-blue-600 text-white ring-4 ring-blue-300/50" : "bg-white hover:bg-gray-50 dark:bg-gray-900"}`}>
+          <span aria-hidden>📡</span>
+        </button>
         <button type="button" onClick={() => locate()} title={t("locate")}
                 className="grid h-10 w-10 place-items-center rounded-full bg-white text-lg shadow hover:bg-gray-50 dark:bg-gray-900">
           <span aria-hidden>◎</span><span className="sr-only">{t("locate")}</span>
         </button>
       </div>
+
+      {sharing && presence.state !== "off" && (
+        <div role="status" aria-live="polite"
+             className="absolute bottom-24 left-1/2 z-20 flex max-w-[90%] -translate-x-1/2 items-center gap-2 rounded-full bg-blue-600 px-3.5 py-1.5 text-xs text-white shadow-lg sm:bottom-20">
+          <span aria-hidden className="h-2 w-2 animate-pulse rounded-full bg-white" />
+          <span className="truncate">
+            {presence.state === "starting" && t("presence.starting")}
+            {presence.state === "on" && (presence.placeName
+              ? t("presence.on", { place: presence.placeName, n: presence.here })
+              : t("presence.onNowhere"))}
+            {presence.state === "error" && t(presence.reason)}
+          </span>
+          <button type="button" onClick={toggleSharing} className="rounded-full bg-white/20 px-2 py-0.5 font-medium hover:bg-white/30">
+            {t("stop")}
+          </button>
+        </div>
+      )}
 
       <Legend lang={lang} shown={visible.length} places={cityPlaces.length} live={liveCount} />
 
@@ -276,7 +333,7 @@ export function MapView({ lang, cities }: { lang: Language; cities: MapCity[]; p
       )}
 
       {selected && (
-        <PlaceSheet key={selected} placeId={selected} lang={lang} onClose={() => setSelected(null)}
+        <PlaceSheet key={selected} placeId={selected} version={placeVersion} lang={lang} onClose={() => setSelected(null)}
                     onChanged={() => activeCity && void loadCity(activeCity)} />
       )}
     </div>
