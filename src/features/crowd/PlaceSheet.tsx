@@ -2,6 +2,7 @@
 // Panel for one place: crowd now, plan your visit, reporting, alerts.
 // Bottom sheet on phones, side panel on larger screens.
 import Link from "next/link";
+import { PlaceStatus, type Confirmations } from "@/features/places/PlaceStatus";
 import { PlanVisit } from "./plan/PlanVisit";
 import { useCallback, useEffect, useState } from "react";
 import { config, type Language } from "@/lib/config";
@@ -15,8 +16,12 @@ import { getGpsFix, GpsError } from "./gps";
 import { messages } from "./messages";
 
 type Details = {
-  place: { id: string; name: string; name_hi: string | null; category: string; address: string | null; lat: number; lng: number };
-  crowd: { level: number; source: "live" | "estimated"; reports: number; last_report_at: string | null; today: number[] };
+  place: {
+    id: string; name: string; name_hi: string | null; category: string; address: string | null; lat: number; lng: number;
+    status: "listed" | "unconfirmed"; added_by_me: boolean;
+  };
+  confirmations: Confirmations;
+  crowd: { level: number; source: "live" | "estimated"; reports: number; last_report_at: string | null };
   alerts: { id: string; kind: string; still_there: number; gone: number; created_at: string; mine: boolean }[];
   my_report: { id: string; level: number; created_at: string; editable: boolean } | null;
   signed_in: boolean;
@@ -138,6 +143,10 @@ export function PlaceSheet({
               </p>
             </div>
           </section>
+
+          {/* User-added place waiting for confirmation */}
+          <PlaceStatus lang={lang} place={data.place} confirmations={data.confirmations} signedIn={data.signed_in}
+                       onChanged={() => { void load(); onChanged(); }} onDeleted={() => { onChanged(); onClose(); }} />
 
           {/* Forecast by day and hour, best time, plans */}
           <PlanVisit placeId={placeId} category={data.place.category} lang={lang} />
