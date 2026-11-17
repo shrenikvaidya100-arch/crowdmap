@@ -8,6 +8,7 @@ import {
   type GeoJSONSource, type MapLayerMouseEvent,
 } from "maplibre-gl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { preconnect } from "react-dom";
 import { crowdConfig, quickIcon } from "@/features/crowd/config";
 import { PlaceSheet } from "@/features/crowd/PlaceSheet";
 import { loadPresencePreference, savePresencePreference, usePresence } from "@/features/crowd/usePresence";
@@ -25,13 +26,15 @@ import { useCityUpdates } from "./useCityUpdates";
 // Worker file is copied into public/ by scripts/copy-map-worker.mjs.
 setWorkerUrl("/maplibre-gl-worker.js");
 
+const TILE_ORIGIN = new URL(config.map.styleUrl).origin;
+
 export type MapCity = { id: string; name: string; name_hi: string | null; lat: number; lng: number; default_zoom: number };
 /** Kept for the home page's props; places are now loaded per city from /api/crowd. */
 export type MapPlace = { id: string; name: string; name_hi: string | null; category: string; lat: number; lng: number; city_id: string };
 
 type CrowdPlace = {
   id: string; name: string; name_hi: string | null; category: string; lat: number; lng: number;
-  level: number; source: "live" | "estimated"; reports: number; status?: "listed" | "unconfirmed"; here?: number;
+  level: number; source: "live" | "estimated"; reports: number; status?: "listed" | "unconfirmed"; here?: number; sample?: boolean;
 };
 type Alert = { id: string; kind: string; place_id: string | null; lat: number; lng: number };
 type CrowdData = { city: string; places: CrowdPlace[]; alerts: Alert[] };
@@ -52,6 +55,8 @@ export function MapView({ lang, cities }: { lang: Language; cities: MapCity[]; p
   const [sharing, setSharing] = useState(false);
   const [placeVersion, setPlaceVersion] = useState(0);
   const presence = usePresence(sharing);
+  // Start connecting to the map server while the page is still loading.
+  preconnect(TILE_ORIGIN, { crossOrigin: "anonymous" });
 
   // Restore "share my location" after the page has loaded (browser-only setting).
   useEffect(() => { queueMicrotask(() => setSharing(loadPresencePreference())); }, []);
@@ -107,8 +112,8 @@ export function MapView({ lang, cities }: { lang: Language; cities: MapCity[]; p
           "circle-radius": ["interpolate", ["linear"], ["zoom"], 10, ["case", ["==", ["get", "live"], 1], 5, 3], 15, ["case", ["==", ["get", "live"], 1], 11, 8]],
           "circle-color": LEVEL_COLOR,
           "circle-opacity": ["case", ["==", ["get", "live"], 1], 1, 0.55],
-          // Purple ring = added by a user, not confirmed yet.
-          "circle-stroke-color": ["case", ["==", ["get", "unconfirmed"], 1], "#7c3aed", "#ffffff"],
+          // Purple ring = added by a user, not confirmed yet. Amber ring = sample (demo) data.
+          "circle-stroke-color": ["case", ["==", ["get", "unconfirmed"], 1], "#7c3aed", ["==", ["get", "sample"], 1], "#f59e0b", "#ffffff"],
           "circle-stroke-width": ["case", ["==", ["get", "unconfirmed"], 1], 3, ["==", ["get", "live"], 1], 2.5, 1],
         },
       });
@@ -165,7 +170,7 @@ export function MapView({ lang, cities }: { lang: Language; cities: MapCity[]; p
         geometry: { type: "Point", coordinates: [p.lng, p.lat] },
         properties: {
           id: p.id, level: p.level, live: p.source === "live" ? 1 : 0,
-          unconfirmed: p.status === "unconfirmed" ? 1 : 0, here: p.here ?? 0,
+          unconfirmed: p.status === "unconfirmed" ? 1 : 0, here: p.here ?? 0, sample: p.sample ? 1 : 0,
         },
       })),
     });
@@ -240,7 +245,8 @@ export function MapView({ lang, cities }: { lang: Language; cities: MapCity[]; p
 
   const cityNames = Object.fromEntries(cities.map((c) => [c.id, lang === "hi" && c.name_hi ? c.name_hi : c.name]));
   const activeFilters = countActive(filters);
-  const liveCount = cityPlaces.filter((p) => p.source === "live").length;
+  const liveCount = cityPlaces.filter((p) => p.source === "live" && !p.sample).length;
+  const sampleCount = cityPlaces.filter((p) => p.source === "live" && p.sample).length;
   const toolBtn = (on: boolean) =>
     `relative shrink-0 rounded-full px-3.5 py-2 text-sm font-medium shadow ${on ? "bg-blue-600 text-white" : "bg-white text-gray-800 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-100"}`;
 
@@ -248,6 +254,14 @@ export function MapView({ lang, cities }: { lang: Language; cities: MapCity[]; p
     <div className="relative flex-1">
       {/* Inline style: MapLibre's CSS sets position: relative on this element. */}
       <div ref={box} style={{ position: "absolute", inset: 0 }} aria-label={t("mapLabel")} role="region" />
+      {(!ready || !data) && (
+        <div role="status" className="absolute inset-0 z-[5] grid place-items-center bg-gray-100/80 dark:bg-gray-900/80">
+          <p className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm shadow dark:bg-gray-800">
+            <span aria-hidden className="h-3 w-3 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+            {t("loadingMap")}
+          </p>
+        </div>
+      )}
 
       <div className="absolute inset-x-0 top-0 z-30 space-y-2 p-3">
         <div className="flex items-center gap-2">
@@ -309,7 +323,7 @@ export function MapView({ lang, cities }: { lang: Language; cities: MapCity[]; p
         </div>
       )}
 
-      <Legend lang={lang} shown={visible.length} places={cityPlaces.length} live={liveCount} />
+      <Legend lang={lang} shown={visible.length} places={cityPlaces.length} live={liveCount} sample={sampleCount} />
 
       {panel === "list" && (
         <PlaceList key={`${activeCity}-${JSON.stringify(filters)}`} lang={lang} items={visible}
@@ -340,7 +354,7 @@ export function MapView({ lang, cities }: { lang: Language; cities: MapCity[]; p
   );
 }
 
-function Legend({ lang, shown, places, live }: { lang: Language; shown: number; places: number; live: number }) {
+function Legend({ lang, shown, places, live, sample }: { lang: Language; shown: number; places: number; live: number; sample: number }) {
   const t = translator(messages, lang);
   return (
     <div className="absolute bottom-3 left-3 z-10 max-w-[calc(100%-5rem)] rounded-lg bg-white/95 px-3 py-2 text-xs shadow dark:bg-gray-900/95">
@@ -354,6 +368,11 @@ function Legend({ lang, shown, places, live }: { lang: Language; shown: number; 
       {places > 0 && (
         <p className="mt-1 text-[11px] text-gray-500">
           {shown < places ? t("legend.filtered", { shown, places, live }) : t("legend.counts", { places, live })}
+        </p>
+      )}
+      {sample > 0 && (
+        <p className="mt-0.5 flex items-center gap-1.5 text-[11px] font-medium text-amber-600">
+          <span className="h-2.5 w-2.5 rounded-full border-2 border-amber-500" />{t("legend.sample", { n: sample })}
         </p>
       )}
     </div>

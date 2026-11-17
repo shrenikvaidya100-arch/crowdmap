@@ -3,6 +3,7 @@ import type { Messages } from "@/lib/i18n";
 export const messages = {
   en: {
     mapLabel: "Crowd map",
+    loadingMap: "Loading the crowd map…",
     noData: "no crowd data yet",
     locate: "Show my location",
     "locate.denied": "Location permission was denied.",
@@ -14,6 +15,7 @@ export const messages = {
     "level.packed": "Packed",
     "legend.counts": "{places} places · {live} live now · faded = estimated",
     "legend.filtered": "Showing {shown} of {places} places · {live} live now",
+    "legend.sample": "{n} with sample (demo) data, not real reports",
     share: "Share my location while the app is open",
     shareOn: "Sharing location (tap to stop)",
     "presence.starting": "Sharing location…",
@@ -32,6 +34,7 @@ export const messages = {
   },
   hi: {
     mapLabel: "भीड़ का नक्शा",
+    loadingMap: "भीड़ का नक्शा लोड हो रहा है…",
     noData: "अभी भीड़ की जानकारी नहीं",
     locate: "मेरी जगह दिखाएँ",
     "locate.denied": "लोकेशन की अनुमति नहीं मिली।",
@@ -43,6 +46,7 @@ export const messages = {
     "level.packed": "खचाखच",
     "legend.counts": "{places} जगहें · {live} अभी लाइव · हल्का रंग = अनुमान",
     "legend.filtered": "{places} में से {shown} जगहें · {live} अभी लाइव",
+    "legend.sample": "{n} पर नमूना (डेमो) डेटा, असली रिपोर्ट नहीं",
     share: "ऐप खुला रहने तक मेरी लोकेशन साझा करें",
     shareOn: "लोकेशन साझा हो रही है (रोकने के लिए टैप करें)",
     "presence.starting": "लोकेशन साझा हो रही है…",

@@ -3,7 +3,7 @@
 
 export type FilterablePlace = {
   id: string; name: string; name_hi: string | null; category: string;
-  lat: number; lng: number; level: number; source: "live" | "estimated";
+  lat: number; lng: number; level: number; source: "live" | "estimated"; sample?: boolean;
 };
 
 export type SortKey = "quietest" | "busiest" | "nearest" | "name";

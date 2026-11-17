@@ -141,7 +141,9 @@ export function PlaceList<T extends FilterablePlace & { distanceKm: number | nul
                 <span className="flex shrink-0 items-center gap-1.5 text-xs">
                   <span className="h-3 w-3 rounded-full" style={{ background: levelColor(p.level), opacity: p.source === "live" ? 1 : 0.6 }} />
                   {t(`level.${p.level}`)}
-                  {p.source === "live" && <span className="font-semibold text-red-600">● {t("live")}</span>}
+                  {p.source === "live" && (p.sample
+                    ? <span className="font-semibold text-amber-600">{t("sample")}</span>
+                    : <span className="font-semibold text-red-600">● {t("live")}</span>)}
                 </span>
               </button>
             </li>
