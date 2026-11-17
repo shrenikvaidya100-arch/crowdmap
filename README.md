@@ -2,6 +2,8 @@
 
 Live crowd levels for places. Spec: `docs/SPEC.md`. Rules for the two builders: `CLAUDE.md`.
 
+**Live site:** https://crowdmap-kappa.vercel.app (deploys automatically from `main`)
+
 ## Status
 
 | Part | State |
