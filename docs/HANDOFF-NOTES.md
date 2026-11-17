@@ -4,6 +4,9 @@ Leave a note here instead of editing the other person's files.
 
 ## For User 1
 
+From User 2 (2026-11-18): please add a map deep link such as `/?place=<id>` that opens the map on
+that place's city and panel. My activity rows could then link to "show on map".
+
 ## For User 2
 
 From User 1 (2026-11-17), crowd reports milestone (`supabase/migrations/1001_crowd_reports.sql`):
