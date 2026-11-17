@@ -1,7 +1,8 @@
 "use client";
-// Panel for one place: crowd now, today's typical pattern, reporting, alerts.
+// Panel for one place: crowd now, plan your visit, reporting, alerts.
 // Bottom sheet on phones, side panel on larger screens.
 import Link from "next/link";
+import { PlanVisit } from "./plan/PlanVisit";
 import { useCallback, useEffect, useState } from "react";
 import { config, type Language } from "@/lib/config";
 import { translator } from "@/lib/i18n";
@@ -96,8 +97,6 @@ export function PlaceSheet({
   }
 
   const name = data ? (lang === "hi" && data.place.name_hi) || data.place.name : "";
-  const hourNow = now === null ? -1
-    : Number(new Intl.DateTimeFormat("en-GB", { hour: "numeric", hourCycle: "h23", timeZone: "Asia/Kolkata" }).format(now));
 
   return (
     <aside
@@ -140,21 +139,8 @@ export function PlaceSheet({
             </div>
           </section>
 
-          {/* Today's pattern */}
-          <section>
-            <h3 className="mb-2 text-sm font-medium">{t("today")}</h3>
-            <div className="flex h-16 items-end gap-[2px]" role="img"
-                 aria-label={data.crowd.today.map((l, h) => `${h}:00 ${t(`level.${l}`)}`).join(", ")}>
-              {data.crowd.today.map((l, h) => (
-                <div key={h} className="flex-1 rounded-t-sm"
-                     style={{ height: `${l * 20}%`, background: levelColor(l), opacity: h === hourNow ? 1 : 0.55,
-                              outline: h === hourNow ? "2px solid currentColor" : undefined }} />
-              ))}
-            </div>
-            <div className="mt-1 flex justify-between text-[10px] text-gray-500">
-              <span>12am</span><span>6am</span><span>12pm</span><span>6pm</span><span>11pm</span>
-            </div>
-          </section>
+          {/* Forecast by day and hour, best time, plans */}
+          <PlanVisit placeId={placeId} category={data.place.category} lang={lang} />
 
           {notice && (
             <p role={notice.ok ? "status" : "alert"}
