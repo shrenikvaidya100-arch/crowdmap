@@ -15,8 +15,6 @@ user1 src/app/(map)/
 user1 supabase/migrations/1
 user1 scripts/user1/
 user1 tests/user1/
-user1 messages/en/user1.json
-user1 messages/hi/user1.json
 user1 docs/user1/
 
 # --- User 2: accounts area, media, comments, admin, trust and safety ---
@@ -30,6 +28,4 @@ user2 src/app/admin/
 user2 supabase/migrations/2
 user2 scripts/user2/
 user2 tests/user2/
-user2 messages/en/user2.json
-user2 messages/hi/user2.json
 user2 docs/user2/

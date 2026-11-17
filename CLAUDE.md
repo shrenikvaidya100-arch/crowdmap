@@ -1,3 +1,5 @@
+@AGENTS.md
+
 # CrowdMap: rules for Claude
 
 Spec: `docs/SPEC.md`. Two people build this project with the same Claude account:

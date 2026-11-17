@@ -1,0 +1,39 @@
+// Runs before each request: refreshes the Supabase session cookie and keeps
+// signed-out visitors away from private pages. Real permission checks happen
+// in the database (row-level security) and in each page.
+import { createServerClient } from "@supabase/ssr";
+import { NextResponse, type NextRequest } from "next/server";
+import { publicEnv } from "@/lib/env";
+
+const PRIVATE = ["/me", "/admin"];
+
+export async function proxy(request: NextRequest) {
+  let response = NextResponse.next({ request });
+  const { supabaseUrl, supabaseKey } = publicEnv();
+  if (!supabaseUrl || !supabaseKey) return response;
+
+  const supabase = createServerClient(supabaseUrl, supabaseKey, {
+    cookies: {
+      getAll: () => request.cookies.getAll(),
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+        response = NextResponse.next({ request });
+        cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+      },
+    },
+  });
+  const { data } = await supabase.auth.getUser();
+
+  const path = request.nextUrl.pathname;
+  if (!data.user && PRIVATE.some((p) => path === p || path.startsWith(`${p}/`))) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    url.search = `?next=${encodeURIComponent(path)}`;
+    return NextResponse.redirect(url);
+  }
+  return response;
+}
+
+export const config = {
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|svg|webp|ico|css|js)$).*)"],
+};
