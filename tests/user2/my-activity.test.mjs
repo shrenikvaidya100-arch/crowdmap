@@ -42,7 +42,8 @@ async function seedActivity(uid) {
 
 const countOwn = async (uid) => ({
   reports: (await db.query("select count(*)::int n from public.crowd_reports where user_id = $1", [uid])).rows[0].n,
-  alerts: (await db.query("select count(*)::int n from public.quick_reports where user_id = $1", [uid])).rows[0].n,
+  // Alert authors are private; own alerts come from my_quick_reports() (counts the caller's, not uid's).
+  alerts: (await db.query("select count(*)::int n from public.my_quick_reports()")).rows[0].n,
   plans: (await db.query("select count(*)::int n from public.visit_plans where user_id = $1", [uid])).rows[0].n,
   log: (await db.query("select count(*)::int n from public.audit_log where actor_id = $1", [uid])).rows[0].n,
 });

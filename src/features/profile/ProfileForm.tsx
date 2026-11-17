@@ -1,7 +1,9 @@
 "use client";
 // Edit display name, language and home city. Same validation in the browser
-// (on blur and submit) and on the server.
-import { useActionState, useState } from "react";
+// (on blur and submit) and on the server. Submitted through a transition rather
+// than <form action>, because React resets a form after its action runs, which
+// made the fields jump back to their old values.
+import { startTransition, useActionState, useState } from "react";
 import type { Language } from "@/lib/config";
 import { translator } from "@/lib/i18n";
 import { displayNameSchema } from "@/lib/validation/auth";
@@ -18,6 +20,9 @@ export function ProfileForm({
   const t = translator(messages, lang);
   const [state, action, pending] = useActionState<ProfileState, FormData>(updateProfile, {});
   const [nameError, setNameError] = useState<string | undefined>();
+  const [name, setName] = useState(initial.displayName);
+  const [prefLang, setPrefLang] = useState<Language>(initial.preferredLang);
+  const [city, setCity] = useState(initial.homeCity);
 
   const checkName = (v: string) => {
     const r = displayNameSchema.safeParse(v);
@@ -26,15 +31,17 @@ export function ProfileForm({
   const shownNameError = nameError ?? state.fields?.displayName;
 
   return (
-    <form action={action} noValidate className="max-w-md space-y-4"
+    <form noValidate className="max-w-md space-y-4"
           onSubmit={(e) => {
-            const err = checkName(String(new FormData(e.currentTarget).get("displayName") ?? ""));
+            e.preventDefault();
+            const formData = new FormData(e.currentTarget);
+            const err = checkName(String(formData.get("displayName") ?? ""));
             setNameError(err);
-            if (err) e.preventDefault();
+            if (!err) startTransition(() => action(formData));
           }}>
       <div>
         <label htmlFor="pr-name" className="block text-sm font-medium">{t("displayName")}</label>
-        <input id="pr-name" name="displayName" defaultValue={initial.displayName} maxLength={60} autoComplete="nickname"
+        <input id="pr-name" name="displayName" value={name} onChange={(e) => setName(e.target.value)} maxLength={60} autoComplete="nickname"
                onBlur={(e) => setNameError(checkName(e.target.value))} aria-invalid={Boolean(shownNameError)}
                className={`mt-1 w-full rounded-md border bg-transparent px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 ${shownNameError ? "border-red-500" : "border-gray-300 dark:border-gray-600"}`} />
         {shownNameError && <p className="mt-1 text-xs text-red-600">{t(shownNameError)}</p>}
@@ -45,7 +52,7 @@ export function ProfileForm({
         <div className="mt-1 flex gap-4">
           {(["en", "hi"] as const).map((l) => (
             <label key={l} className="flex items-center gap-2 text-sm">
-              <input type="radio" name="preferredLang" value={l} defaultChecked={initial.preferredLang === l} className="accent-blue-600" />
+              <input type="radio" name="preferredLang" value={l} checked={prefLang === l} onChange={() => setPrefLang(l)} className="accent-blue-600" />
               {t(`lang.${l}`)}
             </label>
           ))}
@@ -54,7 +61,7 @@ export function ProfileForm({
 
       <div>
         <label htmlFor="pr-city" className="block text-sm font-medium">{t("homeCity")}</label>
-        <select id="pr-city" name="homeCity" defaultValue={initial.homeCity}
+        <select id="pr-city" name="homeCity" value={city} onChange={(e) => setCity(e.target.value)}
                 className="mt-1 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm dark:border-gray-600">
           <option value="">{t("noCity")}</option>
           {cities.map((c) => <option key={c.id} value={c.id}>{lang === "hi" && c.name_hi ? c.name_hi : c.name}</option>)}

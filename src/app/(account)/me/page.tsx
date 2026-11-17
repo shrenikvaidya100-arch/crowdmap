@@ -14,6 +14,11 @@ export const metadata = { title: "My activity · CrowdMap" };
 
 const PLACE = "place:places(id, name, name_hi, city_id)";
 
+type MyAlert = {
+  id: string; kind: string; created_at: string; expires_at: string; still_there: number; gone: number;
+  place_id: string | null; place_name: string | null; place_name_hi: string | null; city_id: string;
+};
+
 async function loadActivity() {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
@@ -25,8 +30,8 @@ async function loadActivity() {
     supabase.from("cities").select("id, name, name_hi").order("sort_order"),
     supabase.from("crowd_reports").select(`id, level, created_at, ${PLACE}`).eq("user_id", uid)
       .order("created_at", { ascending: false }).limit(500),
-    supabase.from("quick_reports").select(`id, kind, created_at, expires_at, still_there, gone, ${PLACE}`).eq("user_id", uid)
-      .order("created_at", { ascending: false }).limit(500),
+    // Alert authors are private, so own alerts come from a function (User 1 contract).
+    supabase.rpc("my_quick_reports"),
     supabase.from("visit_plans").select(`id, planned_for, ${PLACE}`).eq("user_id", uid)
       .order("planned_for", { ascending: false }).limit(500),
     supabase.from("places").select("id, name, name_hi, category, status, created_at, city_id").eq("added_by", uid)
@@ -42,7 +47,10 @@ async function loadActivity() {
     profile: profile.data,
     cities: cities.data ?? [],
     reports: (reports.data ?? []) as unknown as ReportRow[],
-    alerts: (alerts.data ?? []) as unknown as AlertRow[],
+    alerts: ((alerts.data ?? []) as MyAlert[]).map((a): AlertRow => ({
+      id: a.id, kind: a.kind, created_at: a.created_at, expires_at: a.expires_at, still_there: a.still_there, gone: a.gone,
+      place: a.place_id ? { id: a.place_id, name: a.place_name ?? "", name_hi: a.place_name_hi, city_id: a.city_id } : null,
+    })),
     plans: (plans.data ?? []) as unknown as PlanRow[],
     places: (places.data ?? []) as AddedPlaceRow[],
     log: (log.data ?? []) as LogRow[],
