@@ -39,6 +39,7 @@ export const messages = {
     "group.transport": "Stations", "group.services": "Banks & offices",
     "level.1": "Empty", "level.2": "Quiet", "level.3": "Moderate", "level.4": "Busy", "level.5": "Packed",
     live: "Live",
+    sample: "Sample",
     "locate.denied": "Location permission was denied.",
   },
   hi: {
@@ -79,6 +80,7 @@ export const messages = {
     "group.transport": "स्टेशन", "group.services": "बैंक व दफ़्तर",
     "level.1": "खाली", "level.2": "शांत", "level.3": "मध्यम", "level.4": "व्यस्त", "level.5": "खचाखच",
     live: "लाइव",
+    sample: "नमूना",
     "locate.denied": "लोकेशन की अनुमति नहीं मिली।",
   },
 } satisfies Messages;

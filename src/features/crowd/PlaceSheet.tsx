@@ -21,8 +21,8 @@ type Details = {
     status: "listed" | "unconfirmed"; added_by_me: boolean;
   };
   confirmations: Confirmations;
-  crowd: { level: number; source: "live" | "estimated"; reports: number; last_report_at: string | null; here: number };
-  alerts: { id: string; kind: string; still_there: number; gone: number; created_at: string; mine: boolean }[];
+  crowd: { level: number; source: "live" | "estimated"; sample: boolean; reports: number; last_report_at: string | null; here: number };
+  alerts: { id: string; kind: string; still_there: number; gone: number; created_at: string; mine: boolean; sample: boolean }[];
   my_report: { id: string; level: number; created_at: string; editable: boolean } | null;
   signed_in: boolean;
 };
@@ -134,12 +134,15 @@ export function PlaceSheet({
             <div className="min-w-0">
               <p className="text-lg font-semibold">
                 {t(`level.${data.crowd.level}`)}
-                <span className={`ml-2 rounded px-1.5 py-0.5 align-middle text-[11px] font-medium uppercase tracking-wide ${data.crowd.source === "live" ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300" : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300"}`}>
-                  {data.crowd.source === "live" ? `● ${t("live")}` : t("estimated")}
+                <span className={`ml-2 rounded px-1.5 py-0.5 align-middle text-[11px] font-medium uppercase tracking-wide ${
+                  data.crowd.sample ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
+                  : data.crowd.source === "live" ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300"
+                  : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300"}`}>
+                  {data.crowd.sample ? t("sample") : data.crowd.source === "live" ? `● ${t("live")}` : t("estimated")}
                 </span>
               </p>
               <p className="text-xs text-gray-500">
-                {data.crowd.source === "live"
+                {data.crowd.sample ? t("sampleHint") : data.crowd.source === "live"
                   ? `${t("liveHint", { n: data.crowd.reports })}${data.crowd.last_report_at ? ` · ${t("updated", { ago: ago(data.crowd.last_report_at) })}` : ""}`
                   : t("estimatedHint")}
               </p>
@@ -211,7 +214,7 @@ export function PlaceSheet({
                   <li key={a.id} className="flex items-center gap-2 rounded-md border border-gray-200 px-3 py-2 text-sm dark:border-gray-700">
                     <span aria-hidden>{quickIcon(a.kind)}</span>
                     <span className="flex-1">
-                      {t(`kind.${a.kind}`)} <span className="text-xs text-gray-500">· {ago(a.created_at)} · {t("votes", { yes: a.still_there, no: a.gone })}</span>
+                      {t(`kind.${a.kind}`)}{a.sample && <span className="ml-1 rounded bg-amber-100 px-1 text-[10px] font-medium uppercase text-amber-800 dark:bg-amber-950 dark:text-amber-300">{t("sample")}</span>} <span className="text-xs text-gray-500">· {ago(a.created_at)} · {t("votes", { yes: a.still_there, no: a.gone })}</span>
                     </span>
                     {data.signed_in && (a.mine ? (
                       <button type="button" className="text-xs text-red-600 hover:underline" disabled={!!busy}
