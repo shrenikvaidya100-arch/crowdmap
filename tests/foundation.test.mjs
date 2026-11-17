@@ -47,9 +47,9 @@ async function actAs(userId) {
 }
 const actAsOwner = () => client.query("reset role");
 
-test("the three launch cities are seeded", async () => {
+test("five launch cities are seeded", async () => {
   const { rows } = await client.query("select id from public.cities order by sort_order");
-  assert.deepEqual(rows.map((r) => r.id), ["indore", "delhi", "mumbai"]);
+  assert.deepEqual(rows.map((r) => r.id), ["indore", "pondicherry", "vadodara", "chennai", "delhi"]);
 });
 
 test("sign-up creates a profile and an audit entry", () => inTx(async () => {
@@ -119,7 +119,7 @@ test("there can never be more than two admins", () => inTx(async () => {
 test("visitors who are not signed in can read cities and places but not profiles or the log", () => inTx(async () => {
   await client.query("set local role anon");
   const c = await client.query("select count(*)::int as n from public.cities");
-  assert.equal(c.rows[0].n, 3);
+  assert.equal(c.rows[0].n, 5);
   await client.query("select count(*) from public.places");
   await rejects("select * from public.profiles", [], /permission denied/);
   await rejects("select * from public.audit_log", [], /permission denied/);

@@ -12,7 +12,7 @@
     "prebuild": "node scripts/copy-map-worker.mjs",
     "typecheck": "tsc --noEmit",
     "db:push": "supabase db push --remote=\"$SUPABASE_DB_URL\"",
-    "test:db": "node --env-file=.env.local --test --test-concurrency=1 \"tests/**/*.test.mjs\""
+    "test:db": "node --env-file=.env.local --test \"tests/**/*.test.mjs\""
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
