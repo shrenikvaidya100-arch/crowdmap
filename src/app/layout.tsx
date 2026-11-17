@@ -10,6 +10,9 @@ const sans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "CrowdMap",
   description: "Live crowd levels for temples, markets, restaurants and more. See when a place is quiet before you go.",
+  applicationName: "CrowdMap",
+  // iPhone "Add to Home Screen" opens full screen with this title.
+  appleWebApp: { capable: true, title: "CrowdMap", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#2563eb" };
