@@ -3,7 +3,7 @@
 Working name. A live crowd map for places, not roads: before you leave, see whether
 the temple, market, restaurant or mall is empty or packed, and when it will be quiet.
 
-Status: decisions below are agreed with User 1 and User 2 unless marked **OPEN**.
+Status: all decisions below are agreed by User 1 and User 2 (2026-11-17).
 
 ---
 
@@ -20,7 +20,7 @@ Status: decisions below are agreed with User 1 and User 2 unless marked **OPEN**
 
 | Order | City | Notes |
 |---|---|---|
-| 1 | Indore (**OPEN**: confirm "Khandar" meant Indore) | Primary demo city. Full sample data. |
+| 1 | Indore | Primary demo city. Full sample data. |
 | 2 | Pondicherry | Sample data |
 | 3 | Vadodara | Sample data |
 | 4 | Chennai | Sample data |
@@ -76,14 +76,19 @@ tools or spoofing apps. We stack checks so that faking is hard and gets caught:
 Signals, strongest first:
 
 1. **Crowd reports**: one tap on the 5-level scale by someone present.
-2. **Live presence**: users who opted in and have the app open at the place.
-   This is a count of *our* users only (open question, section 12).
+2. **Live presence**, like Google Maps: users who opt in share their location
+   quietly about once a minute while the site (or installed app) is open. A browser
+   cannot do this with the site closed. Counts only *our* users. Raw locations are
+   kept briefly; only per-place counts are stored long term.
 3. **Quick-report buttons** (section 7). Some raise the level (e.g. "Long queue").
 4. **Intent**: people who searched for, viewed or marked "planning to go" for a place
-   at a time. Used for forecasts, not the live level.
+   at a time. Used for forecasts, not the live level. Shown publicly as counts,
+   e.g. "34 people plan to visit after 6 pm" (never who).
 5. **Patterns**: the same place's history by hour and weekday.
 6. **Context**: category defaults, Indian festival/holiday calendar, weather
-   (Open-Meteo, free), known local events.
+   (Open-Meteo, free), known local events. An AI model drafts sensible default
+   patterns per place type so no place starts blank. Anything built only from
+   signals 4 to 6 is always labelled **Estimated**.
 
 Every signal fades over time (reports count fully for ~15 min, mostly gone by 90 min).
 Reports from trusted accounts weigh more than new accounts.
@@ -144,7 +149,7 @@ Each expires after a set time unless others confirm it. Others can tap
 - Validation in the browser and again on the server for every form.
 - Rate limits on every write.
 - Uploads: type and size checked, images stripped of hidden location metadata,
-  videos capped (**OPEN**: suggested 30 s / 25 MB).
+  videos capped at 30 s / 25 MB and compressed in the browser before upload.
 - Secrets only in server environment variables, never in the browser.
 
 ## 11. Free stack
@@ -166,6 +171,13 @@ Each expires after a set time unless others confirm it. Others can tap
 Known free-tier limits: database 500 MB, file storage 1 GB, Supabase pauses after a
 week without traffic (the scheduled job prevents this).
 
-## 12. Open questions
+## 12. Team setup
 
-See the latest chat, or `docs/QUESTIONS.md` once answered.
+- Name: **CrowdMap**.
+- Two laptops, one permanent identity each. The laptop where this repo was first
+  set up is **User 1**; the other is **User 2** (`.active-user` on each machine).
+- One shared Claude Pro account; usage limit is shared, accepted.
+
+## 13. Open questions
+
+None right now.
