@@ -2,7 +2,7 @@
 // Login and sign-up form. Validates in the browser with the same rules the
 // server uses, and requires the CAPTCHA before any submit (including Google).
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
 import { Turnstile } from "@/components/Turnstile";
 import type { Language } from "@/lib/config";
 import { common } from "@/lib/i18n/common";
@@ -31,7 +31,9 @@ export function AuthForm({
   const [clientErrors, setClientErrors] = useState<FieldErrors>({});
   const [captchaMissing, setCaptchaMissing] = useState(false);
 
-  // Server results arrive as new state objects; the CAPTCHA resets on each one.
+  // Server results arrive as new state objects; the CAPTCHA resets on each one
+  // (tokens are single-use). Memoised so ordinary re-renders do NOT reset it.
+  const captchaReset = useMemo(() => ({}), [state, googleState]);
   const errors = { ...state.fields, ...clientErrors };
   const message = captchaMissing ? "auth.captchaRequired" : googleState.message ?? state.message;
 
@@ -94,7 +96,7 @@ export function AuthForm({
                  autoComplete="new-password" error={errors.confirmPassword && t(errors.confirmPassword)} />
         )}
 
-        <Turnstile siteKey={siteKey} lang={lang} resetSignal={[state, googleState]}
+        <Turnstile siteKey={siteKey} lang={lang} resetSignal={captchaReset}
                    onToken={(v) => { setToken(v); if (v) setCaptchaMissing(false); }} />
 
         <button type="submit" disabled={busy}
