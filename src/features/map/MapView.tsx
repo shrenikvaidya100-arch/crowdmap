@@ -1,14 +1,19 @@
 "use client";
 // Live crowd map: OpenStreetMap (via OpenFreeMap) with each place coloured by
-// its crowd level. Solid = live from reports, faded = estimated. User 1 feature.
+// its crowd level. Solid = live from reports, faded = estimated. Search,
+// filters and a sortable list sit on top. User 1 feature.
 import "maplibre-gl/dist/maplibre-gl.css";
 import {
   Map as MLMap, Marker, NavigationControl, setWorkerUrl,
   type GeoJSONSource, type MapLayerMouseEvent,
 } from "maplibre-gl";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { crowdConfig, quickIcon } from "@/features/crowd/config";
 import { PlaceSheet } from "@/features/crowd/PlaceSheet";
+import { FilterSheet, PlaceList } from "@/features/search/Explore";
+import { applyFilters, countActive, DEFAULT_FILTERS, type Filters } from "@/features/search/filters";
+import { messages as searchMessages } from "@/features/search/messages";
+import { SearchBox, type SearchHit } from "@/features/search/SearchBox";
 import { config, type Language } from "@/lib/config";
 import { translator } from "@/lib/i18n";
 import { messages } from "./messages";
@@ -25,37 +30,42 @@ type CrowdPlace = {
   level: number; source: "live" | "estimated"; reports: number;
 };
 type Alert = { id: string; kind: string; place_id: string | null; lat: number; lng: number };
-type CrowdData = { places: CrowdPlace[]; alerts: Alert[] };
+type CrowdData = { city: string; places: CrowdPlace[]; alerts: Alert[] };
+type LatLng = { lat: number; lng: number };
 
 const LEVEL_COLOR = ["match", ["get", "level"],
   ...config.crowd.levels.flatMap((l) => [l.level, l.color]), config.crowd.noDataColor] as unknown as string;
 
 export function MapView({ lang, cities }: { lang: Language; cities: MapCity[]; places?: MapPlace[] }) {
   const t = translator(messages, lang);
+  const ts = translator(searchMessages, lang);
   const box = useRef<HTMLDivElement>(null);
   const map = useRef<MLMap | null>(null);
   const alertMarkers = useRef<Marker[]>([]);
+  const startCity = cities.find((c) => c.id === config.defaultCity) ?? cities[0] ?? null;
   const [ready, setReady] = useState(false);
-  const [activeCity, setActiveCity] = useState<string | null>(
-    cities.some((c) => c.id === config.defaultCity) ? config.defaultCity : cities[0]?.id ?? null,
-  );
+  const [activeCity, setActiveCity] = useState<string | null>(startCity?.id ?? null);
   const [data, setData] = useState<CrowdData | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
+  const [panel, setPanel] = useState<"filters" | "list" | null>(null);
+  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
+  const [me, setMe] = useState<LatLng | null>(null);
+  const [centre, setCentre] = useState<LatLng | null>(startCity ? { lat: startCity.lat, lng: startCity.lng } : null);
   const [locError, setLocError] = useState("");
 
   // Create the map once.
   useEffect(() => {
     if (!box.current) return;
-    const start = cities.find((c) => c.id === config.defaultCity) ?? cities[0];
     const m = new MLMap({
       container: box.current,
       style: config.map.styleUrl,
-      center: start ? [start.lng, start.lat] : config.map.worldCenter,
-      zoom: start ? start.default_zoom : config.map.worldZoom,
+      center: startCity ? [startCity.lng, startCity.lat] : config.map.worldCenter,
+      zoom: startCity ? startCity.default_zoom : config.map.worldZoom,
       attributionControl: { compact: true },
     });
     map.current = m;
     m.addControl(new NavigationControl({ showCompass: false }), "bottom-right");
+    m.on("moveend", () => { const c = m.getCenter(); setCentre({ lat: c.lat, lng: c.lng }); });
     m.on("load", () => {
       m.addSource("places", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
       m.addLayer({
@@ -86,7 +96,7 @@ export function MapView({ lang, cities }: { lang: Language; cities: MapCity[]; p
   const loadCity = useCallback(async (city: string) => {
     try {
       const res = await fetch(`/api/crowd?city=${encodeURIComponent(city)}`, { cache: "no-store" });
-      if (res.ok) setData(await res.json());
+      if (res.ok) setData({ city, ...(await res.json()) });
     } catch {
       // Keep showing the last data; the next poll will retry.
     }
@@ -102,20 +112,29 @@ export function MapView({ lang, cities }: { lang: Language; cities: MapCity[]; p
     return () => { cancelled = true; clearInterval(id); };
   }, [activeCity, loadCity]);
 
-  // Push data into the map.
+  // Places that pass the filters, sorted; distances from me, or else the map centre.
+  const cityPlaces = useMemo(() => (data && data.city === activeCity ? data.places : []), [data, activeCity]);
+  const visible = useMemo(() => applyFilters(cityPlaces, filters, me ?? centre), [cityPlaces, filters, me, centre]);
+
+  // Push the visible places and alerts into the map.
   useEffect(() => {
     const m = map.current;
-    if (!ready || !m || !data) return;
+    if (!ready || !m) return;
     (m.getSource("places") as GeoJSONSource | undefined)?.setData({
       type: "FeatureCollection",
-      features: data.places.map((p) => ({
+      features: visible.map((p) => ({
         type: "Feature",
         geometry: { type: "Point", coordinates: [p.lng, p.lat] },
         properties: { id: p.id, level: p.level, live: p.source === "live" ? 1 : 0 },
       })),
     });
+  }, [visible, ready]);
+
+  useEffect(() => {
+    const m = map.current;
+    if (!ready || !m) return;
     alertMarkers.current.forEach((mk) => mk.remove());
-    alertMarkers.current = data.alerts.map((a) => {
+    alertMarkers.current = (data?.alerts ?? []).map((a) => {
       const el = document.createElement("button");
       el.type = "button";
       el.textContent = quickIcon(a.kind);
@@ -132,50 +151,92 @@ export function MapView({ lang, cities }: { lang: Language; cities: MapCity[]; p
     map.current?.flyTo({ center: [c.lng, c.lat], zoom: c.default_zoom, essential: true });
   }
 
-  function locate() {
+  /** Centre on a place (switching city if needed) and open its panel. */
+  function openPlace(p: { id: string; lat: number; lng: number; city_id?: string }) {
+    if (p.city_id && p.city_id !== activeCity) setActiveCity(p.city_id);
+    setSelected(p.id);
+    if (window.matchMedia("(max-width: 639px)").matches) setPanel(null);
+    map.current?.flyTo({ center: [p.lng, p.lat], zoom: Math.max(map.current.getZoom(), 15), essential: true });
+  }
+
+  function nearestCity(lat: number, lng: number) {
+    return cities.reduce<MapCity | null>((best, c) => {
+      const d = (c.lat - lat) ** 2 + (c.lng - lng) ** 2;
+      return !best || d < (best.lat - lat) ** 2 + (best.lng - lng) ** 2 ? c : best;
+    }, null);
+  }
+
+  function locate(fly = true) {
     setLocError("");
     if (!navigator.geolocation) { setLocError(t("locate.unsupported")); return; }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const { latitude, longitude } = pos.coords;
-        // Switch to the nearest launch city so its places load.
-        const nearest = cities.reduce<MapCity | null>((best, c) => {
-          const d = (c.lat - latitude) ** 2 + (c.lng - longitude) ** 2;
-          return !best || d < (best.lat - latitude) ** 2 + (best.lng - longitude) ** 2 ? c : best;
-        }, null);
-        if (nearest) setActiveCity(nearest.id);
-        map.current?.flyTo({ center: [longitude, latitude], zoom: 15 });
+        const { latitude: lat, longitude: lng } = pos.coords;
+        setMe({ lat, lng });
+        const near = nearestCity(lat, lng);
+        if (near) setActiveCity(near.id);
+        if (fly) map.current?.flyTo({ center: [lng, lat], zoom: 15 });
       },
       () => setLocError(t("locate.denied")),
       { enableHighAccuracy: true, timeout: 10000 },
     );
   }
 
-  const liveCount = data?.places.filter((p) => p.source === "live").length ?? 0;
+  const cityNames = Object.fromEntries(cities.map((c) => [c.id, lang === "hi" && c.name_hi ? c.name_hi : c.name]));
+  const activeFilters = countActive(filters);
+  const liveCount = cityPlaces.filter((p) => p.source === "live").length;
+  const toolBtn = (on: boolean) =>
+    `relative shrink-0 rounded-full px-3.5 py-2 text-sm font-medium shadow ${on ? "bg-blue-600 text-white" : "bg-white text-gray-800 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-100"}`;
 
   return (
     <div className="relative flex-1">
       {/* Inline style: MapLibre's CSS sets position: relative on this element. */}
       <div ref={box} style={{ position: "absolute", inset: 0 }} aria-label={t("mapLabel")} role="region" />
 
-      <div className="absolute inset-x-0 top-0 z-10 flex gap-2 overflow-x-auto p-3 [scrollbar-width:none]">
-        {cities.map((c) => (
-          <button key={c.id} type="button" onClick={() => flyTo(c)}
-                  className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium shadow ${activeCity === c.id ? "bg-blue-600 text-white" : "bg-white text-gray-800 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-100"}`}>
-            {lang === "hi" && c.name_hi ? c.name_hi : c.name}
+      <div className="absolute inset-x-0 top-0 z-30 space-y-2 p-3">
+        <div className="flex items-center gap-2">
+          <SearchBox lang={lang} city={activeCity} cityNames={cityNames} onPick={(h: SearchHit) => openPlace(h)} />
+          <button type="button" className={toolBtn(panel === "filters")} aria-expanded={panel === "filters"}
+                  aria-label={activeFilters ? `${ts("filters")} (${activeFilters})` : ts("filters")}
+                  onClick={() => setPanel(panel === "filters" ? null : "filters")}>
+            <span aria-hidden>⚙︎</span> <span className="hidden sm:inline">{ts("filters")}</span>
+            {activeFilters > 0 && (
+              <span className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full bg-red-600 text-[11px] text-white">{activeFilters}</span>
+            )}
           </button>
-        ))}
+          <button type="button" className={toolBtn(panel === "list")} aria-expanded={panel === "list"} aria-label={ts("list")}
+                  onClick={() => setPanel(panel === "list" ? null : "list")}>
+            <span aria-hidden>☰</span> <span className="hidden sm:inline">{ts("list")}</span>
+          </button>
+        </div>
+        <div className="flex gap-2 overflow-x-auto [scrollbar-width:none]">
+          {cities.map((c) => (
+            <button key={c.id} type="button" onClick={() => flyTo(c)}
+                    className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium shadow ${activeCity === c.id ? "bg-blue-600 text-white" : "bg-white text-gray-800 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-100"}`}>
+              {cityNames[c.id]}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="absolute bottom-36 right-2.5 z-10 flex flex-col items-end gap-2 sm:bottom-28">
-        {locError && <p className="max-w-56 rounded-md bg-white px-2 py-1 text-xs shadow dark:bg-gray-900">{locError}</p>}
-        <button type="button" onClick={locate} title={t("locate")}
+        {locError && panel !== "filters" && <p className="max-w-56 rounded-md bg-white px-2 py-1 text-xs shadow dark:bg-gray-900">{locError}</p>}
+        <button type="button" onClick={() => locate()} title={t("locate")}
                 className="grid h-10 w-10 place-items-center rounded-full bg-white text-lg shadow hover:bg-gray-50 dark:bg-gray-900">
           <span aria-hidden>◎</span><span className="sr-only">{t("locate")}</span>
         </button>
       </div>
 
-      <Legend lang={lang} places={data?.places.length ?? 0} live={liveCount} />
+      <Legend lang={lang} shown={visible.length} places={cityPlaces.length} live={liveCount} />
+
+      {panel === "list" && (
+        <PlaceList key={`${activeCity}-${JSON.stringify(filters)}`} lang={lang} items={visible}
+                   total={cityPlaces.length} onPick={(p) => openPlace(p)} onClose={() => setPanel(null)} />
+      )}
+      {panel === "filters" && (
+        <FilterSheet lang={lang} filters={filters} onChange={setFilters} onClose={() => setPanel(null)}
+                     origin={me ? "me" : "centre"} onUseLocation={() => locate(false)} locError={locError} />
+      )}
 
       {selected && (
         <PlaceSheet key={selected} placeId={selected} lang={lang} onClose={() => setSelected(null)}
@@ -185,7 +246,7 @@ export function MapView({ lang, cities }: { lang: Language; cities: MapCity[]; p
   );
 }
 
-function Legend({ lang, places, live }: { lang: Language; places: number; live: number }) {
+function Legend({ lang, shown, places, live }: { lang: Language; shown: number; places: number; live: number }) {
   const t = translator(messages, lang);
   return (
     <div className="absolute bottom-3 left-3 z-10 max-w-[calc(100%-5rem)] rounded-lg bg-white/95 px-3 py-2 text-xs shadow dark:bg-gray-900/95">
@@ -197,7 +258,9 @@ function Legend({ lang, places, live }: { lang: Language; places: number; live: 
         ))}
       </div>
       {places > 0 && (
-        <p className="mt-1 text-[11px] text-gray-500">{t("legend.counts", { places, live })}</p>
+        <p className="mt-1 text-[11px] text-gray-500">
+          {shown < places ? t("legend.filtered", { shown, places, live }) : t("legend.counts", { places, live })}
+        </p>
       )}
     </div>
   );
