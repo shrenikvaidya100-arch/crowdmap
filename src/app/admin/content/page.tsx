@@ -69,7 +69,8 @@ export default async function AdminContent({ searchParams }: PageProps<"/admin/c
                     {r.notes.length > 0 && <> · &ldquo;{r.notes.slice(0, 2).join("”, “")}&rdquo;</>}
                   </p>
                 </div>
-                <ReportActions mediaId={r.media_id} keepLabel={t("reports.keep")} hideLabel={t("reports.hide")} />
+                <ReportActions mediaId={r.media_id} keepLabel={t("reports.keep")} hideLabel={t("reports.hide")}
+                               hideItemLabel={t("reports.hideItem", { name: r.caption || r.place_name })} holdingLabel={t("reports.holding")} hiddenLabel={t("reports.hidden")} />
               </li>
             ))}
           </ul>

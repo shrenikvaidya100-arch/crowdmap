@@ -1,6 +1,7 @@
 "use client";
 // Name / Hindi name / category fields with the same validation as the server.
 import { useState } from "react";
+import ParticleButton from "@/components/core/particle-button";
 import type { Language } from "@/lib/config";
 import { translator } from "@/lib/i18n";
 import { toFieldErrors } from "@/lib/validation/auth";
@@ -10,11 +11,15 @@ import { PLACE_CATEGORIES, placeFieldsSchema } from "./validation";
 export type PlaceFields = { name: string; nameHi: string; category: string };
 
 export function PlaceForm({
-  lang, initial, submitLabel, busy, onSubmit, onCancel,
+  lang, initial, submitLabel, successLabel, status, busy, onSubmit, onCancel,
 }: {
   lang: Language;
   initial?: PlaceFields;
   submitLabel: string;
+  /** Shown on the button after a save ("Added"); with it, the burst plays. */
+  successLabel?: string;
+  /** Result of the last save, for the button. */
+  status?: "success" | "error" | "idle";
   busy: boolean;
   onSubmit: (v: PlaceFields) => void;
   onCancel: () => void;
@@ -68,10 +73,11 @@ export function PlaceForm({
         {errors.category && <p className="text-xs text-red-600">{t(errors.category)}</p>}
       </div>
       <div className="flex gap-2 pt-1">
-        <button type="submit" disabled={busy}
-                className="flex-1 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
-          {busy ? t("saving") : submitLabel}
-        </button>
+        <ParticleButton type="submit" fluid className="h-auto flex-1 py-2"
+                        status={busy ? "pending" : status ?? "idle"}
+                        pendingLabel={t("saving")} successLabel={successLabel ?? submitLabel} errorLabel={t("tryAgain")}>
+          {submitLabel}
+        </ParticleButton>
         <button type="button" onClick={onCancel}
                 className="rounded-md border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800">
           {t("cancel")}

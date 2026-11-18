@@ -2,6 +2,7 @@
 // Remove / restore / hide / show button that asks for a reason first.
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import HoldButton from "@/components/core/hold-button";
 import type { Language } from "@/lib/config";
 import { translator } from "@/lib/i18n";
 import { moderate } from "./actions";
@@ -23,6 +24,16 @@ export function Moderate({ lang, target, id, to, label }: {
   const [pending, start] = useTransition();
   const danger = to === "removed";
 
+  function submit() {
+    const parsed = reasonSchema.safeParse(reason);
+    if (!parsed.success) return setResult({ ok: false, key: `result.${parsed.error.issues[0].message}` });
+    start(async () => {
+      const res = await moderate({ target, id, to, reason: parsed.data });
+      setResult({ ok: res.ok, key: res.ok ? "result.ok" : `result.${res.reason ?? "error"}` });
+      if (res.ok) { setOpen(false); setReason(""); router.refresh(); }
+    });
+  }
+
   if (!open) {
     return (
       <span className="inline-flex flex-col items-start gap-1">
@@ -36,22 +47,21 @@ export function Moderate({ lang, target, id, to, label }: {
   }
 
   return (
-    <form className="flex min-w-48 flex-col gap-1" onSubmit={(e) => {
-      e.preventDefault();
-      const parsed = reasonSchema.safeParse(reason);
-      if (!parsed.success) return setResult({ ok: false, key: `result.${parsed.error.issues[0].message}` });
-      start(async () => {
-        const res = await moderate({ target, id, to, reason: parsed.data });
-        setResult({ ok: res.ok, key: res.ok ? "result.ok" : `result.${res.reason ?? "error"}` });
-        if (res.ok) { setOpen(false); setReason(""); router.refresh(); }
-      });
-    }}>
+    <form className="flex min-w-48 flex-col gap-1" onSubmit={(e) => { e.preventDefault(); if (!danger) submit(); }}>
       <input autoFocus value={reason} onChange={(e) => setReason(e.target.value)} maxLength={200} placeholder={t("reason")}
              aria-label={t("reason")} className="rounded border border-gray-300 px-2 py-1 text-xs dark:border-gray-700 dark:bg-gray-950" />
-      <span className="flex gap-2 text-xs">
-        <button disabled={pending} className={`rounded px-2 py-1 font-medium text-white disabled:opacity-50 ${danger ? "bg-red-600" : "bg-green-600"}`}>
-          {pending ? t("working") : `${label}: ${t("confirm")}`}
-        </button>
+      <span className="flex items-center gap-2 text-xs">
+        {danger ? (
+          // Removing is held, not clicked, so it can't happen by accident.
+          <HoldButton size="sm" disabled={pending || !reason.trim()} aria-label={t("holdItem", { action: label.toLowerCase() })}
+                      holdingLabel={t("keepHolding")} completeLabel={t("done")} resetAfter={0} onHoldComplete={submit}>
+            {t("holdItem", { action: label.toLowerCase() })}
+          </HoldButton>
+        ) : (
+          <button disabled={pending} className="rounded bg-green-600 px-2 py-1 font-medium text-white disabled:opacity-50">
+            {pending ? t("working") : `${label}: ${t("confirm")}`}
+          </button>
+        )}
         <button type="button" onClick={() => setOpen(false)} className="text-gray-500">{t("cancel")}</button>
       </span>
       {result && !result.ok && <span role="alert" className="text-xs text-amber-700">{t(result.key)}</span>}

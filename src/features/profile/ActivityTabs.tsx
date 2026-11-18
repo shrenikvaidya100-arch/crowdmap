@@ -1,5 +1,6 @@
 "use client";
 import { Icon } from "@/components/icons/Icon";
+import HoldButton from "@/components/core/hold-button";
 // "My activity" tabs: each is a table with a text filter, city filter and
 // sorting, plus change/delete/cancel where the rules allow it.
 // Writes reuse User 1's server actions; the database enforces who may do what.
@@ -194,8 +195,9 @@ export function ActivityTabs({
                             {minsLeft > 0 && <span className="block text-xs text-gray-500">{t("editableUntil", { min: minsLeft })}</span>}
                           </td>
                           <td className={td}>
-                            <button type="button" className={`${linkBtn} text-red-600`} disabled={busy === r.id}
-                                    onClick={() => void run(r.id, () => deleteCrowdReport(r.id), "confirmDelete")}>{t("delete")}</button>
+                            <HoldButton size="sm" disabled={busy === r.id} aria-label={t("holdDeleteItem", { name: placeName(r.place) })}
+                                    holdingLabel={t("keepHolding")} completeLabel={t("deleted")} resetAfter={0}
+                                    onHoldComplete={() => void run(r.id, () => deleteCrowdReport(r.id))}>{t("holdDelete")}</HoldButton>
                           </td>
                         </tr>
                       );
@@ -220,8 +222,9 @@ export function ActivityTabs({
                           <td className={td}>{fmt(a.created_at)}</td>
                           <td className={td}>{active ? <span className="text-green-700">{t("active")}</span> : <span className="text-gray-500">{t("ended")}</span>}</td>
                           <td className={td}>
-                            <button type="button" className={`${linkBtn} text-red-600`} disabled={busy === a.id}
-                                    onClick={() => void run(a.id, () => deleteQuickReport(a.id), "confirmDelete")}>{t("delete")}</button>
+                            <HoldButton size="sm" disabled={busy === a.id} aria-label={t("holdDeleteItem", { name: placeName(a.place) })}
+                                    holdingLabel={t("keepHolding")} completeLabel={t("deleted")} resetAfter={0}
+                                    onHoldComplete={() => void run(a.id, () => deleteQuickReport(a.id))}>{t("holdDelete")}</HoldButton>
                           </td>
                         </tr>
                       );
@@ -246,8 +249,9 @@ export function ActivityTabs({
                           : m.status === "removed" ? <span className="text-red-600">{t("hiddenByAdmin")}</span>
                           : <span className="text-gray-500">{t("unfinished")}</span>}</td>
                         <td className={td}>
-                          <button type="button" className={`${linkBtn} text-red-600`} disabled={busy === m.id}
-                                  onClick={() => void run(m.id, () => deleteMedia(m.id), "confirmDeleteUpload")}>{t("delete")}</button>
+                          <HoldButton size="sm" disabled={busy === m.id} aria-label={t("holdDeleteItem", { name: placeName(m.place) })}
+                                    holdingLabel={t("keepHolding")} completeLabel={t("deleted")} resetAfter={0}
+                                    onHoldComplete={() => void run(m.id, () => deleteMedia(m.id))}>{t("holdDelete")}</HoldButton>
                         </td>
                       </tr>
                     ))}
@@ -269,8 +273,9 @@ export function ActivityTabs({
                         <td className={td}>{c.status === "visible" ? <span className="text-green-700">{t("shown")}</span>
                           : <span className="text-red-600">{t("hiddenByAdmin")}</span>}</td>
                         <td className={td}>
-                          <button type="button" className={`${linkBtn} text-red-600`} disabled={busy === c.id}
-                                  onClick={() => void run(c.id, () => deleteComment(c.id), "confirmDelete")}>{t("delete")}</button>
+                          <HoldButton size="sm" disabled={busy === c.id} aria-label={t("holdDeleteItem", { name: placeName(c.place) })}
+                                    holdingLabel={t("keepHolding")} completeLabel={t("deleted")} resetAfter={0}
+                                    onHoldComplete={() => void run(c.id, () => deleteComment(c.id))}>{t("holdDelete")}</HoldButton>
                         </td>
                       </tr>
                     ))}
@@ -319,8 +324,9 @@ export function ActivityTabs({
                         <td className={td}>{fmt(p.created_at)}</td>
                         <td className={td}>
                           {p.status === "unconfirmed" && (
-                            <button type="button" className={`${linkBtn} text-red-600`} disabled={busy === p.id}
-                                    onClick={() => void run(p.id, () => deleteMyPlace(p.id), "confirmDelete")}>{t("delete")}</button>
+                            <HoldButton size="sm" disabled={busy === p.id} aria-label={t("holdDeleteItem", { name: ((lang === "hi" && p.name_hi) || p.name) })}
+                                    holdingLabel={t("keepHolding")} completeLabel={t("deleted")} resetAfter={0}
+                                    onHoldComplete={() => void run(p.id, () => deleteMyPlace(p.id))}>{t("holdDelete")}</HoldButton>
                           )}
                         </td>
                       </tr>

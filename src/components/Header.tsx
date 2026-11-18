@@ -14,7 +14,7 @@ import type { Viewer } from "@/lib/session";
 
 export function Header({ lang, viewer }: { lang: Language; viewer: Viewer }) {
   const t = translator(common, lang);
-  const link = "rounded-md px-2.5 py-1.5 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-zinc-50";
+  const link = "rounded-md px-1.5 py-1.5 sm:px-2.5 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-zinc-50";
   const items = [
     { label: t("nav.home"), href: "/" },
     { label: t("nav.map"), href: "/map" },
@@ -45,7 +45,7 @@ export function Header({ lang, viewer }: { lang: Language; viewer: Viewer }) {
             }} />
           </>
         ) : (
-          <Link href="/login" className="rounded-md border border-zinc-600 px-3 py-1.5 text-sm font-medium text-zinc-50 hover:border-zinc-400 hover:bg-zinc-900">
+          <Link href="/login" className="whitespace-nowrap rounded-md border border-zinc-600 px-3 py-1.5 text-sm font-medium text-zinc-50 hover:border-zinc-400 hover:bg-zinc-900">
             {t("nav.signIn")}
           </Link>
         )}
