@@ -156,7 +156,7 @@ export function PlaceSheet({
           </section>
 
           {/* Save, and "tell me when it's quiet" */}
-          <PlaceActions placeId={placeId} lang={lang} />
+          <PlaceActions placeId={placeId} placeName={name} lang={lang} />
 
           {/* User-added place waiting for confirmation */}
           <PlaceStatus lang={lang} place={data.place} confirmations={data.confirmations} signedIn={data.signed_in}

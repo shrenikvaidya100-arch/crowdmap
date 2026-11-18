@@ -3,73 +3,34 @@ import { Icon } from "@/components/icons/Icon";
 // Turn browser notifications on or off for this device (Web Push).
 import { useEffect, useState } from "react";
 import type { Language } from "@/lib/config";
-import { publicEnv } from "@/lib/env";
 import { translator } from "@/lib/i18n";
-import { deletePushSubscription, savePushSubscription } from "./actions";
+import { disablePush, enablePush, pushStatus } from "./push";
 import { messages } from "./messages";
 
 type Status = "loading" | "unsupported" | "ios" | "off" | "on" | "denied";
-
-function keyBytes(base64url: string) {
-  const pad = "=".repeat((4 - (base64url.length % 4)) % 4);
-  const raw = atob((base64url + pad).replace(/-/g, "+").replace(/_/g, "/"));
-  return Uint8Array.from(raw, (c) => c.charCodeAt(0));
-}
 
 export function PushToggle({ lang }: { lang: Language }) {
   const t = translator(messages, lang);
   const [status, setStatus] = useState<Status>("loading");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const vapid = publicEnv().vapidPublicKey;
 
-  useEffect(() => {
-    (async () => {
-      const supported = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
-      if (!supported) {
-        const ios = /iPhone|iPad|iPod/.test(navigator.userAgent);
-        return setStatus(ios ? "ios" : "unsupported");
-      }
-      if (Notification.permission === "denied") return setStatus("denied");
-      const reg = await navigator.serviceWorker.getRegistration("/");
-      const sub = await reg?.pushManager.getSubscription();
-      setStatus(sub ? "on" : "off");
-    })().catch(() => setStatus("unsupported"));
-  }, []);
+  useEffect(() => { pushStatus().then(setStatus).catch(() => setStatus("unsupported")); }, []);
 
   async function enable() {
     setBusy(true);
     setError(null);
-    try {
-      if (!vapid) return setError("pushNotConfigured");
-      const permission = await Notification.requestPermission();
-      if (permission !== "granted") return setStatus(permission === "denied" ? "denied" : "off");
-      const reg = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
-      await navigator.serviceWorker.ready;
-      const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(vapid) });
-      const res = await savePushSubscription(sub.toJSON());
-      if (!res.ok) { await sub.unsubscribe(); return setError("pushError"); }
-      setStatus("on");
-    } catch {
-      setError("pushError");
-    } finally {
-      setBusy(false);
-    }
+    const r = await enablePush();
+    setBusy(false);
+    if (r === "notConfigured") setError("pushNotConfigured");
+    else if (r === "error") setError("pushError");
+    else setStatus(r);
   }
 
   async function disable() {
     setBusy(true);
     setError(null);
-    try {
-      const reg = await navigator.serviceWorker.getRegistration("/");
-      const sub = await reg?.pushManager.getSubscription();
-      if (sub) { await deletePushSubscription(sub.endpoint); await sub.unsubscribe(); }
-      setStatus("off");
-    } catch {
-      setError("pushError");
-    } finally {
-      setBusy(false);
-    }
+    try { await disablePush(); setStatus("off"); } catch { setError("pushError"); } finally { setBusy(false); }
   }
 
   return (

@@ -9,6 +9,7 @@ import { translator } from "@/lib/i18n";
 import { cancelWatch, markAllRead, toggleSaved } from "./actions";
 import { messages } from "./messages";
 import { notificationText, type NotificationData } from "./text";
+import { Reminder } from "./Reminder";
 
 export type NoteRow = { id: number; kind: string; place_id: string | null; data: NotificationData; created_at: string; read_at: string | null };
 export type WatchRow = { id: string; expires_at: string; place: { id: string; name: string; name_hi: string | null } | null };
@@ -56,6 +57,7 @@ export function SavedView({ lang, notes, watches, saved }: { lang: Language; not
                     {!n.read_at && <span className="rounded bg-blue-600 px-1.5 text-[10px] font-bold uppercase text-white">{t("new")}</span>}
                   </p>
                   <p className="text-sm text-gray-600 dark:text-gray-400">{text.body}</p>
+                  {n.kind === "place_quiet" && <p className="mt-0.5 text-xs font-medium text-green-700 dark:text-green-400">{t("reminderSent")}</p>}
                   <p className="mt-1 flex gap-3 text-xs text-gray-500">
                     {fmt(n.created_at)}
                     {n.place_id && <Link href={`/map?place=${n.place_id}`} className="text-blue-600 hover:underline">{t("open")}</Link>}
@@ -101,8 +103,11 @@ export function SavedView({ lang, notes, watches, saved }: { lang: Language; not
                     </span>
                   </span>
                 </span>
-                <button type="button" disabled={busy === s.place_id} onClick={() => run(s.place_id, () => toggleSaved(s.place_id))}
-                        className="shrink-0 text-red-600 hover:underline disabled:opacity-50">{t("remove")}</button>
+                <span className="flex shrink-0 flex-col items-end gap-1.5">
+                  <Reminder placeId={s.place_id} placeName={name(s)} lang={lang} compact />
+                  <button type="button" disabled={busy === s.place_id} onClick={() => run(s.place_id, () => toggleSaved(s.place_id))}
+                          className="text-xs text-red-600 hover:underline disabled:opacity-50">{t("remove")}</button>
+                </span>
               </li>
             ))}
           </ul>

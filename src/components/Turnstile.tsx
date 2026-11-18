@@ -48,7 +48,7 @@ export function Turnstile({
       widget.current = window.turnstile.render(box.current, {
         sitekey: siteKey,
         language: lang,
-        theme: "auto",
+        theme: "dark", // the sign-in card is always dark
         // The parent form owns the hidden token input; don't add a second one.
         "response-field": false,
         callback: (t: string) => onTokenRef.current(t),

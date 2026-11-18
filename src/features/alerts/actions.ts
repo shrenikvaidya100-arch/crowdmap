@@ -37,7 +37,7 @@ export async function watchPlace(input: unknown): Promise<AlertResult> {
   if (!parsed.success) return { ok: false, reason: "invalid" };
   const supabase = await signedIn();
   if (!supabase) return { ok: false, reason: "signin" };
-  const { data, error } = await supabase.rpc("watch_place", { p_place: parsed.data.placeId, p_hours: parsed.data.hours, p_target: 2 });
+  const { data, error } = await supabase.rpc("watch_place", { p_place: parsed.data.placeId, p_hours: parsed.data.hours, p_target: parsed.data.target });
   revalidatePath("/saved");
   return fromRpc(data, error);
 }
