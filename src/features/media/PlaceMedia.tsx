@@ -7,7 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { Language } from "@/lib/config";
 import { translator } from "@/lib/i18n";
 import {
-  addComment, deleteComment, deleteMedia, editCaption, editComment, type MediaResult,
+  addComment, deleteComment, deleteMedia, editCaption, editComment, reportMedia, type MediaResult,
 } from "./actions";
 import { CaptureMedia } from "./CaptureMedia";
 import { MEDIA_ICON, mediaConfig, type MediaKind } from "./config";
@@ -109,6 +109,7 @@ function MediaCard({ item: m, t, ago, signedIn, run, refresh }: {
   run: (a: () => Promise<MediaResult>, okKey: string) => Promise<boolean>;
   refresh: () => void;
 }) {
+  const [reporting, setReporting] = useState(false);
   const [editing, setEditing] = useState(false);
   const [caption, setCaption] = useState(m.caption ?? "");
   const [open, setOpen] = useState(false);
@@ -163,7 +164,13 @@ function MediaCard({ item: m, t, ago, signedIn, run, refresh }: {
               </button>
             </>
           )}
+          {!m.mine && signedIn && !m.is_sample && (
+            <button type="button" onClick={() => setReporting((r) => !r)} aria-expanded={reporting} className="text-gray-500 hover:underline">
+              {m.kind === "video" ? t("reportVideo") : m.kind === "audio" ? t("reportAudio") : t("reportPhoto")}
+            </button>
+          )}
         </div>
+        {reporting && <ReportForm mediaId={m.id} t={t} onDone={() => setReporting(false)} />}
         {open && <Comments mediaId={m.id} t={t} ago={ago} signedIn={signedIn} refresh={refresh} />}
       </div>
     </article>
@@ -261,5 +268,40 @@ function Comments({ mediaId, t, ago, signedIn, refresh }: {
       )}
       {error ? <p role="alert" className="text-xs text-amber-700">{t(error)}</p> : <Notice t={t} notice={notice} />}
     </div>
+  );
+}
+
+/** Report an upload to the admins, with a reason. */
+function ReportForm({ mediaId, t, onDone }: { mediaId: string; t: T; onDone: () => void }) {
+  const [reason, setReason] = useState("inappropriate");
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; key: string } | null>(null);
+  if (result?.ok) return <p role="status" className="text-xs text-green-700 dark:text-green-400">{t(result.key)}</p>;
+  return (
+    <form className="space-y-2 rounded-md bg-gray-50 p-2.5 text-xs dark:bg-gray-800" onSubmit={async (e) => {
+      e.preventDefault();
+      setBusy(true);
+      const r = await reportMedia({ mediaId, reason, note });
+      setBusy(false);
+      setResult({ ok: r.ok, key: r.ok ? "result.reported" : `result.${r.reason ?? "error"}` });
+    }}>
+      <fieldset className="space-y-1">
+        <legend className="mb-1 font-medium">{t("reportWhy")}</legend>
+        {["inappropriate", "not_this_place", "private_info", "spam", "other"].map((r) => (
+          <label key={r} className="flex items-center gap-2">
+            <input type="radio" name={`reason-${mediaId}`} checked={reason === r} onChange={() => setReason(r)} className="accent-blue-600" />
+            {t(`reason.${r}`)}
+          </label>
+        ))}
+      </fieldset>
+      <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={200} placeholder={t("reportNote")} aria-label={t("reportNote")}
+             className="w-full rounded border border-gray-300 bg-transparent px-2 py-1 dark:border-gray-600" />
+      <div className="flex gap-2">
+        <button disabled={busy} className="rounded border border-gray-400 px-2.5 py-1 font-medium disabled:opacity-50">{t("sendReport")}</button>
+        <button type="button" onClick={onDone} className="px-2 text-gray-500">{t("cancel")}</button>
+      </div>
+      {result && !result.ok && <p role="alert" className="text-amber-700">{t(result.key)}</p>}
+    </form>
   );
 }

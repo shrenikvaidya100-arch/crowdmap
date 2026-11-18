@@ -25,6 +25,9 @@ export default function PrivacyPage() {
         <li><strong>Security records:</strong> every action (including failed logins and rejected reports) is written
           to an audit log with the time and your account, and login attempts record your IP address. This
           is how we detect bots and abuse.</li>
+        <li><strong>Searches:</strong> when you pick a search result we keep the words you searched, the city
+          and how many results there were, so we can see what people look for. Not who searched.</li>
+        <li><strong>Your avatar:</strong> only a short code the face is drawn from, never a photo of you.</li>
         <li><strong>Cookies:</strong> only what is needed to keep you logged in and remember your language. No
           advertising or tracking cookies.</li>
       </ul>

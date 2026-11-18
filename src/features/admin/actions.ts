@@ -72,3 +72,13 @@ export async function reviewFlag(input: unknown): Promise<AdminResult> {
   if (res.ok) revalidatePath("/admin", "layout");
   return res;
 }
+
+/** Review queue: keep the upload (dismiss its reports) or hide it. */
+export async function resolveReports(mediaId: string, action: "keep" | "hide"): Promise<AdminResult> {
+  if (!/^[0-9a-f-]{36}$/i.test(mediaId) || (action !== "keep" && action !== "hide")) return { ok: false, reason: "invalid" };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("admin_resolve_reports", { p_media: mediaId, p_action: action });
+  const res = fromRpc(data, error);
+  if (res.ok) revalidatePath("/admin", "layout");
+  return res;
+}

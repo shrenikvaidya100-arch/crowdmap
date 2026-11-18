@@ -17,7 +17,7 @@ export const config = {
     passwordMinLength: 8,
     passwordMaxLength: 72, // bcrypt limit used by Supabase Auth
     displayNameMin: 2,
-    displayNameMax: 40,
+    displayNameMax: 32,
   },
 
   captcha: {

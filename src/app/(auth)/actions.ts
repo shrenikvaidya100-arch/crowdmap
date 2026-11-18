@@ -65,7 +65,7 @@ export async function login(_prev: AuthState, form: FormData): Promise<AuthState
   }
 
   const { data: profile } = await supabase
-    .from("profiles").select("status").eq("id", data.user.id).single();
+    .from("profiles").select("status, avatar_seed").eq("id", data.user.id).single();
   if (profile?.status === "removed") {
     await supabase.rpc("log_event", { p_action: "auth.login_blocked", p_target_type: "profile", p_target_id: data.user.id });
     await supabase.auth.signOut();
@@ -73,7 +73,8 @@ export async function login(_prev: AuthState, form: FormData): Promise<AuthState
   }
 
   await supabase.rpc("log_event", { p_action: "auth.login", p_details: { method: "password" } });
-  redirect(safeNext(form.get("next")));
+  const next = safeNext(form.get("next"));
+  redirect(profile && !profile.avatar_seed ? `/welcome?next=${encodeURIComponent(next)}` : next);
 }
 
 export async function signup(_prev: AuthState, form: FormData): Promise<AuthState> {
@@ -107,7 +108,7 @@ export async function signup(_prev: AuthState, form: FormData): Promise<AuthStat
     return { message: error.status === 429 ? "auth.rateLimited" : "auth.signupFailed", values };
   }
   // The profile and the audit entry are created by database triggers.
-  if (data.session) redirect("/map");
+  if (data.session) redirect("/welcome?next=%2Fmap");
   return { ok: true, message: "auth.checkEmail", values: {} };
 }
 

@@ -69,7 +69,7 @@ export function SavedView({ lang, notes, watches, saved }: { lang: Language; not
         )}
       </section>
 
-      <section>
+      <section id="reminders" className="scroll-mt-20">
         <h2 className="mb-2 flex items-center gap-2 font-medium"><Icon name="hourglass" size={18} /> {t("watches")}</h2>
         {watches.length === 0 ? <p className="text-sm text-gray-500">{t("noWatches")}</p> : (
           <ul className={`${card} divide-y divide-gray-100 dark:divide-gray-800`}>

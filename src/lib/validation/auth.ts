@@ -24,7 +24,11 @@ export const displayNameSchema = z
   .trim()
   .min(displayNameMin, "name.short")
   .max(displayNameMax, "name.long")
-  .regex(/^[\p{L}\p{M}0-9 ._'-]+$/u, "name.chars");
+  .regex(/^[\p{L}\p{M}0-9 ._'-]+$/u, "name.chars")
+  // No links, email addresses or phone numbers in public names (the database checks too).
+  .refine((v) => !/(https?:|www\.|\.com\b)/i.test(v), "name.link")
+  .refine((v) => !/[^\s@]+@[^\s@]+\.[a-z]/i.test(v), "name.email")
+  .refine((v) => !/[0-9][0-9 ()+-]{7,}[0-9]/.test(v), "name.phone");
 
 export const loginSchema = z.object({
   email: emailSchema,

@@ -5,6 +5,7 @@ import { formatWhen } from "@/features/admin/format";
 import { requireAdminPage } from "@/features/admin/guard";
 import { messages } from "@/features/admin/messages";
 import { Moderate } from "@/features/admin/Moderate";
+import { ReportActions } from "@/features/admin/ReportActions";
 import { Badge, Field, FilterBar, inputCls, Pager } from "@/features/admin/ui";
 import { pageNumber, param, pick } from "@/features/admin/validation";
 import { mediaConfig } from "@/features/media/config";
@@ -22,6 +23,10 @@ type MediaRow = {
   removed_by: string | null; removed_reason: string | null; created_at: string; user_id: string; author: string;
   author_status: string; place_name: string; comment_count: number; total: number;
 };
+type Reported = {
+  media_id: string; kind: string; caption: string | null; storage_path: string; author: string; place_name: string;
+  reports: number; reasons: string[]; notes: string[]; first_at: string;
+};
 type CommentRow = {
   id: string; body: string; status: string; removed_by: string | null; removed_reason: string | null; created_at: string;
   user_id: string; author: string; author_status: string; media_kind: string; place_name: string; total: number;
@@ -38,6 +43,9 @@ export default async function AdminContent({ searchParams }: PageProps<"/admin/c
   const [lang, supabase] = await Promise.all([getLang(), createClient()]);
   const t = translator(messages, lang);
 
+  const queue = await supabase.rpc("admin_report_queue");
+  if (queue.error) console.error("admin report queue", queue.error.message);
+  const reported = (queue.data ?? []) as Reported[];
   const { data, error } = await supabase.rpc(type === "media" ? "admin_media" : "admin_comments", {
     p_status: status || null, p_q: q ?? null, p_limit: per, p_offset: (page - 1) * per,
   });
@@ -48,6 +56,25 @@ export default async function AdminContent({ searchParams }: PageProps<"/admin/c
 
   return (
     <>
+      <section className="rounded-xl border border-amber-200 bg-amber-50/40 p-4 dark:border-amber-900 dark:bg-amber-950/20">
+        <h2 className="mb-2 font-medium">{t("reports.title")}</h2>
+        {reported.length === 0 ? <p className="text-sm text-gray-500">{t("reports.none")}</p> : (
+          <ul className="divide-y divide-amber-100 dark:divide-amber-900/50">
+            {reported.map((r) => (
+              <li key={r.media_id} className="flex flex-wrap items-start justify-between gap-3 py-2.5 text-sm">
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium">{r.caption || t(r.kind)} <span className="font-normal text-gray-500">· {r.author} · {t("onPlace", { place: r.place_name })}</span></p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                    {t("reports.count", { n: r.reports })}: {r.reasons.map((x) => t(`reason.${x}`)).join(", ")}
+                    {r.notes.length > 0 && <> · &ldquo;{r.notes.slice(0, 2).join("”, “")}&rdquo;</>}
+                  </p>
+                </div>
+                <ReportActions mediaId={r.media_id} keepLabel={t("reports.keep")} hideLabel={t("reports.hide")} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
       <div className="flex gap-2">
         {TYPES.map((k) => (
           <Link key={k} href={`/admin/content?type=${k}`} aria-current={type === k ? "page" : undefined}

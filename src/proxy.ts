@@ -5,7 +5,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { publicEnv } from "@/lib/env";
 
-const PRIVATE = ["/me", "/admin", "/saved"];
+const PRIVATE = ["/me", "/admin", "/saved", "/welcome", "/settings"];
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });

@@ -8,6 +8,7 @@ import { translator } from "@/lib/i18n";
 import { categoryIcon } from "@/features/crowd/config";
 import { messages } from "./messages";
 import { SEARCH_MAX, SEARCH_MIN } from "./validation";
+import { logSearch } from "./logSearch";
 
 export type SearchHit = {
   id: string; name: string; name_hi: string | null; category: string; city_id: string;
@@ -66,6 +67,7 @@ export function SearchBox({
   }, []);
 
   function pick(hit: SearchHit) {
+    logSearch(q, hits.length, city);
     setQ(lang === "hi" && hit.name_hi ? hit.name_hi : hit.name);
     setOpen(false);
     onPick(hit);
