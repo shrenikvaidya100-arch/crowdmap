@@ -6,6 +6,7 @@ export function publicEnv() {
     supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "",
     turnstileSiteKey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "",
     vapidPublicKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "",
+    mapTilerKey: process.env.NEXT_PUBLIC_MAPTILER_KEY ?? "",
   };
 }
 

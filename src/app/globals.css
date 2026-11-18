@@ -35,3 +35,9 @@ html.custom-cursor textarea,
 html.custom-cursor [contenteditable="true"] {
   cursor: text !important;
 }
+
+/* Map print view: just the map (and its scale and attribution). */
+@media print {
+  header, nav, aside, [data-map-ui] { display: none !important; }
+  .maplibregl-ctrl-bottom-right .maplibregl-ctrl-group { display: none !important; }
+}
