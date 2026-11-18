@@ -31,9 +31,10 @@ test("tolerates typos", async () => {
 test("results carry a crowd level and city", async () => {
   const r = await search("temple", "delhi");
   assert.ok(r.length > 0);
+  const cities = new Set((await db.query("select id from public.cities")).rows.map((c) => c.id));
   for (const x of r) {
     assert.ok(x.level >= 1 && x.level <= 5);
-    assert.ok(["indore", "delhi", "mumbai"].includes(x.city_id));
+    assert.ok(cities.has(x.city_id), x.city_id);
   }
 });
 
