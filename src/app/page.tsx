@@ -63,7 +63,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
         <Reveal className="flex w-full flex-col items-center">
           <h2 className="mb-8 text-center text-3xl font-semibold tracking-tight text-white sm:text-4xl">{t("searchTitle")}</h2>
           <GlowSearch lang={lang} labels={{
-            placeholder: t("searchPlaceholder"), search: t("search"), ours: t("ours"), world: t("world"),
+            placeholder: t("searchPlaceholder"), search: t("search"), cursor: tc("cursor.search"), ours: t("ours"), world: t("world"),
             none: t("none"), searching: t("searching"),
             level: { 1: t("level.1"), 2: t("level.2"), 3: t("level.3"), 4: t("level.4"), 5: t("level.5") },
           }} />

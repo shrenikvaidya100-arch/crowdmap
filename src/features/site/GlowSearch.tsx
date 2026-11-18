@@ -49,7 +49,7 @@ const levelColor = (l: number) => config.crowd.levels.find((x) => x.level === l)
 
 export function GlowSearch({ lang, labels }: {
   lang: Language;
-  labels: { placeholder: string; search: string; ours: string; world: string; none: string; searching: string; level: Record<number, string> };
+  labels: { placeholder: string; search: string; cursor: string; ours: string; world: string; none: string; searching: string; level: Record<number, string> };
 }) {
   const router = useRouter();
   const [q, setQ] = useState('');
@@ -101,7 +101,7 @@ export function GlowSearch({ lang, labels }: {
   const firstWorld = results?.findIndex((r) => r.kind === 'world') ?? -1;
 
   return (
-    <div className='relative w-full max-w-[540px]'>
+    <div className='relative w-full max-w-[540px]' data-cursor={labels.cursor}>
       <GlowEffect colors={['#0894FF', '#C959DD', '#FF2E54', '#FF9004']} mode='static' blur='medium' />
       <div className='relative rounded-xl bg-black p-2 text-white'>
         <div className='flex items-center gap-2 px-2'>
