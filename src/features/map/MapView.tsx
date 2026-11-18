@@ -680,7 +680,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
           </button>
           {(zoomOpen || zoomFlash) && (
             <div onPointerEnter={() => clearTimeout(zoomTimer.current)} onPointerLeave={() => { if (zoomFlash) flashZoom(); }}>
-              <ZoomSlider value={zoom} onChange={(z) => map.current?.easeTo({ zoom: z, duration: 250 })}
+              <ZoomSlider value={zoom} onChange={(z, live) => { if (live) map.current?.jumpTo({ zoom: z }); else map.current?.easeTo({ zoom: z, duration: 300 }); }}
                           labels={{ zoom: tc("zoom"), zoomIn: tc("zoomIn"), zoomOut: tc("zoomOut"), slider: tc("zoomSlider") }} />
             </div>
           )}

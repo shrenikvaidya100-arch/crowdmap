@@ -5,6 +5,7 @@ export const messages = {
     title: "My activity",
     subtitle: "Everything you've shared on CrowdMap. Only you (and the two admins) can see this page.",
     memberSince: "Member since {date}",
+    adminRole: "Admin",
     trust: "Trust {pct}%",
     trustHint: "Grows as your reports agree with others'. Higher trust gives your reports more weight.",
 
@@ -109,6 +110,7 @@ export const messages = {
     title: "मेरी गतिविधि",
     subtitle: "CrowdMap पर आपने जो कुछ साझा किया। यह पेज सिर्फ़ आप (और दो एडमिन) देख सकते हैं।",
     memberSince: "{date} से सदस्य",
+    adminRole: "एडमिन",
     trust: "भरोसा {pct}%",
     "tab.profile": "प्रोफ़ाइल",
     "tab.reports": "भीड़ रिपोर्ट",

@@ -103,7 +103,7 @@ export function GlowSearch({ lang, labels }: {
   const firstWorld = results?.findIndex((r) => r.kind === 'world') ?? -1;
 
   return (
-    <div className='relative w-full max-w-[540px]' data-cursor={labels.cursor}>
+    <div className='relative w-full max-w-[540px]'>
       <GlowEffect colors={['#0894FF', '#C959DD', '#FF2E54', '#FF9004']} mode='static' blur='medium' />
       <div className='relative rounded-xl bg-black p-2 text-white'>
         <div className='flex items-center gap-2 px-2'>

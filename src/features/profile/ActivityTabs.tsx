@@ -1,11 +1,12 @@
 "use client";
-import { Icon } from "@/components/icons/Icon";
+import { Icon, type IconName } from "@/components/icons/Icon";
 import HoldButton from "@/components/core/hold-button";
 // "My activity" tabs: each is a table with a text filter, city filter and
 // sorting, plus change/delete/cancel where the rules allow it.
 // Writes reuse User 1's server actions; the database enforces who may do what.
 import { useRouter } from "next/navigation";
-import { useMemo, useState, type ReactNode } from "react";
+import { motion } from "motion/react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { config, type Language } from "@/lib/config";
 import { translator } from "@/lib/i18n";
 import { deleteCrowdReport, deleteQuickReport, updateCrowdReport } from "@/features/crowd/actions";
@@ -28,6 +29,31 @@ export type LogRow = { id: number; at: string; action: string; target_type: stri
 
 type Tab = "profile" | "reports" | "alerts" | "uploads" | "comments" | "plans" | "places" | "log";
 type Sort = "newest" | "oldest" | "name" | "level";
+
+const STAT_TABS: { key: Tab; icon: IconName }[] = [
+  { key: "reports", icon: "chart" }, { key: "alerts", icon: "warning" }, { key: "uploads", icon: "camera" },
+  { key: "comments", icon: "comment" }, { key: "plans", icon: "calendar" }, { key: "places", icon: "pin" },
+];
+
+/** Counts up from 0 when it first shows (instantly for reduced motion). */
+function CountUp({ value }: { value: number }) {
+  const [n, setN] = useState(0);
+  const done = useRef(false);
+  useEffect(() => {
+    if (done.current || window.matchMedia("(prefers-reduced-motion: reduce)").matches) { setN(value); return; }
+    done.current = true;
+    const start = performance.now();
+    let raf = 0;
+    const step = (now: number) => {
+      const p = Math.min(1, (now - start) / 900);
+      setN(Math.round(value * (1 - Math.pow(1 - p, 3))));
+      if (p < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [value]);
+  return <>{n}</>;
+}
 
 const levelColor = (l: number) => config.crowd.levels.find((x) => x.level === l)?.color ?? config.crowd.noDataColor;
 const EDIT_MINUTES = 15;
@@ -127,36 +153,58 @@ export function ActivityTabs({
     plans: plans.length, places: places.length, log: logRows ? log.length : null,
   };
 
+  function open(k: Tab) { setTab(k); setQ(""); setCity(""); setSort("newest"); setNotice(null); }
+
   const th = "px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-gray-500";
   const td = "px-3 py-2 align-middle";
   const linkBtn = "text-sm hover:underline disabled:opacity-50";
 
   return (
     <div>
-      <div role="tablist" className="mb-4 flex gap-1 overflow-x-auto border-b border-gray-200 [scrollbar-width:none] dark:border-gray-800">
-        {(Object.keys(counts) as Tab[]).filter((k) => k !== "log" || logRows).map((k) => (
-          <button key={k} type="button" role="tab" aria-selected={tab === k}
-                  onClick={() => { setTab(k); setQ(""); setCity(""); setSort("newest"); setNotice(null); }}
-                  className={`shrink-0 border-b-2 px-3 py-2 text-sm font-medium ${tab === k ? "border-blue-600 text-blue-600" : "border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"}`}>
-            {t(`tab.${k}`)}{counts[k] !== null && <span className="ml-1.5 rounded-full bg-gray-100 px-1.5 text-xs dark:bg-gray-800">{counts[k]}</span>}
+      {/* Overview: one tile per kind of activity; a tile opens its tab. */}
+      <div className="mb-5 grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
+        {STAT_TABS.map(({ key, icon }, i) => (
+          <button key={key} type="button" onClick={() => open(key)} aria-pressed={tab === key}
+                  style={{ animationDelay: `${i * 60}ms` }}
+                  className={`group relative overflow-hidden rounded-2xl p-3.5 text-left ring-1 transition-[transform,box-shadow,background-color] duration-200 hover:-translate-y-0.5 motion-safe:animate-[rise_500ms_ease-out_both] motion-reduce:hover:translate-y-0 ${tab === key
+                    ? "bg-blue-600 text-white shadow-lg shadow-blue-600/25 ring-blue-500"
+                    : "bg-white text-gray-900 ring-gray-200 hover:shadow-md dark:bg-zinc-900 dark:text-zinc-100 dark:ring-white/10"}`}>
+            <span className={`grid h-8 w-8 place-items-center rounded-xl ${tab === key ? "bg-white/20" : "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400"}`}>
+              <Icon name={icon} size={17} />
+            </span>
+            <span className="mt-3 block text-2xl font-semibold tabular-nums"><CountUp value={counts[key] ?? 0} /></span>
+            <span className={`block truncate text-xs ${tab === key ? "text-blue-100" : "text-gray-500 dark:text-zinc-400"}`}>{t(`tab.${key}`)}</span>
           </button>
         ))}
       </div>
 
-      {tab === "profile" ? profile : (
+      <div role="tablist" className="mb-4 flex w-full gap-1 overflow-x-auto rounded-full bg-gray-100 p-1 [scrollbar-width:none] dark:bg-zinc-900 dark:ring-1 dark:ring-white/10">
+        {(Object.keys(counts) as Tab[]).filter((k) => k !== "log" || logRows).map((k) => (
+          <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => open(k)}
+                  className={`relative shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${tab === k ? "text-gray-900 dark:text-white" : "text-gray-500 hover:text-gray-900 dark:text-zinc-400 dark:hover:text-zinc-100"}`}>
+            {tab === k && <motion.span layoutId="activity-tab" transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                                       className="absolute inset-0 rounded-full bg-white shadow-sm dark:bg-zinc-700" />}
+            <span className="relative">{t(`tab.${k}`)}</span>
+          </button>
+        ))}
+      </div>
+
+      {tab === "profile" ? (
+        <div className="space-y-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm motion-safe:animate-[rise_350ms_ease-out_both] sm:p-6 dark:border-white/10 dark:bg-zinc-950">{profile}</div>
+      ) : (
         <>
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("search")} aria-label={t("search")}
-                   maxLength={60} className="w-48 rounded-md border border-gray-300 bg-transparent px-3 py-1.5 text-sm dark:border-gray-600" />
+                   maxLength={60} className="w-52 rounded-full border border-gray-200 bg-white px-4 py-1.5 text-sm outline-none focus:ring-2 focus:ring-blue-500 dark:border-white/10 dark:bg-zinc-900" />
             {tab !== "log" && (
               <select value={city} onChange={(e) => setCity(e.target.value)} aria-label={t("city")}
-                      className="rounded-md border border-gray-300 bg-transparent px-2 py-1.5 text-sm dark:border-gray-600">
+                      className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-white/10 dark:bg-zinc-900">
                 <option value="">{t("allCities")}</option>
                 {Object.entries(cityNames).map(([id, n]) => <option key={id} value={id}>{n}</option>)}
               </select>
             )}
             <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label={t("when")}
-                    className="rounded-md border border-gray-300 bg-transparent px-2 py-1.5 text-sm dark:border-gray-600">
+                    className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-white/10 dark:bg-zinc-900">
               <option value="newest">{t("sortNewest")}</option>
               <option value="oldest">{t("sortOldest")}</option>
               {tab !== "log" && <option value="name">{t("sortName")}</option>}
@@ -167,18 +215,18 @@ export function ActivityTabs({
             )}
           </div>
 
-          <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-800">
+          <div key={tab} className="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm motion-safe:animate-[rise_350ms_ease-out_both] dark:border-white/10 dark:bg-zinc-950">
             <table className="w-full min-w-[560px] text-sm">
               {tab === "reports" && (
                 <>
-                  <thead className="bg-gray-50 dark:bg-gray-900"><tr>
+                  <thead className="bg-gray-50/80 dark:bg-zinc-900/80"><tr>
                     <th className={th}>{t("place")}</th><th className={th}>{t("city")}</th><th className={th}>{t("level")}</th>
                     <th className={th}>{t("when")}</th><th className={th}>{t("actions")}</th></tr></thead>
                   <tbody>
                     {shownReports.map((r) => {
                       const minsLeft = EDIT_MINUTES - Math.floor((now - new Date(r.created_at).getTime()) / 60000);
                       return (
-                        <tr key={r.id} className="border-t border-gray-100 dark:border-gray-800">
+                        <tr key={r.id} className="border-t border-gray-100 transition-colors hover:bg-blue-50/40 dark:border-white/5 dark:hover:bg-white/[0.03]">
                           <td className={td}>{placeName(r.place)}</td>
                           <td className={td}>{r.place ? cityNames[r.place.city_id] : "—"}</td>
                           <td className={td}>
@@ -210,14 +258,14 @@ export function ActivityTabs({
 
               {tab === "alerts" && (
                 <>
-                  <thead className="bg-gray-50 dark:bg-gray-900"><tr>
+                  <thead className="bg-gray-50/80 dark:bg-zinc-900/80"><tr>
                     <th className={th}>{t("type")}</th><th className={th}>{t("place")}</th><th className={th}>{t("votes")}</th>
                     <th className={th}>{t("when")}</th><th className={th}>{t("status")}</th><th className={th}>{t("actions")}</th></tr></thead>
                   <tbody>
                     {shownAlerts.map((a) => {
                       const active = new Date(a.expires_at).getTime() > now;
                       return (
-                        <tr key={a.id} className="border-t border-gray-100 dark:border-gray-800">
+                        <tr key={a.id} className="border-t border-gray-100 transition-colors hover:bg-blue-50/40 dark:border-white/5 dark:hover:bg-white/[0.03]">
                           <td className={td}><Icon name={quickIcon(a.kind)} size={16} className="inline" /> {tc(`kind.${a.kind}`)}</td>
                           <td className={td}>{placeName(a.place)}</td>
                           <td className={td}><span className="inline-flex items-center gap-1"><Icon name="thumbs_up" size={14} /> {a.still_there}</span> <span className="ml-2 inline-flex items-center gap-1"><Icon name="thumbs_down" size={14} /> {a.gone}</span></td>
@@ -237,12 +285,12 @@ export function ActivityTabs({
 
               {tab === "uploads" && (
                 <>
-                  <thead className="bg-gray-50 dark:bg-gray-900"><tr>
+                  <thead className="bg-gray-50/80 dark:bg-zinc-900/80"><tr>
                     <th className={th}>{t("type")}</th><th className={th}>{t("caption")}</th><th className={th}>{t("place")}</th>
                     <th className={th}>{t("when")}</th><th className={th}>{t("status")}</th><th className={th}>{t("actions")}</th></tr></thead>
                   <tbody>
                     {shownUploads.map((m) => (
-                      <tr key={m.id} className="border-t border-gray-100 dark:border-gray-800">
+                      <tr key={m.id} className="border-t border-gray-100 transition-colors hover:bg-blue-50/40 dark:border-white/5 dark:hover:bg-white/[0.03]">
                         <td className={td}><Icon name={MEDIA_ICON[m.kind]} size={16} className="inline" /> {t(`media.${m.kind}`)}</td>
                         <td className={`${td} max-w-xs truncate`} title={m.caption ?? ""}>{m.caption || "—"}</td>
                         <td className={td}>{placeName(m.place)}</td>
@@ -263,12 +311,12 @@ export function ActivityTabs({
 
               {tab === "comments" && (
                 <>
-                  <thead className="bg-gray-50 dark:bg-gray-900"><tr>
+                  <thead className="bg-gray-50/80 dark:bg-zinc-900/80"><tr>
                     <th className={th}>{t("comment")}</th><th className={th}>{t("place")}</th>
                     <th className={th}>{t("when")}</th><th className={th}>{t("status")}</th><th className={th}>{t("actions")}</th></tr></thead>
                   <tbody>
                     {shownComments.map((c) => (
-                      <tr key={c.id} className="border-t border-gray-100 dark:border-gray-800">
+                      <tr key={c.id} className="border-t border-gray-100 transition-colors hover:bg-blue-50/40 dark:border-white/5 dark:hover:bg-white/[0.03]">
                         <td className={`${td} max-w-sm`}><span className="line-clamp-2 break-words">{c.body}</span></td>
                         <td className={td}><Icon name={MEDIA_ICON[c.media_kind]} size={16} className="inline" /> {placeName(c.place)}</td>
                         <td className={td}>{fmt(c.created_at)}</td>
@@ -287,14 +335,14 @@ export function ActivityTabs({
 
               {tab === "plans" && (
                 <>
-                  <thead className="bg-gray-50 dark:bg-gray-900"><tr>
+                  <thead className="bg-gray-50/80 dark:bg-zinc-900/80"><tr>
                     <th className={th}>{t("place")}</th><th className={th}>{t("city")}</th><th className={th}>{t("when")}</th>
                     <th className={th}>{t("status")}</th><th className={th}>{t("actions")}</th></tr></thead>
                   <tbody>
                     {shownPlans.map((p) => {
                       const upcoming = new Date(p.planned_for).getTime() + 3_600_000 > now;
                       return (
-                        <tr key={p.id} className="border-t border-gray-100 dark:border-gray-800">
+                        <tr key={p.id} className="border-t border-gray-100 transition-colors hover:bg-blue-50/40 dark:border-white/5 dark:hover:bg-white/[0.03]">
                           <td className={td}>{placeName(p.place)}</td>
                           <td className={td}>{p.place ? cityNames[p.place.city_id] : "—"}</td>
                           <td className={td}>{fmt(p.planned_for)}</td>
@@ -314,12 +362,12 @@ export function ActivityTabs({
 
               {tab === "places" && (
                 <>
-                  <thead className="bg-gray-50 dark:bg-gray-900"><tr>
+                  <thead className="bg-gray-50/80 dark:bg-zinc-900/80"><tr>
                     <th className={th}>{t("place")}</th><th className={th}>{t("city")}</th><th className={th}>{t("status")}</th>
                     <th className={th}>{t("when")}</th><th className={th}>{t("actions")}</th></tr></thead>
                   <tbody>
                     {shownPlaces.map((p) => (
-                      <tr key={p.id} className="border-t border-gray-100 dark:border-gray-800">
+                      <tr key={p.id} className="border-t border-gray-100 transition-colors hover:bg-blue-50/40 dark:border-white/5 dark:hover:bg-white/[0.03]">
                         <td className={td}><Icon name={categoryIcon(p.category)} size={16} className="inline" /> {(lang === "hi" && p.name_hi) || p.name}</td>
                         <td className={td}>{cityNames[p.city_id]}</td>
                         <td className={td}>{t(`status.${p.status}`)}</td>
@@ -339,11 +387,11 @@ export function ActivityTabs({
 
               {tab === "log" && (
                 <>
-                  <thead className="bg-gray-50 dark:bg-gray-900"><tr>
+                  <thead className="bg-gray-50/80 dark:bg-zinc-900/80"><tr>
                     <th className={th}>{t("when")}</th><th className={th}>{t("action")}</th><th className={th}>{t("details")}</th></tr></thead>
                   <tbody>
                     {shownLog.map((r) => (
-                      <tr key={r.id} className="border-t border-gray-100 dark:border-gray-800">
+                      <tr key={r.id} className="border-t border-gray-100 transition-colors hover:bg-blue-50/40 dark:border-white/5 dark:hover:bg-white/[0.03]">
                         <td className={`${td} whitespace-nowrap`}>{fmt(r.at)}</td>
                         <td className={`${td} font-mono text-xs`}>{r.action}</td>
                         <td className={`${td} max-w-xs truncate font-mono text-xs text-gray-500`} title={JSON.stringify(r.details)}>
