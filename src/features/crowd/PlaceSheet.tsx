@@ -5,6 +5,7 @@ import Link from "next/link";
 import { PlaceStatus, type Confirmations } from "@/features/places/PlaceStatus";
 import { PlanVisit } from "./plan/PlanVisit";
 import { PlaceMedia } from "@/features/media/PlaceMedia";
+import { PlaceActions } from "@/features/alerts/PlaceActions";
 import { useCallback, useEffect, useState } from "react";
 import { config, type Language } from "@/lib/config";
 import { translator } from "@/lib/i18n";
@@ -152,6 +153,9 @@ export function PlaceSheet({
               )}
             </div>
           </section>
+
+          {/* Save, and "tell me when it's quiet" */}
+          <PlaceActions placeId={placeId} lang={lang} />
 
           {/* User-added place waiting for confirmation */}
           <PlaceStatus lang={lang} place={data.place} confirmations={data.confirmations} signedIn={data.signed_in}
