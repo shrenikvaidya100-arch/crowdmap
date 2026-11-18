@@ -92,9 +92,11 @@ export function LayersPanel({ lang, basemap, onBasemap, overlays, onOverlay, onC
 }
 
 // ---- Customize ---------------------------------------------------------------
-export function CustomizePanel({ lang, prefs, onPrefs, onSave, onReset, onClose, contoursOn }: {
+export function CustomizePanel({ lang, prefs, onPrefs, onSave, onReset, onClose, contoursOn, siteTheme, onTheme }: {
   lang: Language; prefs: MapPrefs; onPrefs: (p: Partial<MapPrefs>) => void; onSave: () => void; onReset: () => void;
   onClose: () => void; contoursOn: boolean;
+  /** The whole site's day/night; the button switches it (and the map) to the other one. */
+  siteTheme: 'light' | 'dark'; onTheme: (t: 'light' | 'dark') => void;
 }) {
   const t = translator(messages, lang);
   const [note, setNote] = useState<string | null>(null);
@@ -103,8 +105,19 @@ export function CustomizePanel({ lang, prefs, onPrefs, onSave, onReset, onClose,
     <Panel title={t('dock.customize')} onClose={onClose} closeLabel={t('close')}>
       <div>
         <h3 className={heading}>{t('palette')}</h3>
+        {/* One day/night button: it names what it switches to, for the whole site. */}
+        {(() => {
+          const next = siteTheme === 'dark' ? 'light' : 'dark';
+          return (
+            <button type='button' onClick={() => onTheme(next)} aria-label={t(`palette.${next}`)}
+                    className={`mb-1.5 flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${next === 'light'
+                      ? 'bg-white text-neutral-900 hover:bg-neutral-200' : 'bg-neutral-800 text-white ring-1 ring-white/15 hover:bg-neutral-700'}`}>
+              <Icon name={next === 'light' ? 'sun' : 'moon'} size={16} />{t(`palette.${next}`)}
+            </button>
+          );
+        })()}
         <div className='grid grid-cols-2 gap-1.5'>
-          {(['light', 'dark', 'sepia', 'contrast'] as const).map((p) => (
+          {(['sepia', 'contrast'] as const).map((p) => (
             <button key={p} type='button' aria-pressed={prefs.palette === p} onClick={() => onPrefs({ palette: p })} className={chip(prefs.palette === p)}>
               {t(`palette.${p}`)}
             </button>

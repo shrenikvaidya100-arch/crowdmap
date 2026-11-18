@@ -25,6 +25,12 @@ export const config = {
     verifyUrl: "https://challenges.cloudflare.com/turnstile/v0/siteverify",
   },
 
+  // Place card photos from the web when nobody has posted one (Wikipedia / Wikimedia Commons).
+  webPhotos: {
+    timeoutMs: 4000,
+    wikiRadiusKm: 2,       // a matching Wikipedia article must be this close
+    commonsRadiusM: 150,   // Commons photos must be taken this close to the place
+  },
   crowd: {
     // 5-level scale. Colour per level; level 0 = no data.
     levels: [

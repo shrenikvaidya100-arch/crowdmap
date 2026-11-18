@@ -1,11 +1,11 @@
 "use client";
-// Live capture helpers. Media must be recorded in the app with the camera or
-// mic (not picked from the gallery), so everything starts from getUserMedia.
+// Capture helpers: record live with the camera or mic, or pick a file from the
+// device (fromFile). Either way the post still needs a GPS fix at the place.
 import { mediaConfig, type MediaKind } from "./config";
 import { baseMime } from "./validation";
 
 export class CaptureError extends Error {
-  constructor(public code: "unsupported" | "denied" | "failed") { super(code); }
+  constructor(public code: "unsupported" | "denied" | "failed" | "bad_type" | "too_long") { super(code); }
 }
 
 export async function openStream(kind: MediaKind): Promise<MediaStream> {
@@ -73,4 +73,42 @@ export function startRecording(stream: MediaStream, kind: "video" | "audio", onD
   rec.start(1000);
   const limit = setTimeout(() => { if (rec.state !== "inactive") rec.stop(); }, mediaConfig.maxSeconds * 1000);
   return { stop: () => { if (rec.state !== "inactive") rec.stop(); } };
+}
+
+/**
+ * A photo, video or audio file picked from the device. Photos are re-drawn to a
+ * JPEG (which drops hidden metadata such as GPS tags, and shrinks big photos);
+ * videos and audio keep their file but must be 30 s or shorter. iPhone videos
+ * (.mov) are H.264/HEVC like MP4, so they are sent as MP4.
+ */
+export async function fromFile(file: File, kind: MediaKind): Promise<{ blob: Blob; seconds: number | null }> {
+  if (kind === "photo") {
+    if (!file.type.startsWith("image/")) throw new CaptureError("bad_type");
+    const bitmap = await createImageBitmap(file).catch(() => { throw new CaptureError("bad_type"); });
+    const scale = Math.min(1, mediaConfig.photoMaxSide / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, "image/jpeg", mediaConfig.photoQuality));
+    if (!blob) throw new CaptureError("failed");
+    return { blob, seconds: null };
+  }
+  if (!file.type.startsWith(`${kind}/`)) throw new CaptureError("bad_type");
+  const url = URL.createObjectURL(file);
+  try {
+    const seconds = await new Promise<number>((resolve, reject) => {
+      const el = document.createElement(kind === "video" ? "video" : "audio");
+      el.preload = "metadata";
+      el.onloadedmetadata = () => resolve(el.duration);
+      el.onerror = () => reject(new CaptureError("bad_type"));
+      el.src = url;
+    });
+    if (!Number.isFinite(seconds) || seconds > mediaConfig.maxSeconds + 0.5) throw new CaptureError("too_long");
+    const type = file.type === "video/quicktime" ? "video/mp4" : file.type === "audio/x-m4a" ? "audio/mp4" : file.type;
+    return { blob: type === file.type ? file : new Blob([file], { type }), seconds: Math.ceil(seconds) };
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 }
