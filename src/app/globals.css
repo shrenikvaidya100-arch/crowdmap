@@ -23,3 +23,15 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
 }
+
+/* Custom cursor (SiteCursor): hide the system pointer everywhere it replaces it,
+   but keep the normal typing cursor in text fields. */
+html.custom-cursor,
+html.custom-cursor * {
+  cursor: none !important;
+}
+html.custom-cursor input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="button"]):not([type="submit"]),
+html.custom-cursor textarea,
+html.custom-cursor [contenteditable="true"] {
+  cursor: text !important;
+}
