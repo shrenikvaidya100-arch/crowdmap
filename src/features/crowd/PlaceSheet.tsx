@@ -4,7 +4,9 @@ import { Icon } from "@/components/icons/Icon";
 // Bottom sheet on phones, side panel on larger screens.
 import Link from "next/link";
 import { PlaceStatus, type Confirmations } from "@/features/places/PlaceStatus";
+import { Reminder } from "@/features/alerts/Reminder";
 import { PlanVisit } from "./plan/PlanVisit";
+import { PlaceCalendar } from "./calendar/CrowdCalendar";
 import { PlaceMedia } from "@/features/media/PlaceMedia";
 import { PlaceActions } from "@/features/alerts/PlaceActions";
 import { useCallback, useEffect, useState } from "react";
@@ -164,6 +166,9 @@ export function PlaceSheet({
 
           {/* Forecast by day and hour, best time, plans */}
           <PlanVisit placeId={placeId} category={data.place.category} lang={lang} />
+          {/* Days ahead at a glance; the reminder sits under the picked window. */}
+          <PlaceCalendar placeId={placeId} lang={lang}
+                         footer={<Reminder placeId={placeId} placeName={data.place.name} lang={lang} compact />} />
 
           {/* Photos, videos, audio and comments (User 2's feature) */}
           <PlaceMedia key={placeId} placeId={placeId} lang={lang} />

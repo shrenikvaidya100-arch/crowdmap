@@ -1,5 +1,6 @@
 "use client";
 import { Icon } from "@/components/icons/Icon";
+import ParticleButton from "@/components/core/particle-button";
 // Media feed for one place: photos, videos and audio clips shared by people who
 // were there, each with comments. Shown inside the place panel.
 import Link from "next/link";
@@ -276,6 +277,7 @@ function ReportForm({ mediaId, t, onDone }: { mediaId: string; t: T; onDone: () 
   const [reason, setReason] = useState("inappropriate");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; key: string } | null>(null);
   if (result?.ok) return <p role="status" className="text-xs text-green-700 dark:text-green-400">{t(result.key)}</p>;
   return (
@@ -284,7 +286,11 @@ function ReportForm({ mediaId, t, onDone }: { mediaId: string; t: T; onDone: () 
       setBusy(true);
       const r = await reportMedia({ mediaId, reason, note });
       setBusy(false);
-      setResult({ ok: r.ok, key: r.ok ? "result.reported" : `result.${r.reason ?? "error"}` });
+      if (r.ok) {
+        // Show "Sent" on the button for a moment, then the thank-you line.
+        setSent(true);
+        setTimeout(() => setResult({ ok: true, key: "result.reported" }), 900);
+      } else setResult({ ok: false, key: `result.${r.reason ?? "error"}` });
     }}>
       <fieldset className="space-y-1">
         <legend className="mb-1 font-medium">{t("reportWhy")}</legend>
@@ -298,7 +304,12 @@ function ReportForm({ mediaId, t, onDone }: { mediaId: string; t: T; onDone: () 
       <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={200} placeholder={t("reportNote")} aria-label={t("reportNote")}
              className="w-full rounded border border-gray-300 bg-transparent px-2 py-1 dark:border-gray-600" />
       <div className="flex gap-2">
-        <button disabled={busy} className="rounded border border-gray-400 px-2.5 py-1 font-medium disabled:opacity-50">{t("sendReport")}</button>
+        <ParticleButton type="submit" particles={false}
+                        status={busy ? "pending" : sent ? "success" : result && !result.ok ? "error" : "idle"}
+                        pendingLabel={t("sending")} successLabel={t("sent")} errorLabel={t("tryAgain")}
+                        className="h-7 rounded border border-gray-400 bg-transparent px-2.5 text-xs text-inherit hover:bg-gray-100 dark:hover:bg-gray-700">
+          {t("sendReport")}
+        </ParticleButton>
         <button type="button" onClick={onDone} className="px-2 text-gray-500">{t("cancel")}</button>
       </div>
       {result && !result.ok && <p role="alert" className="text-amber-700">{t(result.key)}</p>}

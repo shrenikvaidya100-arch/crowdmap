@@ -6,6 +6,7 @@ import { translator } from "@/lib/i18n";
 import { common } from "@/lib/i18n/common";
 import { getLang } from "@/lib/i18n/server";
 import { getViewer } from "@/lib/session";
+import { THEME_SCRIPT } from "@/lib/theme-script";
 import "./globals.css";
 
 const sans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -28,7 +29,11 @@ function cursorWords(lang: "en" | "hi") {
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const [lang, viewer] = await Promise.all([getLang(), getViewer()]);
   return (
-    <html lang={lang} className={`${sans.variable} h-full antialiased`}>
+    <html lang={lang} className={`${sans.variable} h-full antialiased`} suppressHydrationWarning>
+      <head>
+        {/* Sets light or dark before the first paint. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body className="flex min-h-full flex-col">
         <Header lang={lang} viewer={viewer} />
         {children}

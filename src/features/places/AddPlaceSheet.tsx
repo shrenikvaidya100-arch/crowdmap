@@ -23,6 +23,7 @@ export function AddPlaceSheet({
   const [fix, setFix] = useState<GpsFix | null>(null);
   const [locating, setLocating] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState<"idle" | "success" | "error">("idle");
   const [notice, setNotice] = useState<{ ok: boolean; key: string; signIn?: boolean } | null>(null);
   const [duplicate, setDuplicate] = useState<{ id: string; name: string } | null>(null);
 
@@ -41,16 +42,20 @@ export function AddPlaceSheet({
   }
 
   async function submit(v: PlaceFields) {
-    if (!fix) return;
+    if (!fix || busy || saved === "success") return;
     setBusy(true);
     setNotice(null);
     setDuplicate(null);
     const res = await addPlace({ ...v, fix });
     setBusy(false);
     if (res.ok && res.id && res.cityId) {
-      onAdded({ id: res.id, cityId: res.cityId, lat: fix.lat, lng: fix.lng });
+      // Let the check and the burst play, then show the new place.
+      setSaved("success");
+      const added = { id: res.id, cityId: res.cityId, lat: fix.lat, lng: fix.lng };
+      setTimeout(() => onAdded(added), 900);
       return;
     }
+    setSaved("error");
     if (res.duplicate) setDuplicate(res.duplicate);
     setNotice({ ok: false, key: `result.${res.reason}`, signIn: res.reason === "signin" });
   }
@@ -75,7 +80,7 @@ export function AddPlaceSheet({
           <p className="mb-3 rounded-md bg-green-50 px-3 py-2 text-xs text-green-800 dark:bg-green-950 dark:text-green-200">
             <Icon name="pin" size={16} className="inline" /> {t("locationOk", { acc: fix.accuracy })}
           </p>
-          <PlaceForm lang={lang} submitLabel={t("submit")} busy={busy} onSubmit={(v) => void submit(v)} onCancel={onClose} />
+          <PlaceForm lang={lang} submitLabel={t("submit")} successLabel={t("addedShort")} status={saved} busy={busy} onSubmit={(v) => void submit(v)} onCancel={onClose} />
           <p className="mt-3 text-xs text-gray-500">
             <a className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer"
                href={`https://www.openstreetmap.org/edit#map=19/${fix.lat.toFixed(6)}/${fix.lng.toFixed(6)}`}>{t("osm")}</a>

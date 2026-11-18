@@ -1,5 +1,6 @@
 "use client";
 import { Icon } from "@/components/icons/Icon";
+import ParticleButton from "@/components/core/particle-button";
 // Record a photo, video (≤30 s) or audio clip live, add a caption, and post it.
 // Posting: GPS check → upload slot from the server → file straight to Storage → publish.
 import { useEffect, useRef, useState } from "react";
@@ -27,6 +28,7 @@ export function CaptureMedia({ placeId, lang, onPosted, onCancel }: {
   const [caption, setCaption] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [posted, setPosted] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   // Open the camera/mic for the chosen kind while nothing has been captured yet.
@@ -90,7 +92,9 @@ export function CaptureMedia({ placeId, lang, onPosted, onCancel }: {
       if (upError) return setError("result.upload_failed");
       const done = await finishUpload(slot.id);
       if (!done.ok) return setError(`result.${done.reason ?? "error"}`);
-      onPosted();
+      // Let the check and the burst play before the form closes.
+      setPosted(true);
+      setTimeout(onPosted, 900);
     } catch (e) {
       setError(e instanceof GpsError ? `gps.${e.code}` : "result.error");
     } finally {
@@ -141,7 +145,7 @@ export function CaptureMedia({ placeId, lang, onPosted, onCancel }: {
       )}
 
       {error && <p role="alert" className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-200">{t(error)}</p>}
-      {busy && <p className="text-sm text-blue-600" aria-live="polite">{t("posting")}</p>}
+      {busy && <p className="text-sm text-blue-600">{t("posting")}</p>}
 
       <div className="flex flex-wrap gap-2">
         {!clip && kind === "photo" && (
@@ -157,8 +161,11 @@ export function CaptureMedia({ placeId, lang, onPosted, onCancel }: {
         ))}
         {clip && (
           <>
-            <button type="button" disabled={busy} onClick={post}
-                    className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-50">{t("post")}</button>
+            <ParticleButton onClick={() => { if (!busy && !posted) void post(); }}
+                            status={busy ? "pending" : posted ? "success" : error ? "error" : "idle"}
+                            pendingLabel={t("postingShort")} successLabel={t("posted")} errorLabel={t("tryAgain")}>
+              {t("post")}
+            </ParticleButton>
             <button type="button" disabled={busy} onClick={() => { setClip(null); setCaption(""); setError(null); }}
                     className="rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700">{t("retake")}</button>
           </>

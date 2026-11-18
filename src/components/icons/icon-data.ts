@@ -89,6 +89,12 @@ export const ICONS = {
   compass: '<circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5 5-2Z"/>',
   alert_circle: '<circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5"/><circle cx="12" cy="16.3" r=".9" fill="currentColor"/>',
   logo: '<path d="M12 21.5s-6.5-6.2-6.5-11.5a6.5 6.5 0 0 1 13 0c0 5.3-6.5 11.5-6.5 11.5Z"/><path d="M8.8 10.5h1.2l1-2.2 2 4.4 1-2.2h1.2"/>',
+  // ---- Admin console --------------------------------------------------------
+  workspaces: '<rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><path d="M17.25 14v6.5"/><path d="M14 17.25h6.5"/>',
+  sidebar_toggle: '<rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M9 4v16"/><path d="m13.5 10 2 2-2 2"/>',
+  dashboard: '<rect x="3.5" y="3.5" width="7" height="9" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="5" rx="1.5"/><rect x="13.5" y="11.5" width="7" height="9" rx="1.5"/><rect x="3.5" y="15.5" width="7" height="5" rx="1.5"/>',
+  chart: '<path d="M3.5 20.5h17"/><path d="M6.5 17v-4"/><path d="M11 17V8.5"/><path d="M15.5 17v-6"/><path d="M20 17V5"/>',
+  image: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="9.5" r="1.75"/><path d="m21 15.5-4.5-4.5L6 20"/>',
 } as const;
 
 export type IconName = keyof typeof ICONS;
