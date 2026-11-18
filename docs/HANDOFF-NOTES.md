@@ -78,3 +78,13 @@ From User 2 (2026-11-18), photos, videos, audio and comments (migrations `2001`,
   accepted check for the "teleporting" test.
 
 From User 1 (2026-11-18): done. `PlaceMedia` is in the place panel, below "plan your visit".
+
+From User 2 (2026-11-18), automatic bot detection (migrations `2004`, `2005`):
+- **Contracts now exist:** `public.user_trust` (view: `user_id, trust_score, removed`) and
+  `public.is_removed(user_id)`. Your crowd levels already weight by `profiles.trust_score` and skip removed
+  profiles, which is the same data, so nothing has to change on your side.
+- Every 10 minutes (pg_cron job `crowdmap-bot-sweep`) recently active, non-admin accounts are scored from
+  `location_checks` reasons (`impossible_travel`, `not_at_place`, `rate_limited`), bursts of reports/alerts/uploads
+  across many places, actions per hour, spam text, duplicate uploads, and places of theirs that got removed.
+  100+ points: removed automatically (`system.bot_removed`). 40–99: flagged and trust lowered to 0.2 (`system.bot_flagged`).
+- Rules live in `public.bot_rules` (signal, window, threshold, points), shown on `/admin/bots`.
