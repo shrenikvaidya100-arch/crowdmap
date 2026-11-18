@@ -17,7 +17,8 @@ type Details = {
   place: { id: string; name: string; name_hi: string | null; category: string; address: string | null };
   crowd: { level: number; source: 'live' | 'estimated' };
 };
-type Photo = { id: string; kind: string; url: string | null; caption: string | null };
+type Photo = { id: string; kind: string; url: string | null; caption: string | null; credit?: string };
+type WebPhotos = { photos: { url: string; credit: string }[]; satellite: { url: string; credit: string } };
 type Forecast = { hours: { hour: number; level: number }[]; best: { hour: number; level: number } | null };
 
 const levelColor = (l: number) => config.crowd.levels.find((x) => x.level === l)?.color ?? config.crowd.noDataColor;
@@ -44,10 +45,15 @@ export function PlaceCard({ placeId, lang, onMore, onClose, restoreFocus }: {
       fetch(`/api/places/${placeId}`, { cache: 'no-store' }).then((r) => (r.ok ? r.json() : Promise.reject(r.status))),
       fetch(`/api/media?place=${placeId}`, { cache: 'no-store' }).then((r) => (r.ok ? r.json() : { items: [] })).catch(() => ({ items: [] })),
       fetch(`/api/places/${placeId}/forecast`, { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
-    ]).then(([d, m, f]) => {
+      fetch(`/api/places/${placeId}/photos`).then((r) => (r.ok ? r.json() : null)).catch(() => null) as Promise<WebPhotos | null>,
+    ]).then(([d, m, f, web]) => {
       if (cancelled) return;
       setData(d);
-      setPhotos(((m.items ?? []) as Photo[]).filter((p) => p.kind === 'photo' && p.url).slice(0, 4));
+      // People's own photos first, then photos from the web, then a satellite view, so the top is never empty.
+      const own = ((m.items ?? []) as Photo[]).filter((p) => p.kind === 'photo' && p.url);
+      const fromWeb: Photo[] = (web?.photos ?? []).map((p, i) => ({ id: `web-${i}`, kind: 'photo', url: p.url, caption: null, credit: p.credit }));
+      const all = [...own, ...fromWeb].slice(0, 4);
+      setPhotos(all.length ? all : web ? [{ id: 'sat', kind: 'photo', url: web.satellite.url, caption: null, credit: web.satellite.credit }] : []);
       setForecast(f);
       setMain(0);
     }).catch(() => { if (!cancelled) setFailed(true); });
@@ -76,11 +82,15 @@ export function PlaceCard({ placeId, lang, onMore, onClose, restoreFocus }: {
       <div className='relative h-[58%] shrink-0 overflow-hidden bg-zinc-900'>
         {shown?.url ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={shown.url} alt={shown.caption ?? name} draggable={false} className='h-full w-full object-cover' />
+          <img src={shown.url} alt={shown.caption ?? name} draggable={false} referrerPolicy='no-referrer'
+               className='h-full w-full object-cover motion-safe:animate-[pop_400ms_ease-out]' />
         ) : (
           <div className='flex h-full items-end bg-gradient-to-br from-zinc-800 to-zinc-950 p-4'>
             <p className='text-xl font-semibold leading-tight text-zinc-100'>{name}</p>
           </div>
+        )}
+        {shown?.credit && (
+          <p className='absolute right-1.5 top-1.5 max-w-[85%] truncate rounded bg-black/55 px-1.5 py-0.5 text-[9px] text-zinc-200'>{shown.credit}</p>
         )}
         {photos.length > 1 && (
           <div className='absolute bottom-2 left-2 flex gap-1.5'>

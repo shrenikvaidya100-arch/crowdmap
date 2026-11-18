@@ -89,7 +89,6 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
   const [selected, setSelected] = useState<string | null>(initialPlace?.id ?? null);
   // The picked place shows as a flip card; "More details" opens the full panel.
   const [details, setDetails] = useState(false);
-  const [cardFocus, setCardFocus] = useState(0);
   const selectedRef = useRef<string | null>(null);
   useEffect(() => { selectedRef.current = selected; }, [selected]);
   /** Shows a place as a card (never straight into the full panel). */
@@ -739,7 +738,8 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
       )}
       {dockPanel === "customize" && (
         <CustomizePanel lang={lang} prefs={prefs} contoursOn={overlays.contours}
-                        onPrefs={(p) => { if (p.palette === "light" || p.palette === "dark") setSiteTheme(p.palette); else if (p.palette) setPalette(p.palette); else setPrefs((cur) => ({ ...cur, ...p })); }}
+                        siteTheme={siteTheme} onTheme={(th) => { setSiteTheme(th); setPalette(th); }}
+                        onPrefs={(p) => { if (p.palette) setPalette(p.palette); else setPrefs((cur) => ({ ...cur, ...p })); }}
                         onSave={() => savePrefs(prefs)}
                         onReset={() => { clearPrefs(); setPrefs(DEFAULT_PREFS); if (basemap === "dark") setBasemap("street"); }}
                         onClose={() => setDockPanel(null)} />
@@ -781,14 +781,14 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
       {selected && !details && (
         <div data-map-ui className="pointer-events-none absolute inset-x-0 top-[6.5rem] bottom-[4.5rem] z-30 flex items-center justify-center print:hidden sm:top-24">
           <div className="pointer-events-auto">
-            <PlaceCard placeId={selected} lang={lang} restoreFocus={cardFocus}
+            <PlaceCard placeId={selected} lang={lang}
                        onClose={() => setSelected(null)} onMore={() => setDetails(true)} />
           </div>
         </div>
       )}
       {selected && details && (
         <PlaceSheet key={selected} placeId={selected} version={placeVersion} lang={lang}
-                    onClose={() => { setDetails(false); setCardFocus((n) => n + 1); }}
+                    onClose={() => { setDetails(false); setSelected(null); }}
                     onChanged={() => activeCity && void loadCity(activeCity)} />
       )}
     </div>

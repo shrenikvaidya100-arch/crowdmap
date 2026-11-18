@@ -77,6 +77,6 @@ export default function PopCursor({ targetSelector, ignoreSelector }: { targetSe
 
   return (
     <div ref={box} aria-hidden
-         className='pointer-events-none fixed left-0 top-0 z-[9999] h-2 w-2 bg-sky-400/15 opacity-0 ring-1 ring-sky-300/40 shadow-[0_0_24px_rgba(56,189,248,0.25)] will-change-transform [transition:transform_.22s_cubic-bezier(.2,.9,.3,1.2),width_.22s_cubic-bezier(.2,.9,.3,1.2),height_.22s_cubic-bezier(.2,.9,.3,1.2),border-radius_.22s,opacity_.18s] motion-reduce:transition-none' />
+         className='pointer-events-none fixed left-0 top-0 z-[9999] h-2 w-2 bg-blue-500/15 opacity-0 ring-1 ring-blue-400/45 shadow-[0_0_24px_rgba(37,99,235,0.3)] will-change-transform [transition:transform_.22s_cubic-bezier(.2,.9,.3,1.2),width_.22s_cubic-bezier(.2,.9,.3,1.2),height_.22s_cubic-bezier(.2,.9,.3,1.2),border-radius_.22s,opacity_.18s] motion-reduce:transition-none' />
   );
 }

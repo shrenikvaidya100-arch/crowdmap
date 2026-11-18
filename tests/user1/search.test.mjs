@@ -23,6 +23,13 @@ test("finds famous places by name, across cities", async () => {
   assert.ok(names(await search("sarafa", "indore")).includes("Sarafa Bazaar"));
 });
 
+test("understands initials: IIM, AIIMS", async () => {
+  assert.equal(names(await search("IIM Indore", "indore"))[0], "Indian Institute of Management Indore");
+  assert.match(names(await search("aiims bhopal", "indore"))[0], /All India Institute of Medical Sciences/);
+  // Initials alone don't match unrelated words: every query word must fit.
+  assert.ok(!names(await search("iim zzzq", "indore")).includes("Indian Institute of Management Indore"));
+});
+
 test("tolerates typos", async () => {
   assert.ok(names(await search("gatway", "mumbai")).includes("Gateway of India"));
   assert.ok(names(await search("khajrna", "indore")).some((n) => /Khajrana Ganesh Mandir/.test(n)));
