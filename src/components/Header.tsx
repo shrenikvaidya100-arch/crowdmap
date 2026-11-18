@@ -6,6 +6,7 @@ import { Icon } from "@/components/icons/Icon";
 import { NotificationBell } from "@/features/alerts/NotificationBell";
 import { AccountMenu } from "@/features/site/AccountMenu";
 import { NavTabs } from "@/features/site/NavTabs";
+import { ThemeToggle } from "@/features/site/ThemeToggle";
 import type { Language } from "@/lib/config";
 import { translator } from "@/lib/i18n";
 import { common } from "@/lib/i18n/common";
@@ -34,6 +35,7 @@ export function Header({ lang, viewer }: { lang: Language; viewer: Viewer }) {
           <input type="hidden" name="lang" value={lang === "en" ? "hi" : "en"} />
           <button className={link} type="submit">{t("nav.language")}</button>
         </form>
+        <ThemeToggle labels={{ toNight: t("theme.toNight"), toDay: t("theme.toDay"), nightOn: t("theme.nightOn"), dayOn: t("theme.dayOn") }} />
         {viewer ? (
           <>
             <NotificationBell label={t("nav.notifications")} />

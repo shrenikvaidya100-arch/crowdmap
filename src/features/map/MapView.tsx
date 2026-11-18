@@ -23,6 +23,7 @@ import { messages as searchMessages } from "@/features/search/messages";
 import { SearchBox, type SearchHit } from "@/features/search/SearchBox";
 import { config, type Language } from "@/lib/config";
 import { translator } from "@/lib/i18n";
+import { useTheme } from "@/lib/theme";
 import { messages } from "./messages";
 import { useCityUpdates } from "./useCityUpdates";
 import { DEFAULT_OVERLAYS, styleUrl, type BasemapId, type OverlayId } from "./basemaps";
@@ -107,6 +108,10 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
   const [basemap, setBasemap] = useState<BasemapId>("street");
   const [overlays, setOverlays] = useState<Record<OverlayId, boolean>>(DEFAULT_OVERLAYS);
   const [prefs, setPrefs] = useState<MapPrefs>(DEFAULT_PREFS);
+  // The site's day/night setting drives the map's light and dark palettes.
+  const { resolved: siteTheme, setTheme: setSiteTheme } = useTheme();
+  const paletteRef = useRef<MapPrefs["palette"]>(DEFAULT_PREFS.palette);
+  useEffect(() => { paletteRef.current = prefs.palette; }, [prefs.palette]);
   const [dockPanel, setDockPanel] = useState<"layers" | "customize" | "places" | "tools" | null>(null);
   const [zoom, setZoom] = useState(initialPlace ? 16 : initialFocus ? initialFocus.zoom : startCity?.default_zoom ?? 12);
   const [bearing, setBearing] = useState(0);
@@ -284,6 +289,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
   useEffect(() => {
     queueMicrotask(() => {
       const saved = loadPrefs();
+      paletteRef.current = saved.palette;
       setPrefs(saved);
       setMarkers(loadMarkers());
       setShapes(loadShapes());
@@ -325,9 +331,15 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
   }, [prefs.palette]);
   function setPalette(p: MapPrefs["palette"]) {
     setPrefs((cur) => ({ ...cur, palette: p }));
-    if (p === "dark" && basemap !== "dark" && basemap !== "satellite") setBasemap("dark");
-    if (p !== "dark" && basemap === "dark") setBasemap("street");
+    setBasemap((b) => (p === "dark" ? (b === "dark" || b === "satellite" ? b : "dark") : b === "dark" ? "street" : b));
   }
+  // Follow the site theme; Sepia and High contrast stay as chosen.
+  useEffect(() => {
+    queueMicrotask(() => {
+      const p = paletteRef.current;
+      if ((p === "light" || p === "dark") && p !== siteTheme) setPalette(siteTheme);
+    });
+  }, [siteTheme]);
 
   // Drawings and the measuring line.
   useEffect(() => {
@@ -426,7 +438,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
       if (c) map.current?.flyTo({ center: [c.lng, c.lat], zoom: c.default_zoom, pitch: 0, bearing: 0, essential: true });
       return;
     }
-    if (k === "theme") { setPalette(prefs.palette === "dark" ? "light" : "dark"); return; }
+    if (k === "theme") { setSiteTheme(siteTheme === "dark" ? "light" : "dark"); return; }
     setSelected(null);
     setPanel(null);
     setDockPanel((p) => (p === k ? null : k));
@@ -551,7 +563,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
     `relative shrink-0 rounded-full px-3.5 py-2 text-sm font-medium shadow ${on ? "bg-blue-600 text-white" : "bg-white text-gray-800 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-100"}`;
 
   const dockItems: { key: DockKey; label: string }[] = (["home", "map", "layers", "customize", "places", "tools", "theme"] as const)
-    .map((k) => ({ key: k, label: k === "theme" ? (prefs.palette === "dark" ? tc("palette.light") : tc("palette.dark")) : tc(`dock.${k}`) }));
+    .map((k) => ({ key: k, label: k === "theme" ? (siteTheme === "dark" ? tc("palette.light") : tc("palette.dark")) : tc(`dock.${k}`) }));
   const roundBtn = "grid h-10 w-10 place-items-center rounded-full bg-neutral-900/90 text-neutral-100 shadow-lg ring-1 ring-white/10 backdrop-blur hover:bg-neutral-800";
 
   return (
@@ -658,7 +670,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
       )}
       {dockPanel === "customize" && (
         <CustomizePanel lang={lang} prefs={prefs} contoursOn={overlays.contours}
-                        onPrefs={(p) => { if (p.palette) setPalette(p.palette); else setPrefs((cur) => ({ ...cur, ...p })); }}
+                        onPrefs={(p) => { if (p.palette === "light" || p.palette === "dark") setSiteTheme(p.palette); else if (p.palette) setPalette(p.palette); else setPrefs((cur) => ({ ...cur, ...p })); }}
                         onSave={() => savePrefs(prefs)}
                         onReset={() => { clearPrefs(); setPrefs(DEFAULT_PREFS); if (basemap === "dark") setBasemap("street"); }}
                         onClose={() => setDockPanel(null)} />

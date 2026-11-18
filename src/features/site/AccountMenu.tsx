@@ -6,12 +6,14 @@ import { useRouter } from 'next/navigation';
 import ProfileDropdown from '@/components/core/profile-dropdown';
 import { logout } from '@/app/(auth)/actions';
 import { UserAvatar } from '@/features/profile/UserAvatar';
+import { useTheme } from '@/lib/theme';
 
 export function AccountMenu({ viewer, labels }: {
   viewer: { id: string; displayName: string; email: string; role: 'user' | 'admin'; avatarSeed: string | null };
   labels: { profile: string; settings: string; saved: string; reminders: string; admin: string; setupAvatar: string };
 }) {
   const router = useRouter();
+  const { choice, setTheme } = useTheme();
   const initials = viewer.displayName.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join('');
   const items = [
     ...(viewer.avatarSeed ? [] : [{ label: labels.setupAvatar, href: '/welcome?next=%2F' }]),
@@ -29,7 +31,8 @@ export function AccountMenu({ viewer, labels }: {
       }]}
       items={items}
       showStatus={false}
-      showTheme={false}
+      theme={choice}
+      onThemeChange={setTheme}
       holdDuration={1200}
       onSignOut={async () => {
         await logout();

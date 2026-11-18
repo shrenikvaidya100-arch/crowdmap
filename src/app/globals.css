@@ -1,15 +1,16 @@
 @import "tailwindcss";
 
+/* Dark mode follows the `dark` class on <html> (set by src/lib/theme.ts). */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #ffffff;
   --foreground: #111827;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #030712;
-    --foreground: #f3f4f6;
-  }
+.dark {
+  --background: #030712;
+  --foreground: #f3f4f6;
 }
 
 @theme inline {
