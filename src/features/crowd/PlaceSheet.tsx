@@ -1,9 +1,10 @@
 "use client";
-// Panel for one place: crowd now, plan your visit, reporting, alerts.
+// Panel for one place: crowd now, plan your visit, media, reporting, alerts.
 // Bottom sheet on phones, side panel on larger screens.
 import Link from "next/link";
 import { PlaceStatus, type Confirmations } from "@/features/places/PlaceStatus";
 import { PlanVisit } from "./plan/PlanVisit";
+import { PlaceMedia } from "@/features/media/PlaceMedia";
 import { useCallback, useEffect, useState } from "react";
 import { config, type Language } from "@/lib/config";
 import { translator } from "@/lib/i18n";
@@ -158,6 +159,9 @@ export function PlaceSheet({
 
           {/* Forecast by day and hour, best time, plans */}
           <PlanVisit placeId={placeId} category={data.place.category} lang={lang} />
+
+          {/* Photos, videos, audio and comments (User 2's feature) */}
+          <PlaceMedia key={placeId} placeId={placeId} lang={lang} />
 
           {notice && (
             <p role={notice.ok ? "status" : "alert"}
