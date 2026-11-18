@@ -1,3 +1,4 @@
+import { Icon } from "@/components/icons/Icon";
 // "My activity": profile plus everything the user has shared. Loaded with the
 // user's own session, so row-level security returns only their rows.
 import { redirect } from "next/navigation";
@@ -86,9 +87,9 @@ export default async function MyActivityPage() {
         <h1 className="text-2xl font-semibold">{t("title")}</h1>
         <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{t("subtitle")}</p>
         <p className="mt-2 flex flex-wrap gap-x-4 text-sm">
-          <span>👤 {data.profile.display_name}</span>
+          <span className="inline-flex items-center gap-1.5"><Icon name="user" size={16} /> {data.profile.display_name}</span>
           <span className="text-gray-500">{t("memberSince", { date: since })}</span>
-          <span className="text-gray-500" title={t("trustHint")}>🛡️ {t("trust", { pct: Math.round(data.profile.trust_score * 100) })}</span>
+          <span className="inline-flex items-center gap-1.5 text-gray-500" title={t("trustHint")}><Icon name="shield" size={16} /> {t("trust", { pct: Math.round(data.profile.trust_score * 100) })}</span>
         </p>
       </header>
 

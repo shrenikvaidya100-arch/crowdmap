@@ -1,4 +1,5 @@
 "use client";
+import { Icon } from "@/components/icons/Icon";
 // "Add a missing place": get a GPS fix at the spot, then name and category.
 import { useState } from "react";
 import type { Language } from "@/lib/config";
@@ -60,19 +61,19 @@ export function AddPlaceSheet({
       <div className="mb-2 flex items-center justify-between">
         <h2 className="text-lg font-semibold">{t("addTitle")}</h2>
         <button type="button" aria-label={t("cancel")} onClick={onClose}
-                className="rounded-full p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">✕</button>
+                className="rounded-full p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"><Icon name="close" /></button>
       </div>
       <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">{t("intro")}</p>
 
       {!fix ? (
         <button type="button" onClick={() => void locate()} disabled={locating}
                 className="w-full rounded-md bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
-          ◎ {locating ? t("gettingLocation") : t("getLocation")}
+          <Icon name="locate" size={16} className="inline" /> {locating ? t("gettingLocation") : t("getLocation")}
         </button>
       ) : (
         <>
           <p className="mb-3 rounded-md bg-green-50 px-3 py-2 text-xs text-green-800 dark:bg-green-950 dark:text-green-200">
-            📍 {t("locationOk", { acc: fix.accuracy })}
+            <Icon name="pin" size={16} className="inline" /> {t("locationOk", { acc: fix.accuracy })}
           </p>
           <PlaceForm lang={lang} submitLabel={t("submit")} busy={busy} onSubmit={(v) => void submit(v)} onCancel={onClose} />
           <p className="mt-3 text-xs text-gray-500">

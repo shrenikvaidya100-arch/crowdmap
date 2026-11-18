@@ -1,4 +1,5 @@
 "use client";
+import { Icon } from "@/components/icons/Icon";
 // ☆ Save and 🔔 "Notify me when it's quiet" in the place panel.
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -42,7 +43,7 @@ export function PlaceActions({ placeId, lang }: { placeId: string; lang: Languag
 
   if (!state) return null;
   if (!state.signed_in) {
-    return <Link href="/login?next=/" className="text-sm text-blue-600 hover:underline">☆ {t("signInFirst")}</Link>;
+    return <Link href="/login?next=/" className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:underline"><Icon name="star" size={16} /> {t("signInFirst")}</Link>;
   }
 
   const btn = "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium disabled:opacity-50";
@@ -51,18 +52,18 @@ export function PlaceActions({ placeId, lang }: { placeId: string; lang: Languag
       <div className="flex flex-wrap gap-2">
         <button type="button" disabled={busy} aria-pressed={state.saved} onClick={() => act(() => toggleSaved(placeId))}
                 className={`${btn} ${state.saved ? "border-amber-400 bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-200" : "border-gray-300 dark:border-gray-700"}`}>
-          {state.saved ? "★" : "☆"} {state.saved ? t("saved") : t("save")}
+          <Icon name={state.saved ? "star_filled" : "star"} size={16} /> {state.saved ? t("saved") : t("save")}
         </button>
         {state.watch ? (
           <span className={`${btn} border-blue-300 bg-blue-50 text-blue-800 dark:bg-blue-950 dark:text-blue-200`}>
-            {t("watching", { time: time(state.watch.expires_at) })}
+            <Icon name="bell" size={16} /> {t("watching", { time: time(state.watch.expires_at) })}
             <button type="button" disabled={busy} onClick={() => act(() => cancelWatch(state.watch!.id))}
                     className="ml-1 text-xs underline">{t("cancelWatch")}</button>
           </span>
         ) : (
           <button type="button" disabled={busy} aria-expanded={choosing} onClick={() => setChoosing((c) => !c)}
                   className={`${btn} border-gray-300 dark:border-gray-700`}>
-            🔔 {t("notify")}
+            <Icon name="bell" size={16} /> {t("notify")}
           </button>
         )}
       </div>

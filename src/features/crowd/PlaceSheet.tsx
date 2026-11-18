@@ -1,4 +1,5 @@
 "use client";
+import { Icon } from "@/components/icons/Icon";
 // Panel for one place: crowd now, plan your visit, media, reporting, alerts.
 // Bottom sheet on phones, side panel on larger screens.
 import Link from "next/link";
@@ -13,7 +14,7 @@ import {
   deleteCrowdReport, deleteQuickReport, submitCrowdReport, submitQuickReport,
   updateCrowdReport, voteQuickReport, type ActionResult,
 } from "./actions";
-import { CATEGORY_ICON, QUICK_KINDS, quickIcon } from "./config";
+import { categoryIcon, QUICK_KINDS, quickIcon } from "./config";
 import { getGpsFix, GpsError } from "./gps";
 import { messages } from "./messages";
 
@@ -113,13 +114,13 @@ export function PlaceSheet({
       className="absolute inset-x-0 bottom-0 z-30 max-h-[70%] overflow-y-auto rounded-t-2xl bg-white shadow-2xl sm:inset-y-3 sm:left-auto sm:right-3 sm:max-h-none sm:w-96 sm:rounded-2xl dark:bg-gray-900"
     >
       <div className="sticky top-0 flex items-start gap-3 border-b border-gray-100 bg-white/95 px-4 py-3 backdrop-blur dark:border-gray-800 dark:bg-gray-900/95">
-        <span aria-hidden className="text-2xl">{data ? CATEGORY_ICON[data.place.category] ?? "📍" : "📍"}</span>
+        <Icon name={categoryIcon(data?.place.category)} size={26} className="mt-0.5 shrink-0 text-gray-500" />
         <div className="min-w-0 flex-1">
           <h2 className="truncate text-lg font-semibold">{name || t("loading")}</h2>
           {data?.place.address && <p className="truncate text-xs text-gray-500">{data.place.address}</p>}
         </div>
         <button type="button" onClick={onClose} className="rounded-full p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">
-          <span aria-hidden>✕</span><span className="sr-only">{t("close")}</span>
+          <Icon name="close" /><span className="sr-only">{t("close")}</span>
         </button>
       </div>
 
@@ -140,7 +141,7 @@ export function PlaceSheet({
                   data.crowd.sample ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
                   : data.crowd.source === "live" ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300"
                   : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300"}`}>
-                  {data.crowd.sample ? t("sample") : data.crowd.source === "live" ? `● ${t("live")}` : t("estimated")}
+                  {data.crowd.sample ? t("sample") : data.crowd.source === "live" ? t("live") : t("estimated")}
                 </span>
               </p>
               <p className="text-xs text-gray-500">
@@ -149,7 +150,7 @@ export function PlaceSheet({
                   : t("estimatedHint")}
               </p>
               {data.crowd.here > 0 && (
-                <p className="mt-0.5 text-xs font-medium text-blue-600">📱 {t(data.crowd.here === 1 ? "hereOne" : "hereMany", { n: data.crowd.here })}</p>
+                <p className="mt-0.5 inline-flex items-center gap-1 text-xs font-medium text-blue-600"><Icon name="phone" size={14} /> {t(data.crowd.here === 1 ? "hereOne" : "hereMany", { n: data.crowd.here })}</p>
               )}
             </div>
           </section>
@@ -220,7 +221,7 @@ export function PlaceSheet({
               <ul className="space-y-2">
                 {data.alerts.map((a) => (
                   <li key={a.id} className="flex items-center gap-2 rounded-md border border-gray-200 px-3 py-2 text-sm dark:border-gray-700">
-                    <span aria-hidden>{quickIcon(a.kind)}</span>
+                    <Icon name={quickIcon(a.kind)} size={18} className="shrink-0" />
                     <span className="flex-1">
                       {t(`kind.${a.kind}`)}{a.sample && <span className="ml-1 rounded bg-amber-100 px-1 text-[10px] font-medium uppercase text-amber-800 dark:bg-amber-950 dark:text-amber-300">{t("sample")}</span>} <span className="text-xs text-gray-500">· {ago(a.created_at)} · {t("votes", { yes: a.still_there, no: a.gone })}</span>
                     </span>
@@ -250,7 +251,7 @@ export function PlaceSheet({
                   <button key={k.kind} type="button" disabled={!!busy}
                           onClick={() => void withGps((fix) => submitQuickReport({ kind: k.kind, placeId, fix }))}
                           className="flex flex-col items-center gap-0.5 rounded-lg border border-gray-200 px-1 py-2 text-[11px] leading-tight hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:hover:bg-gray-800">
-                    <span aria-hidden className="text-lg">{k.icon}</span>{t(`kind.${k.kind}`)}
+                    <Icon name={k.icon} size={22} />{t(`kind.${k.kind}`)}
                   </button>
                 ))}
               </div>
@@ -260,7 +261,7 @@ export function PlaceSheet({
           <a href={`https://www.google.com/maps/dir/?api=1&destination=${data.place.lat},${data.place.lng}`}
              target="_blank" rel="noopener noreferrer"
              className="block rounded-md border border-gray-300 px-3 py-2 text-center text-sm font-medium hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800">
-            {t("openInMaps")} ↗
+            {t("openInMaps")}
           </a>
         </div>
       )}

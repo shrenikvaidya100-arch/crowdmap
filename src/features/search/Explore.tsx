@@ -1,9 +1,10 @@
 "use client";
+import { Icon } from "@/components/icons/Icon";
 // Filters panel and the sortable list of places that match them.
 import { useState } from "react";
 import { config, type Language } from "@/lib/config";
 import { translator } from "@/lib/i18n";
-import { CATEGORY_ICON } from "@/features/crowd/config";
+import { categoryIcon } from "@/features/crowd/config";
 import { DEFAULT_FILTERS, GROUPS, RADII_KM, type FilterablePlace, type Filters, type SortKey } from "./filters";
 import { messages } from "./messages";
 
@@ -43,7 +44,7 @@ export function FilterSheet({
           {GROUPS.map((g) => (
             <button key={g.key} type="button" aria-pressed={filters.groups.includes(g.key)}
                     className={chip(filters.groups.includes(g.key))} onClick={() => toggleGroup(g.key)}>
-              <span aria-hidden>{g.icon}</span> {t(`group.${g.key}`)}
+              <Icon name={g.icon} size={16} className="inline" /> {t(`group.${g.key}`)}
             </button>
           ))}
         </div>
@@ -79,7 +80,7 @@ export function FilterSheet({
         <p className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-500">
           {t(origin === "me" ? "usingMyLocation" : "usingMapCentre")}
           {origin === "centre" && (
-            <button type="button" className="text-blue-600 hover:underline" onClick={onUseLocation}>◎ {t("nearMe")}</button>
+            <button type="button" className="text-blue-600 hover:underline" onClick={onUseLocation}><Icon name="locate" size={16} className="inline" /> {t("nearMe")}</button>
           )}
         </p>
         {locError && <p className="mt-1 text-xs text-red-600">{locError}</p>}
@@ -129,7 +130,7 @@ export function PlaceList<T extends FilterablePlace & { distanceKm: number | nul
             <li key={p.id}>
               <button type="button" onClick={() => onPick(p)}
                       className="flex w-full items-center gap-3 border-b border-gray-50 px-4 py-2.5 text-left hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800">
-                <span aria-hidden className="text-lg">{CATEGORY_ICON[p.category] ?? "📍"}</span>
+                <Icon name={categoryIcon(p.category)} size={20} className="shrink-0 text-gray-500" />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-medium">{lang === "hi" && p.name_hi ? p.name_hi : p.name}</span>
                   {p.distanceKm !== null && (
@@ -143,7 +144,7 @@ export function PlaceList<T extends FilterablePlace & { distanceKm: number | nul
                   {t(`level.${p.level}`)}
                   {p.source === "live" && (p.sample
                     ? <span className="font-semibold text-amber-600">{t("sample")}</span>
-                    : <span className="font-semibold text-red-600">● {t("live")}</span>)}
+                    : <span className="inline-flex items-center gap-1 font-semibold text-red-600"><span className="h-1.5 w-1.5 rounded-full bg-current" />{t("live")}</span>)}
                 </span>
               </button>
             </li>

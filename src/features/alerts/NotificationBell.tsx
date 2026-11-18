@@ -1,4 +1,5 @@
 "use client";
+import { Icon } from "@/components/icons/Icon";
 // 🔔 in the header with the number of unread notifications (refreshes every minute
 // and whenever the tab comes back into view).
 import Link from "next/link";
@@ -29,7 +30,7 @@ export function NotificationBell({ label }: { label: string }) {
   return (
     <Link href="/saved" aria-label={count ? `${label} (${count})` : label}
           className="relative rounded-md px-2.5 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-800">
-      <span aria-hidden>🔔</span>
+      <Icon name="bell" size={20} />
       {count > 0 && (
         <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">
           {count > 9 ? "9+" : count}

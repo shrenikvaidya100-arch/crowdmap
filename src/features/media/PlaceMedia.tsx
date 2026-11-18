@@ -1,4 +1,5 @@
 "use client";
+import { Icon } from "@/components/icons/Icon";
 // Media feed for one place: photos, videos and audio clips shared by people who
 // were there, each with comments. Shown inside the place panel.
 import Link from "next/link";
@@ -87,7 +88,7 @@ export function PlaceMedia({ placeId, lang }: { placeId: string; lang: Language 
         ) : (
           <button type="button" onClick={() => { setNotice(null); setCapturing(true); }}
                   className="rounded-md border border-blue-600 px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950">
-            📷 {t("add")}
+            <Icon name="camera" size={16} className="mr-1.5 inline" />{t("add")}
           </button>
         )}
 
@@ -121,7 +122,7 @@ function MediaCard({ item: m, t, ago, signedIn, run, refresh }: {
         : m.kind === "video" ? <video src={m.url} controls playsInline preload="metadata" className="max-h-80 w-full bg-black" />
         : <div className="bg-gray-50 p-3 dark:bg-gray-800"><audio src={m.url} controls preload="metadata" className="w-full" /></div>
       ) : (
-        <div className="grid h-24 place-items-center bg-gray-100 text-2xl dark:bg-gray-800">{MEDIA_ICON[m.kind]}</div>
+        <div className="grid h-24 place-items-center bg-gray-100 text-gray-400 dark:bg-gray-800"><Icon name={MEDIA_ICON[m.kind]} size={32} /></div>
       )}
       <div className="space-y-1.5 p-3 text-sm">
         {editing ? (
@@ -143,7 +144,7 @@ function MediaCard({ item: m, t, ago, signedIn, run, refresh }: {
           m.caption && <p className="whitespace-pre-wrap break-words">{m.caption}</p>
         )}
         <p className="flex flex-wrap items-center gap-x-2 text-xs text-gray-500">
-          <span>{MEDIA_ICON[m.kind]} {t("by", { name: m.author, ago: ago(m.created_at) })}</span>
+          <span className="inline-flex items-center gap-1"><Icon name={MEDIA_ICON[m.kind]} size={14} /> {t("by", { name: m.author, ago: ago(m.created_at) })}</span>
           {m.duration_s != null && <span>· {Math.round(m.duration_s)}s</span>}
           {m.edited_at && <span>· {t("edited")}</span>}
           {m.is_sample && <span className="rounded bg-amber-100 px-1 text-amber-800">{t("sample")}</span>}
@@ -151,7 +152,7 @@ function MediaCard({ item: m, t, ago, signedIn, run, refresh }: {
         </p>
         <div className="flex flex-wrap gap-3 text-xs">
           <button type="button" onClick={() => setOpen((o) => !o)} className="text-blue-600 hover:underline" aria-expanded={open}>
-            💬 {open ? t("hideComments") : t("comments", { n: m.comment_count })}
+            <Icon name="comment" size={14} className="mr-1 inline" />{open ? t("hideComments") : t("comments", { n: m.comment_count })}
           </button>
           {m.mine && !editing && (
             <>

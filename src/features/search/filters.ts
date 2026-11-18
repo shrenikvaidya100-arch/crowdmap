@@ -1,3 +1,4 @@
+import type { IconName } from "@/components/icons/Icon";
 // Filtering and sorting for the map and the list. Pure functions with no
 // imports, so tests can run them directly (tests/user1/filters.test.mjs).
 
@@ -19,15 +20,15 @@ export type Filters = {
 export const DEFAULT_FILTERS: Filters = { groups: [], maxLevel: 5, radiusKm: null, liveOnly: false, sort: "quietest" };
 
 /** Category groups shown as filter chips. */
-export const GROUPS: { key: string; icon: string; categories: string[] }[] = [
-  { key: "worship", icon: "🛕", categories: ["temple", "religious"] },
-  { key: "food", icon: "🍽️", categories: ["restaurant", "cafe", "street_food"] },
-  { key: "shopping", icon: "🛍️", categories: ["market", "mall"] },
-  { key: "parks", icon: "🌳", categories: ["park"] },
-  { key: "sights", icon: "📸", categories: ["tourist", "entertainment"] },
-  { key: "health", icon: "🏥", categories: ["hospital"] },
-  { key: "transport", icon: "🚉", categories: ["station"] },
-  { key: "services", icon: "🏦", categories: ["bank", "government", "education", "other"] },
+export const GROUPS: { key: string; icon: IconName; categories: string[] }[] = [
+  { key: "worship", icon: "temple", categories: ["temple", "religious"] },
+  { key: "food", icon: "restaurant", categories: ["restaurant", "cafe", "street_food"] },
+  { key: "shopping", icon: "market", categories: ["market", "mall"] },
+  { key: "parks", icon: "park", categories: ["park"] },
+  { key: "sights", icon: "tourist", categories: ["tourist", "entertainment"] },
+  { key: "health", icon: "hospital", categories: ["hospital"] },
+  { key: "transport", icon: "station", categories: ["station"] },
+  { key: "services", icon: "bank", categories: ["bank", "government", "education", "other"] },
 ];
 
 export const RADII_KM = [1, 3, 5, 10] as const;
