@@ -6,6 +6,7 @@ import { translator } from "@/lib/i18n";
 import { common } from "@/lib/i18n/common";
 import type { Viewer } from "@/lib/session";
 import { NotificationBell } from "@/features/alerts/NotificationBell";
+import { Icon } from "@/components/icons/Icon";
 
 export function Header({ lang, viewer }: { lang: Language; viewer: Viewer }) {
   const t = translator(common, lang);
@@ -13,7 +14,7 @@ export function Header({ lang, viewer }: { lang: Language; viewer: Viewer }) {
   return (
     <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b border-gray-200 bg-white/90 px-3 backdrop-blur sm:px-5 dark:border-gray-800 dark:bg-gray-950/90">
       <Link href="/" className="mr-auto flex items-center gap-2 font-semibold">
-        <span aria-hidden className="grid h-7 w-7 place-items-center rounded-full bg-gradient-to-br from-green-500 via-yellow-400 to-red-500 text-xs text-white">●</span>
+        <span aria-hidden className="grid h-7 w-7 place-items-center rounded-lg bg-blue-600 text-white"><Icon name="logo" size={18} /></span>
         CrowdMap
       </Link>
 

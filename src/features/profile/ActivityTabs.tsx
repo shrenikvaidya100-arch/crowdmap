@@ -1,4 +1,5 @@
 "use client";
+import { Icon } from "@/components/icons/Icon";
 // "My activity" tabs: each is a table with a text filter, city filter and
 // sorting, plus change/delete/cancel where the rules allow it.
 // Writes reuse User 1's server actions; the database enforces who may do what.
@@ -7,7 +8,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { config, type Language } from "@/lib/config";
 import { translator } from "@/lib/i18n";
 import { deleteCrowdReport, deleteQuickReport, updateCrowdReport } from "@/features/crowd/actions";
-import { quickIcon, CATEGORY_ICON } from "@/features/crowd/config";
+import { quickIcon, categoryIcon } from "@/features/crowd/config";
 import { messages as crowdMessages } from "@/features/crowd/messages";
 import { cancelPlan } from "@/features/crowd/plan/actions";
 import { deleteMyPlace } from "@/features/places/actions";
@@ -213,9 +214,9 @@ export function ActivityTabs({
                       const active = new Date(a.expires_at).getTime() > now;
                       return (
                         <tr key={a.id} className="border-t border-gray-100 dark:border-gray-800">
-                          <td className={td}><span aria-hidden>{quickIcon(a.kind)}</span> {tc(`kind.${a.kind}`)}</td>
+                          <td className={td}><Icon name={quickIcon(a.kind)} size={16} className="inline" /> {tc(`kind.${a.kind}`)}</td>
                           <td className={td}>{placeName(a.place)}</td>
-                          <td className={td}>👍 {a.still_there} · 👎 {a.gone}</td>
+                          <td className={td}><span className="inline-flex items-center gap-1"><Icon name="thumbs_up" size={14} /> {a.still_there}</span> <span className="ml-2 inline-flex items-center gap-1"><Icon name="thumbs_down" size={14} /> {a.gone}</span></td>
                           <td className={td}>{fmt(a.created_at)}</td>
                           <td className={td}>{active ? <span className="text-green-700">{t("active")}</span> : <span className="text-gray-500">{t("ended")}</span>}</td>
                           <td className={td}>
@@ -237,7 +238,7 @@ export function ActivityTabs({
                   <tbody>
                     {shownUploads.map((m) => (
                       <tr key={m.id} className="border-t border-gray-100 dark:border-gray-800">
-                        <td className={td}><span aria-hidden>{MEDIA_ICON[m.kind]}</span> {t(`media.${m.kind}`)}</td>
+                        <td className={td}><Icon name={MEDIA_ICON[m.kind]} size={16} className="inline" /> {t(`media.${m.kind}`)}</td>
                         <td className={`${td} max-w-xs truncate`} title={m.caption ?? ""}>{m.caption || "—"}</td>
                         <td className={td}>{placeName(m.place)}</td>
                         <td className={td}>{fmt(m.created_at)}</td>
@@ -263,7 +264,7 @@ export function ActivityTabs({
                     {shownComments.map((c) => (
                       <tr key={c.id} className="border-t border-gray-100 dark:border-gray-800">
                         <td className={`${td} max-w-sm`}><span className="line-clamp-2 break-words">{c.body}</span></td>
-                        <td className={td}><span aria-hidden>{MEDIA_ICON[c.media_kind]}</span> {placeName(c.place)}</td>
+                        <td className={td}><Icon name={MEDIA_ICON[c.media_kind]} size={16} className="inline" /> {placeName(c.place)}</td>
                         <td className={td}>{fmt(c.created_at)}</td>
                         <td className={td}>{c.status === "visible" ? <span className="text-green-700">{t("shown")}</span>
                           : <span className="text-red-600">{t("hiddenByAdmin")}</span>}</td>
@@ -312,7 +313,7 @@ export function ActivityTabs({
                   <tbody>
                     {shownPlaces.map((p) => (
                       <tr key={p.id} className="border-t border-gray-100 dark:border-gray-800">
-                        <td className={td}><span aria-hidden>{CATEGORY_ICON[p.category] ?? "📍"}</span> {(lang === "hi" && p.name_hi) || p.name}</td>
+                        <td className={td}><Icon name={categoryIcon(p.category)} size={16} className="inline" /> {(lang === "hi" && p.name_hi) || p.name}</td>
                         <td className={td}>{cityNames[p.city_id]}</td>
                         <td className={td}>{t(`status.${p.status}`)}</td>
                         <td className={td}>{fmt(p.created_at)}</td>

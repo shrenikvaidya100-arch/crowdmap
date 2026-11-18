@@ -89,9 +89,9 @@ export function PlaceStatus({
           {signedIn ? (
             <div className="mt-2 flex gap-2">
               <button type="button" disabled={busy} onClick={() => void vote(true)}
-                      className="flex-1 rounded-md bg-violet-600 px-3 py-1.5 text-white hover:bg-violet-700 disabled:opacity-50">✓ {t("itsHere")}</button>
+                      className="flex-1 rounded-md bg-violet-600 px-3 py-1.5 text-white hover:bg-violet-700 disabled:opacity-50">{t("itsHere")}</button>
               <button type="button" disabled={busy} onClick={() => void vote(false)}
-                      className="flex-1 rounded-md border border-gray-300 px-3 py-1.5 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:hover:bg-gray-800">✗ {t("notHere")}</button>
+                      className="flex-1 rounded-md border border-gray-300 px-3 py-1.5 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:hover:bg-gray-800">{t("notHere")}</button>
             </div>
           ) : (
             <a href="/login?next=/" className="mt-2 inline-block text-blue-600 underline">{t("result.signin")}</a>

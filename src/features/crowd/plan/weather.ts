@@ -1,3 +1,4 @@
+import type { IconName } from "@/components/icons/Icon";
 // How weather changes crowds. Pure function with no imports, so tests can run
 // it directly (tests/user1/weather.test.mjs). Thresholds are named below.
 
@@ -38,14 +39,14 @@ export function weatherEffect(category: string, hour: number, w: HourWeather | n
 }
 
 /** Simple icon for a WMO weather code. */
-export function weatherIcon(code: number | null) {
-  if (code === null) return "";
-  if (code === 0) return "☀️";
-  if (code <= 3) return "⛅";
-  if (code <= 48) return "🌫️";
-  if (code <= 67 || (code >= 80 && code <= 82)) return "🌧️";
-  if (code >= 95) return "⛈️";
-  return "☁️";
+export function weatherIcon(code: number | null): IconName | null {
+  if (code === null) return null;
+  if (code === 0) return "sun";
+  if (code <= 3) return "partly_cloudy";
+  if (code <= 48) return "fog";
+  if (code <= 67 || (code >= 80 && code <= 82)) return "rain";
+  if (code >= 95) return "storm";
+  return "cloud";
 }
 
 export const clampLevel = (x: number) => Math.min(5, Math.max(1, x));

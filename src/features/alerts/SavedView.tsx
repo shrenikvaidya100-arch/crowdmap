@@ -1,4 +1,5 @@
 "use client";
+import { Icon } from "@/components/icons/Icon";
 // The Saved page: notifications inbox, active quiet-time alerts, saved places.
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -42,7 +43,7 @@ export function SavedView({ lang, notes, watches, saved }: { lang: Language; not
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <section className="lg:row-span-2">
-        <h2 className="mb-2 font-medium">🔔 {t("inbox")}</h2>
+        <h2 className="mb-2 flex items-center gap-2 font-medium"><Icon name="bell" size={18} /> {t("inbox")}</h2>
         {notes.length === 0 ? <p className="text-sm text-gray-500">{t("noNotifications")}</p> : (
           <ul className={`${card} divide-y divide-gray-100 dark:divide-gray-800`}>
             {notes.map((n) => {
@@ -67,7 +68,7 @@ export function SavedView({ lang, notes, watches, saved }: { lang: Language; not
       </section>
 
       <section>
-        <h2 className="mb-2 font-medium">⏳ {t("watches")}</h2>
+        <h2 className="mb-2 flex items-center gap-2 font-medium"><Icon name="hourglass" size={18} /> {t("watches")}</h2>
         {watches.length === 0 ? <p className="text-sm text-gray-500">{t("noWatches")}</p> : (
           <ul className={`${card} divide-y divide-gray-100 dark:divide-gray-800`}>
             {watches.map((w) => (
@@ -85,7 +86,7 @@ export function SavedView({ lang, notes, watches, saved }: { lang: Language; not
       </section>
 
       <section>
-        <h2 className="mb-2 font-medium">★ {t("savedPlaces")}</h2>
+        <h2 className="mb-2 flex items-center gap-2 font-medium"><Icon name="star" size={18} /> {t("savedPlaces")}</h2>
         {saved.length === 0 ? <p className="text-sm text-gray-500">{t("noSaved")}</p> : (
           <ul className={`${card} divide-y divide-gray-100 dark:divide-gray-800`}>
             {saved.map((s) => (
@@ -96,7 +97,7 @@ export function SavedView({ lang, notes, watches, saved }: { lang: Language; not
                     <Link href={`/?place=${s.place_id}`} className="font-medium hover:underline">{name(s)}</Link>
                     <span className="block text-xs text-gray-500">
                       {s.level ? `${t(`level.${s.level}`)} · ${s.source === "live" ? t("live") : t("estimated")}` : "—"}
-                      {s.watch_until && ` · 🔔 ${t("until", { time: fmt(s.watch_until, false) })}`}
+                      {s.watch_until && ` · ${t("alertUntil", { time: fmt(s.watch_until, false) })}`}
                     </span>
                   </span>
                 </span>

@@ -1,4 +1,5 @@
 "use client";
+import { Icon } from "@/components/icons/Icon";
 // "Run check now" and per-flag review buttons on the Bots page.
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -17,7 +18,7 @@ export function RunSweep({ lang }: { lang: Language }) {
       <button type="button" disabled={pending}
               onClick={() => start(async () => { setRes(await runBotSweep()); router.refresh(); })}
               className="rounded-md bg-gray-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-gray-100 dark:text-gray-900">
-        🤖 {pending ? t("bots.running") : t("bots.runNow")}
+        <Icon name="bot" size={16} className="inline" /> {pending ? t("bots.running") : t("bots.runNow")}
       </button>
       {res && (
         <p role="status" className={`rounded-md px-3 py-1.5 text-sm ${res.ok ? "bg-green-50 text-green-800 dark:bg-green-950 dark:text-green-200" : "bg-red-50 text-red-800"}`}>

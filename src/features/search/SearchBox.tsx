@@ -1,10 +1,11 @@
 "use client";
+import { Icon } from "@/components/icons/Icon";
 // Search with suggestions as you type. Keyboard: ↑/↓ to move, Enter to pick,
 // Esc to close. Accessible combobox pattern.
 import { useEffect, useId, useRef, useState } from "react";
 import { config, type Language } from "@/lib/config";
 import { translator } from "@/lib/i18n";
-import { CATEGORY_ICON } from "@/features/crowd/config";
+import { categoryIcon } from "@/features/crowd/config";
 import { messages } from "./messages";
 import { SEARCH_MAX, SEARCH_MIN } from "./validation";
 
@@ -85,7 +86,7 @@ export function SearchBox({
   return (
     <div ref={box} className="relative w-full sm:w-96">
       <div className="flex items-center rounded-full bg-white shadow ring-1 ring-black/5 focus-within:ring-2 focus-within:ring-blue-500 dark:bg-gray-900 dark:ring-white/10">
-        <span aria-hidden className="pl-3.5 text-gray-400">⌕</span>
+        <Icon name="search" size={18} className="ml-3.5 shrink-0 text-gray-400" />
         <input
           type="search" value={q} maxLength={SEARCH_MAX + 20}
           onChange={(e) => { setQ(e.target.value); setOpen(true); }}
@@ -98,7 +99,7 @@ export function SearchBox({
         {q && (
           <button type="button" aria-label={t("clear")} onClick={() => { setQ(""); setHits([]); setStatus("idle"); }}
                   className="mr-1.5 rounded-full px-2 py-1 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
-            <span aria-hidden>✕</span>
+            <Icon name="close" size={16} />
           </button>
         )}
       </div>
@@ -114,7 +115,7 @@ export function SearchBox({
             <li key={h.id} id={`${listId}-${i}`} role="option" aria-selected={i === active}
                 onPointerDown={(e) => { e.preventDefault(); pick(h); }} onMouseEnter={() => setActive(i)}
                 className={`flex cursor-pointer items-center gap-3 px-4 py-2 text-sm ${i === active ? "bg-blue-50 dark:bg-gray-800" : ""}`}>
-              <span aria-hidden className="text-lg">{CATEGORY_ICON[h.category] ?? "📍"}</span>
+              <Icon name={categoryIcon(h.category)} size={20} className="shrink-0 text-gray-500" />
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-medium">{lang === "hi" && h.name_hi ? h.name_hi : h.name}</span>
                 <span className="block truncate text-xs text-gray-500">{cityNames[h.city_id] ?? h.city_id}</span>

@@ -49,7 +49,7 @@ export default function PrivacyPage() {
         <li>See, change and delete your reports, alerts, plans, places, uploads and comments on
           <strong> My activity</strong>; change your name and language there too.</li>
         <li>Location sharing is off unless you turn it on, and you can turn it off at any time.</li>
-        <li>Delete your whole account any time from <strong>My activity → Profile → Delete my account</strong>.
+        <li>Delete your whole account any time from <strong>My activity, Profile, Delete my account</strong>.
           Your login, profile and posts are deleted with it. Entries in the audit log cannot be edited or
           deleted by anyone; that is what makes the log trustworthy.</li>
       </ul>

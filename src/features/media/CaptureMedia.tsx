@@ -1,4 +1,5 @@
 "use client";
+import { Icon } from "@/components/icons/Icon";
 // Record a photo, video (≤30 s) or audio clip live, add a caption, and post it.
 // Posting: GPS check → upload slot from the server → file straight to Storage → publish.
 import { useEffect, useRef, useState } from "react";
@@ -104,7 +105,7 @@ export function CaptureMedia({ placeId, lang, onPosted, onCancel }: {
           <button key={k} type="button" role="tab" aria-selected={kind === k} disabled={!!recording || busy || !!clip}
                   onClick={() => setKind(k)}
                   className={`rounded-md px-2 py-1.5 font-medium disabled:opacity-60 ${kind === k ? "bg-white shadow dark:bg-gray-900" : "text-gray-600 dark:text-gray-300"}`}>
-            {MEDIA_ICON[k]} {t(k)}
+            <Icon name={MEDIA_ICON[k]} size={16} className="inline" /> {t(k)}
           </button>
         ))}
       </div>
@@ -118,7 +119,7 @@ export function CaptureMedia({ placeId, lang, onPosted, onCancel }: {
           : kind === "video" ? <video src={clip.url} controls playsInline className="max-h-72 w-full" />
           : <div className="p-4"><audio src={clip.url} controls className="w-full" /></div>
         ) : kind === "audio" ? (
-          <div className="grid h-28 place-items-center text-4xl text-white">{recording ? "🔴" : "🎙️"}</div>
+          <div className={`grid h-28 place-items-center ${recording ? "text-red-500" : "text-white"}`}><Icon name={recording ? "record" : "mic"} size={40} /></div>
         ) : (
           <video ref={videoRef} autoPlay muted playsInline className="max-h-72 w-full" />
         )}
@@ -126,7 +127,7 @@ export function CaptureMedia({ placeId, lang, onPosted, onCancel }: {
 
       {recording && (
         <p className="text-sm font-medium text-red-600" aria-live="polite">
-          ● {t("recording", { s: elapsed, max: mediaConfig.maxSeconds })}
+          <Icon name="record" size={12} className="inline" /> {t("recording", { s: elapsed, max: mediaConfig.maxSeconds })}
         </p>
       )}
 
@@ -149,10 +150,10 @@ export function CaptureMedia({ placeId, lang, onPosted, onCancel }: {
         )}
         {!clip && kind !== "photo" && (recording ? (
           <button type="button" onClick={() => recording.stop()}
-                  className="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white">■ {t("stop")}</button>
+                  className="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white"><Icon name="stop" size={14} className="mr-1 inline" />{t("stop")}</button>
         ) : (
           <button type="button" disabled={!stream} onClick={record}
-                  className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-50">● {t("record")}</button>
+                  className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"><Icon name="record" size={14} className="mr-1 inline text-red-300" />{t("record")}</button>
         ))}
         {clip && (
           <>

@@ -1,4 +1,6 @@
 "use client";
+import { Icon } from "@/components/icons/Icon";
+import { iconSvg } from "@/components/icons/Icon";
 // Live crowd map: OpenStreetMap (via OpenFreeMap) with each place coloured by
 // its crowd level. Solid = live from reports, faded = estimated. Search,
 // filters and a sortable list sit on top. User 1 feature.
@@ -186,7 +188,7 @@ export function MapView({ lang, cities, initialPlace = null }: { lang: Language;
     alertMarkers.current = (data?.alerts ?? []).map((a) => {
       const el = document.createElement("button");
       el.type = "button";
-      el.textContent = quickIcon(a.kind);
+      el.innerHTML = iconSvg(quickIcon(a.kind), 16);
       el.className = "grid h-7 w-7 place-items-center rounded-full bg-white text-base shadow-md ring-2 ring-amber-400";
       el.setAttribute("aria-label", a.kind.replace("_", " "));
       if (a.place_id) el.addEventListener("click", (ev) => { ev.stopPropagation(); setSelected(a.place_id); });
@@ -272,14 +274,14 @@ export function MapView({ lang, cities, initialPlace = null }: { lang: Language;
           <button type="button" className={toolBtn(panel === "filters")} aria-expanded={panel === "filters"}
                   aria-label={activeFilters ? `${ts("filters")} (${activeFilters})` : ts("filters")}
                   onClick={() => setPanel(panel === "filters" ? null : "filters")}>
-            <span aria-hidden>⚙︎</span> <span className="hidden sm:inline">{ts("filters")}</span>
+            <Icon name="filters" size={16} /> <span className="hidden sm:inline">{ts("filters")}</span>
             {activeFilters > 0 && (
               <span className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full bg-red-600 text-[11px] text-white">{activeFilters}</span>
             )}
           </button>
           <button type="button" className={toolBtn(panel === "list")} aria-expanded={panel === "list"} aria-label={ts("list")}
                   onClick={() => setPanel(panel === "list" ? null : "list")}>
-            <span aria-hidden>☰</span> <span className="hidden sm:inline">{ts("list")}</span>
+            <Icon name="list" size={16} /> <span className="hidden sm:inline">{ts("list")}</span>
           </button>
           <button type="button" className={toolBtn(adding)} aria-label={tp("addButton")}
                   onClick={() => { setSelected(null); setPanel(null); setAdding(true); }}>
@@ -301,11 +303,11 @@ export function MapView({ lang, cities, initialPlace = null }: { lang: Language;
         <button type="button" onClick={toggleSharing} aria-pressed={sharing} title={t(sharing ? "shareOn" : "share")}
                 aria-label={t(sharing ? "shareOn" : "share")}
                 className={`grid h-10 w-10 place-items-center rounded-full text-lg shadow ${sharing ? "bg-blue-600 text-white ring-4 ring-blue-300/50" : "bg-white hover:bg-gray-50 dark:bg-gray-900"}`}>
-          <span aria-hidden>📡</span>
+          <Icon name="live" size={18} />
         </button>
         <button type="button" onClick={() => locate()} title={t("locate")}
                 className="grid h-10 w-10 place-items-center rounded-full bg-white text-lg shadow hover:bg-gray-50 dark:bg-gray-900">
-          <span aria-hidden>◎</span><span className="sr-only">{t("locate")}</span>
+          <Icon name="locate" size={18} /><span className="sr-only">{t("locate")}</span>
         </button>
       </div>
 

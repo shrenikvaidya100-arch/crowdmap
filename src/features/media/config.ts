@@ -1,3 +1,4 @@
+import type { IconName } from "@/components/icons/Icon";
 // User 2 media settings. The database and the Storage bucket enforce the
 // security-relevant limits too (supabase/migrations/2001_media_comments.sql).
 
@@ -23,4 +24,4 @@ export const MEDIA_MIMES: Record<MediaKind, readonly string[]> = {
   audio: ["audio/webm", "audio/mp4", "audio/ogg"],
 };
 
-export const MEDIA_ICON: Record<MediaKind, string> = { photo: "📷", video: "🎥", audio: "🎙️" };
+export const MEDIA_ICON: Record<MediaKind, IconName> = { photo: "camera", video: "video", audio: "mic" };

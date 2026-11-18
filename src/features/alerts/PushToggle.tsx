@@ -1,4 +1,5 @@
 "use client";
+import { Icon } from "@/components/icons/Icon";
 // Turn browser notifications on or off for this device (Web Push).
 import { useEffect, useState } from "react";
 import type { Language } from "@/lib/config";
@@ -73,7 +74,7 @@ export function PushToggle({ lang }: { lang: Language }) {
 
   return (
     <section className="rounded-lg border border-gray-200 p-4 dark:border-gray-800">
-      <h2 className="font-medium">📲 {t("push")}</h2>
+      <h2 className="flex items-center gap-2 font-medium"><Icon name="phone_notify" size={18} /> {t("push")}</h2>
       <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
         {status === "on" ? t("pushOn") : status === "denied" ? t("pushDenied") : status === "ios" ? t("pushIos")
           : status === "unsupported" ? t("pushUnsupported") : status === "loading" ? "…" : t("pushOff")}

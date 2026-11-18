@@ -1,4 +1,5 @@
 "use client";
+import { Icon } from "@/components/icons/Icon";
 // "Plan your visit": pick a day and hour, see the expected crowd (with weather,
 // holidays and how many people plan to go), the best time, and add your plan.
 import Link from "next/link";
@@ -95,7 +96,7 @@ export function PlanVisit({ placeId, category, lang }: { placeId: string; catego
         <>
           {fc.special.map((s) => (
             <p key={s.name} className="mb-2 rounded-md bg-amber-50 px-2.5 py-1.5 text-xs text-amber-900 dark:bg-amber-950 dark:text-amber-200">
-              🎉 {t(s.boost >= 0 ? "special" : "specialQuieter", { name: lang === "hi" && s.name_hi ? s.name_hi : s.name })}
+              <Icon name="procession" size={14} className="inline" /> {t(s.boost >= 0 ? "special" : "specialQuieter", { name: lang === "hi" && s.name_hi ? s.name_hi : s.name })}
             </p>
           ))}
 
@@ -123,7 +124,7 @@ export function PlanVisit({ placeId, category, lang }: { placeId: string; catego
           <p className="mt-2 text-xs">
             {fc.best ? (
               <button type="button" className="text-blue-600 hover:underline" onClick={() => setHour(fc.best!.hour)}>
-                ★ {t("best", { time: hourLabel(fc.best.hour, lang), level: t(`level.${fc.best.level}`) })}
+                <Icon name="star" size={14} className="inline" /> {t("best", { time: hourLabel(fc.best.hour, lang), level: t(`level.${fc.best.level}`) })}
               </button>
             ) : <span className="text-gray-500">{t("bestNone")}</span>}
           </p>
@@ -135,15 +136,15 @@ export function PlanVisit({ placeId, category, lang }: { placeId: string; catego
                 {hourLabel(sel.hour, lang)} · {t("expected", { level: t(`level.${selLevel}`) })}
                 {sel.weather && (
                   <span className="ml-auto text-xs font-normal text-gray-500">
-                    {weatherIcon(sel.weather.code)} {sel.weather.temp !== null ? `${Math.round(sel.weather.temp)}°C` : ""}
+                    {(() => { const w = weatherIcon(sel.weather.code); return w ? <Icon name={w} size={16} className="inline" /> : null; })()} {sel.weather.temp !== null ? `${Math.round(sel.weather.temp)}°C` : ""}
                   </span>
                 )}
               </p>
-              {sel.plans > 0 && <p className="text-xs">👥 {sel.plans === 1 ? t("plansOne") : t("plans", { n: sel.plans })}</p>}
+              {sel.plans > 0 && <p className="flex items-center gap-1 text-xs"><Icon name="users" size={14} /> {sel.plans === 1 ? t("plansOne") : t("plans", { n: sel.plans })}</p>}
               {sel.weatherReason === "rain" && (
-                <p className="text-xs">🌧️ {t("rain", { effect: t(OUTDOOR.has(category) ? "rain.outdoor" : INDOOR.has(category) ? "rain.indoor" : "rain.other") })}</p>
+                <p className="flex items-center gap-1 text-xs"><Icon name="rain" size={14} /> {t("rain", { effect: t(OUTDOOR.has(category) ? "rain.outdoor" : INDOOR.has(category) ? "rain.indoor" : "rain.other") })}</p>
               )}
-              {sel.weatherReason === "heat" && <p className="text-xs">🌡️ {t("heat")}</p>}
+              {sel.weatherReason === "heat" && <p className="flex items-center gap-1 text-xs"><Icon name="thermometer" size={14} /> {t("heat")}</p>}
               <p className="text-xs text-gray-500">{sel.historyReports > 0 ? t("history", { n: sel.historyReports }) : t("typical")}</p>
 
               <div className="pt-2">
@@ -153,7 +154,7 @@ export function PlanVisit({ placeId, category, lang }: { placeId: string; catego
                   <Link href="/login?next=/" className="inline-block rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white">{t("signIn")}</Link>
                 ) : myPlan ? (
                   <p className="flex items-center gap-3 text-sm">
-                    ✅ {t("planned", { time: hourLabel(sel.hour, lang) })}
+                    <Icon name="check" size={14} className="inline" /> {t("planned", { time: hourLabel(sel.hour, lang) })}
                     <button type="button" disabled={busy} className="text-red-600 hover:underline"
                             onClick={() => void act(() => cancelPlan(myPlan.id), "result.cancelled")}>{t("cancel")}</button>
                   </p>
