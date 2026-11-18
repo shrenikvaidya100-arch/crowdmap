@@ -180,7 +180,7 @@ export function PlaceSheet({
           <section>
             <h3 className="text-sm font-medium">{t("howCrowded")}</h3>
             {!data.signed_in ? (
-              <Link href={`/login?next=/`} className="mt-2 inline-block rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white">
+              <Link href="/login?next=/map" className="mt-2 inline-block rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white">
                 {t("signInToReport")}
               </Link>
             ) : (

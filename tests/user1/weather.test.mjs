@@ -34,7 +34,7 @@ test("dry, mild weather changes nothing", () => {
 test("levels stay within 1-5 and icons map codes", () => {
   assert.equal(clampLevel(0.2), 1);
   assert.equal(clampLevel(6), 5);
-  assert.equal(weatherIcon(0), "☀️");
-  assert.equal(weatherIcon(63), "🌧️");
-  assert.equal(weatherIcon(null), "");
+  assert.equal(weatherIcon(0), "sun");
+  assert.equal(weatherIcon(63), "rain");
+  assert.equal(weatherIcon(null), null);
 });

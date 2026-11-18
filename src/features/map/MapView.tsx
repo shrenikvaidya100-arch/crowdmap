@@ -48,7 +48,11 @@ const LEVEL_COLOR = ["match", ["get", "level"],
 /** A place to open on load (from /?place=<id>). */
 export type LinkedPlace = { id: string; lat: number; lng: number; city_id: string };
 
-export function MapView({ lang, cities, initialPlace = null }: { lang: Language; cities: MapCity[]; places?: MapPlace[]; initialPlace?: LinkedPlace | null }) {
+export function MapView({ lang, cities, initialPlace = null, initialFocus = null }: {
+  lang: Language; cities: MapCity[]; places?: MapPlace[]; initialPlace?: LinkedPlace | null;
+  /** Centre here on load (from the home page search). */
+  initialFocus?: { lat: number; lng: number; zoom: number } | null;
+}) {
   const t = translator(messages, lang);
   const ts = translator(searchMessages, lang);
   const tp = translator(placeMessages, lang);
@@ -85,8 +89,9 @@ export function MapView({ lang, cities, initialPlace = null }: { lang: Language;
     const m = new MLMap({
       container: box.current,
       style: config.map.styleUrl,
-      center: initialPlace ? [initialPlace.lng, initialPlace.lat] : startCity ? [startCity.lng, startCity.lat] : config.map.worldCenter,
-      zoom: initialPlace ? 16 : startCity ? startCity.default_zoom : config.map.worldZoom,
+      center: initialPlace ? [initialPlace.lng, initialPlace.lat] : initialFocus ? [initialFocus.lng, initialFocus.lat]
+        : startCity ? [startCity.lng, startCity.lat] : config.map.worldCenter,
+      zoom: initialPlace ? 16 : initialFocus ? initialFocus.zoom : startCity ? startCity.default_zoom : config.map.worldZoom,
       attributionControl: { compact: true },
     });
     map.current = m;

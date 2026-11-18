@@ -94,7 +94,7 @@ export function PlaceStatus({
                       className="flex-1 rounded-md border border-gray-300 px-3 py-1.5 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:hover:bg-gray-800">{t("notHere")}</button>
             </div>
           ) : (
-            <a href="/login?next=/" className="mt-2 inline-block text-blue-600 underline">{t("result.signin")}</a>
+            <a href="/login?next=/map" className="mt-2 inline-block text-blue-600 underline">{t("result.signin")}</a>
           )}
         </>
       )}

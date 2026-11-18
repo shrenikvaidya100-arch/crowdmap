@@ -1,46 +1,55 @@
+// Site header on every page: logo, main navigation, language, and either
+// Sign In or the signed-in links (notifications, saved, account).
 import Link from "next/link";
 import { logout } from "@/app/(auth)/actions";
 import { setLanguage } from "@/app/lang-actions";
+import { Icon } from "@/components/icons/Icon";
+import { NotificationBell } from "@/features/alerts/NotificationBell";
+import { NavTabs } from "@/features/site/NavTabs";
 import type { Language } from "@/lib/config";
 import { translator } from "@/lib/i18n";
 import { common } from "@/lib/i18n/common";
 import type { Viewer } from "@/lib/session";
-import { NotificationBell } from "@/features/alerts/NotificationBell";
-import { Icon } from "@/components/icons/Icon";
 
 export function Header({ lang, viewer }: { lang: Language; viewer: Viewer }) {
   const t = translator(common, lang);
-  const link = "rounded-md px-2.5 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-800";
+  const link = "rounded-md px-2.5 py-1.5 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-zinc-50";
+  const items = [
+    { label: t("nav.home"), href: "/" },
+    { label: t("nav.map"), href: "/map" },
+    { label: t("nav.about"), href: "/about" },
+    { label: t("nav.whatsNew"), href: "/whats-new" },
+    { label: t("nav.gettingStarted"), href: "/getting-started" },
+    { label: t("nav.contact"), href: "/contact" },
+  ];
   return (
-    <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b border-gray-200 bg-white/90 px-3 backdrop-blur sm:px-5 dark:border-gray-800 dark:bg-gray-950/90">
-      <Link href="/" className="mr-auto flex items-center gap-2 font-semibold">
+    <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-zinc-800/80 bg-black/80 px-3 text-zinc-100 backdrop-blur sm:px-5">
+      <Link href="/" className="mr-2 flex items-center gap-2 font-semibold tracking-tight text-zinc-50">
         <span aria-hidden className="grid h-7 w-7 place-items-center rounded-lg bg-blue-600 text-white"><Icon name="logo" size={18} /></span>
         CrowdMap
       </Link>
-
-      <form action={setLanguage}>
-        <input type="hidden" name="lang" value={lang === "en" ? "hi" : "en"} />
-        <button className={link} type="submit">{t("nav.language")}</button>
-      </form>
-
-      {viewer ? (
-        <>
-          <NotificationBell label={t("nav.notifications")} />
-          <Link className={`${link} hidden sm:inline`} href="/saved">{t("nav.saved")}</Link>
-          {viewer.role === "admin" && <Link className={link} href="/admin">{t("nav.admin")}</Link>}
-          <Link className={`${link} hidden sm:inline`} href="/me">{t("nav.me")}</Link>
-          <form action={logout}>
-            <button className={link} type="submit">{t("nav.logout")}</button>
-          </form>
-        </>
-      ) : (
-        <>
-          <Link className={link} href="/login">{t("nav.login")}</Link>
-          <Link className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700" href="/signup">
-            {t("nav.signup")}
+      <NavTabs items={items} menuLabel={t("nav.menu")} />
+      <div className="ml-auto flex items-center gap-1">
+        <form action={setLanguage}>
+          <input type="hidden" name="lang" value={lang === "en" ? "hi" : "en"} />
+          <button className={link} type="submit">{t("nav.language")}</button>
+        </form>
+        {viewer ? (
+          <>
+            <NotificationBell label={t("nav.notifications")} />
+            <Link className={`${link} hidden lg:inline`} href="/saved">{t("nav.saved")}</Link>
+            {viewer.role === "admin" && <Link className={`${link} hidden sm:inline`} href="/admin">{t("nav.admin")}</Link>}
+            <Link className={`${link} hidden sm:inline`} href="/me">{t("nav.me")}</Link>
+            <form action={logout}>
+              <button className={link} type="submit">{t("nav.logout")}</button>
+            </form>
+          </>
+        ) : (
+          <Link href="/login" className="rounded-md border border-zinc-600 px-3 py-1.5 text-sm font-medium text-zinc-50 hover:border-zinc-400 hover:bg-zinc-900">
+            {t("nav.signIn")}
           </Link>
-        </>
-      )}
+        )}
+      </div>
     </header>
   );
 }

@@ -87,7 +87,7 @@ export function AddPlaceSheet({
       {notice && (
         <div role="alert" className="mt-3 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-200">
           {t(notice.key)}
-          {notice.signIn && <> <a href="/login?next=/" className="font-medium text-blue-600 underline">{t("signIn")}</a></>}
+          {notice.signIn && <> <a href="/login?next=/map" className="font-medium text-blue-600 underline">{t("signIn")}</a></>}
           {duplicate && (
             <button type="button" className="mt-1 block font-medium text-blue-600 underline" onClick={() => onOpenPlace(duplicate.id)}>
               {t("openExisting", { name: duplicate.name })}

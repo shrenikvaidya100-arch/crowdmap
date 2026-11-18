@@ -43,7 +43,7 @@ export function PlaceActions({ placeId, lang }: { placeId: string; lang: Languag
 
   if (!state) return null;
   if (!state.signed_in) {
-    return <Link href="/login?next=/" className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:underline"><Icon name="star" size={16} /> {t("signInFirst")}</Link>;
+    return <Link href="/login?next=/map" className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:underline"><Icon name="star" size={16} /> {t("signInFirst")}</Link>;
   }
 
   const btn = "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium disabled:opacity-50";

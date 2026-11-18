@@ -9,7 +9,7 @@ const errors: Record<string, string> = { removed: "auth.removed", callback: "aut
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const sp = await searchParams;
-  const next = typeof sp.next === "string" ? sp.next : "/";
+  const next = typeof sp.next === "string" ? sp.next : "/map";
   const error = typeof sp.error === "string" ? errors[sp.error] : undefined;
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-4 px-4 py-10">

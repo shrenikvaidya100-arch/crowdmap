@@ -21,7 +21,7 @@ export function LegalPage({ title, children }: { title: string; children: ReactN
         {children}
       </div>
       <p className="mt-10 text-sm text-gray-500">
-        <Link href="/" className="text-blue-600 hover:underline">Back to the map</Link>
+        <Link href="/map" className="text-blue-600 hover:underline">Back to the map</Link>
         {" · "}<Link href="/privacy" className="hover:underline">Privacy policy</Link>
         {" · "}<Link href="/terms" className="hover:underline">Terms of use</Link>
       </p>
