@@ -70,11 +70,13 @@ test("audit log cannot be edited or deleted, even by the database owner", () => 
 test("users can log their own events but cannot write the log directly or fake admin events", () => inTx(async () => {
   const id = await newUser("Meera");
   await actAs(id);
-  const { rows } = await client.query("select public.log_event('crowd.report', 'place', 'p1') as id");
+  const { rows } = await client.query("select public.log_event('auth.login', null, null, '{\"method\":\"password\"}') as id");
   assert.ok(rows[0].id > 0);
+  // Only the few actions the app logs itself; everything else comes from database functions.
+  await rejects("select public.log_event('crowd.report', 'place', 'p1')", [], /not allowed/);
   await rejects(`insert into public.audit_log (actor_id, actor_role, action, prev_hash, hash)
                  values ($1, 'admin', 'admin.fake', '', '')`, [id], /permission denied/);
-  await rejects("select public.log_event('admin.remove_user')", [], /admin events need an admin/);
+  await rejects("select public.log_event('admin.remove_user')", [], /not allowed/);
   await rejects("select public.log_event_as(null, 'system', 'system.x')", [], /permission denied/);
   await actAsOwner();
 }));
