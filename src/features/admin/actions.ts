@@ -3,7 +3,7 @@
 // refuses to touch admins, and logs every change with its reason.
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { moderateSchema } from "./validation";
+import { moderateSchema, reviewFlagSchema } from "./validation";
 
 export type AdminResult = { ok: boolean; reason?: string };
 
@@ -46,4 +46,29 @@ export async function verifyChain(): Promise<ChainResult> {
   const d = data as { intact: boolean; first_bad_id: number | null; entries: number };
   revalidatePath("/admin/log");
   return { ok: true, intact: d.intact, firstBadId: d.first_bad_id, entries: d.entries };
+}
+
+export type SweepResult = { ok: boolean; checked?: number; removed?: number; flagged?: number };
+
+export async function runBotSweep(): Promise<SweepResult> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("admin_run_bot_sweep");
+  if (error) {
+    console.error("admin bot sweep", error.message);
+    return { ok: false };
+  }
+  revalidatePath("/admin", "layout");
+  return { ok: true, ...(data as { checked: number; removed: number; flagged: number }) };
+}
+
+export async function reviewFlag(input: unknown): Promise<AdminResult> {
+  const parsed = reviewFlagSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, reason: "invalid" };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("admin_review_flag", {
+    p_flag: parsed.data.flagId, p_false_alarm: parsed.data.falseAlarm,
+  });
+  const res = fromRpc(data, error);
+  if (res.ok) revalidatePath("/admin", "layout");
+  return res;
 }

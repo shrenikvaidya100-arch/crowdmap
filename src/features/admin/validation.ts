@@ -24,3 +24,8 @@ export function pageNumber(value: string | undefined) {
   const n = Number.parseInt(value ?? "1", 10);
   return Number.isFinite(n) && n > 0 && n < 10_000 ? n : 1;
 }
+
+export const reviewFlagSchema = z.object({
+  flagId: z.number().int().positive(),
+  falseAlarm: z.boolean(),
+});

@@ -5,7 +5,7 @@ import type { Language } from "@/lib/config";
 import { translator } from "@/lib/i18n";
 import { messages } from "./messages";
 
-const TABS = [["/admin", "nav.overview"], ["/admin/users", "nav.users"], ["/admin/content", "nav.content"], ["/admin/log", "nav.log"]] as const;
+const TABS = [["/admin", "nav.overview"], ["/admin/users", "nav.users"], ["/admin/content", "nav.content"], ["/admin/bots", "nav.bots"], ["/admin/log", "nav.log"]] as const;
 
 export function AdminNav({ lang }: { lang: Language }) {
   const t = translator(messages, lang);
