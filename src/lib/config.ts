@@ -35,6 +35,8 @@ export const config = {
       { level: 5, key: "packed", color: "#dc2626" },
     ],
     noDataColor: "#9ca3af",
+    // Crowd calendar: how many days ahead get a daily forecast.
+    calendarDays: 14,
   },
 } as const;
 
