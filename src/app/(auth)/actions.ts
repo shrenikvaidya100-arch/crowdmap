@@ -107,7 +107,7 @@ export async function signup(_prev: AuthState, form: FormData): Promise<AuthStat
     return { message: error.status === 429 ? "auth.rateLimited" : "auth.signupFailed", values };
   }
   // The profile and the audit entry are created by database triggers.
-  if (data.session) redirect("/");
+  if (data.session) redirect("/map");
   return { ok: true, message: "auth.checkEmail", values: {} };
 }
 

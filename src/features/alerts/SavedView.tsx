@@ -58,7 +58,7 @@ export function SavedView({ lang, notes, watches, saved }: { lang: Language; not
                   <p className="text-sm text-gray-600 dark:text-gray-400">{text.body}</p>
                   <p className="mt-1 flex gap-3 text-xs text-gray-500">
                     {fmt(n.created_at)}
-                    {n.place_id && <Link href={`/?place=${n.place_id}`} className="text-blue-600 hover:underline">{t("open")}</Link>}
+                    {n.place_id && <Link href={`/map?place=${n.place_id}`} className="text-blue-600 hover:underline">{t("open")}</Link>}
                   </p>
                 </li>
               );
@@ -74,7 +74,7 @@ export function SavedView({ lang, notes, watches, saved }: { lang: Language; not
             {watches.map((w) => (
               <li key={w.id} className="flex items-center justify-between gap-3 p-3 text-sm">
                 <span>
-                  {w.place ? <Link href={`/?place=${w.place.id}`} className="font-medium hover:underline">{name(w.place)}</Link> : "—"}
+                  {w.place ? <Link href={`/map?place=${w.place.id}`} className="font-medium hover:underline">{name(w.place)}</Link> : "—"}
                   <span className="block text-xs text-gray-500">{t("until", { time: fmt(w.expires_at) })}</span>
                 </span>
                 <button type="button" disabled={busy === w.id} onClick={() => run(w.id, () => cancelWatch(w.id))}
@@ -94,7 +94,7 @@ export function SavedView({ lang, notes, watches, saved }: { lang: Language; not
                 <span className="flex min-w-0 items-center gap-2">
                   <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: levelColor(s.level), opacity: s.source === "live" ? 1 : 0.6 }} />
                   <span className="min-w-0">
-                    <Link href={`/?place=${s.place_id}`} className="font-medium hover:underline">{name(s)}</Link>
+                    <Link href={`/map?place=${s.place_id}`} className="font-medium hover:underline">{name(s)}</Link>
                     <span className="block text-xs text-gray-500">
                       {s.level ? `${t(`level.${s.level}`)} · ${s.source === "live" ? t("live") : t("estimated")}` : "—"}
                       {s.watch_until && ` · ${t("alertUntil", { time: fmt(s.watch_until, false) })}`}

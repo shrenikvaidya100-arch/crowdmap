@@ -81,7 +81,7 @@ export function PlaceMedia({ placeId, lang }: { placeId: string; lang: Language 
 
       <div className="mt-2 space-y-3">
         {!signedIn ? (
-          items && <Link href="/login?next=/" className="inline-block text-sm text-blue-600 hover:underline">{t("signIn")}</Link>
+          items && <Link href="/login?next=/map" className="inline-block text-sm text-blue-600 hover:underline">{t("signIn")}</Link>
         ) : capturing ? (
           <CaptureMedia placeId={placeId} lang={lang} onCancel={() => setCapturing(false)}
                         onPosted={() => { setCapturing(false); setNotice({ ok: true, key: "result.posted" }); load(); }} />

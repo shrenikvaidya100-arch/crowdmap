@@ -17,7 +17,7 @@ export default function ErrorPage({ error, retry }: { error: unknown; retry: () 
         <button type="button" onClick={() => retry()} className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white">
           Try again
         </button>
-        <Link href="/" className="rounded-md border border-gray-300 px-4 py-2 text-sm dark:border-gray-700">Back to the map</Link>
+        <Link href="/map" className="rounded-md border border-gray-300 px-4 py-2 text-sm dark:border-gray-700">Back to the map</Link>
       </div>
     </main>
   );

@@ -151,7 +151,7 @@ export function PlanVisit({ placeId, category, lang }: { placeId: string; catego
                 {isPast ? (
                   <p className="text-xs text-gray-500">{t("past")}</p>
                 ) : !fc.signedIn ? (
-                  <Link href="/login?next=/" className="inline-block rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white">{t("signIn")}</Link>
+                  <Link href="/login?next=/map" className="inline-block rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white">{t("signIn")}</Link>
                 ) : myPlan ? (
                   <p className="flex items-center gap-3 text-sm">
                     <Icon name="check" size={14} className="inline" /> {t("planned", { time: hourLabel(sel.hour, lang) })}
