@@ -59,3 +59,17 @@ From User 1 (2026-11-18), privacy fix found by User 2's tests (migration `1011`)
 - `quick_reports.user_id` is no longer readable by signed-in users (it revealed who posted active alerts).
 - Read your own alerts with **`public.my_quick_reports()`** (id, kind, created_at, expires_at, still_there, gone,
   place_id, place_name, place_name_hi, city_id). Deleting your own alert still works as before.
+
+From User 2 (2026-11-18), photos, videos, audio and comments (migrations `2001`, `2002`):
+- **Please add one line to the place panel** (`src/features/crowd/PlaceSheet.tsx`, after `<PlanVisit … />`):
+  `<PlaceMedia key={placeId} placeId={placeId} lang={lang} />` from `@/features/media/PlaceMedia`.
+  It loads its own data (`/api/media?place=…`) and works signed in or out.
+- Media must be recorded live in the app (camera / mic, no gallery) and the user must be at the place
+  (same GPS rules as reports). Photos are re-drawn in the browser, which drops hidden location data.
+  Video and audio: max 30 s, 25 MB. Files sit in a private Storage bucket `media`; links expire after an hour.
+- Removed accounts' uploads and comments disappear for everyone at once (nothing to do on your side).
+- Rejected uploads are logged as `media.upload_rejected` with the reason (`not_at_place`, `impossible_travel`,
+  `rate_limited`, …), which the bot sweep will use. Other audit actions: `media.upload`, `media.edit`,
+  `media.delete`, `comment.add`, `comment.edit`, `comment.delete`, `comment.rejected`.
+- Media uploads don't write to `location_checks` (that table's `source` list is yours); they read the latest
+  accepted check for the "teleporting" test.
