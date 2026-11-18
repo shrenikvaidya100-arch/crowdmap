@@ -66,14 +66,15 @@ export function AuthForm({
   const isError = message && !state.ok;
 
   return (
-    <div className="mx-auto w-full max-w-sm space-y-5">
-      <h1 className="text-2xl font-semibold">
+    <div className="w-full space-y-5">
+      <p className="text-sm font-medium text-blue-400">CrowdMap</p>
+      <h1 className="!mt-1 text-2xl font-semibold text-white">
         {t(mode === "login" ? "auth.loginTitle" : "auth.signupTitle")}
       </h1>
 
       {message && (
         <p role={isError ? "alert" : "status"}
-           className={`rounded-md px-3 py-2 text-sm ${isError ? "bg-red-50 text-red-800 dark:bg-red-950 dark:text-red-200" : "bg-green-50 text-green-800 dark:bg-green-950 dark:text-green-200"}`}>
+           className={`rounded-md px-3 py-2 text-sm ${isError ? "bg-red-950/70 text-red-200" : "bg-green-950/70 text-green-200"}`}>
           {t(message)}
         </p>
       )}
@@ -100,29 +101,29 @@ export function AuthForm({
                    onToken={(v) => { setToken(v); if (v) setCaptchaMissing(false); }} />
 
         <button type="submit" disabled={busy}
-                className="w-full rounded-md bg-blue-600 px-4 py-2.5 font-medium text-white hover:bg-blue-700 disabled:opacity-60">
+                className="w-full rounded-lg bg-blue-600 px-4 py-2.5 font-medium text-white hover:bg-blue-500 disabled:opacity-60">
           {pending ? t("auth.working") : t(mode === "login" ? "auth.loginButton" : "auth.signupButton")}
         </button>
       </form>
 
-      <div className="flex items-center gap-3 text-xs text-gray-500">
-        <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />{t("auth.or")}<span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
+      <div className="flex items-center gap-3 text-xs text-zinc-500">
+        <span className="h-px flex-1 bg-zinc-800" />{t("auth.or")}<span className="h-px flex-1 bg-zinc-800" />
       </div>
 
       <form action={googleAction} onSubmit={onGoogle}>
         <input type="hidden" name="next" value={next} />
         <input type="hidden" name="cf-turnstile-response" value={token} />
         <button type="submit" disabled={busy}
-                className="w-full rounded-md border border-gray-300 px-4 py-2.5 font-medium hover:bg-gray-50 disabled:opacity-60 dark:border-gray-600 dark:hover:bg-gray-800">
+                className="w-full rounded-lg border border-zinc-700 px-4 py-2.5 font-medium text-zinc-100 hover:border-zinc-500 hover:bg-zinc-900 disabled:opacity-60">
           {googlePending ? t("auth.working") : t("auth.google")}
         </button>
       </form>
 
-      <p className="text-center text-sm text-gray-600 dark:text-gray-400">
+      <p className="text-center text-sm text-zinc-400">
         {mode === "login" ? (
-          <>{t("auth.noAccount")} <Link className="text-blue-600 hover:underline" href="/signup">{t("nav.signup")}</Link></>
+          <>{t("auth.noAccount")} <Link className="text-blue-400 hover:underline" href="/signup">{t("nav.signup")}</Link></>
         ) : (
-          <>{t("auth.haveAccount")} <Link className="text-blue-600 hover:underline" href="/login">{t("nav.login")}</Link></>
+          <>{t("auth.haveAccount")} <Link className="text-blue-400 hover:underline" href="/login">{t("nav.login")}</Link></>
         )}
       </p>
     </div>
@@ -138,12 +139,12 @@ function Field({
   const id = `f-${name}`;
   return (
     <div className="space-y-1">
-      <label htmlFor={id} className="block text-sm font-medium">{label}</label>
+      <label htmlFor={id} className="block text-sm font-medium text-zinc-300">{label}</label>
       <input id={id} name={name} type={type} {...rest}
              aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-err` : hint ? `${id}-hint` : undefined}
-             className={`w-full rounded-md border bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 ${error ? "border-red-500" : "border-gray-300 dark:border-gray-600"}`} />
-      {error ? <p id={`${id}-err`} className="text-sm text-red-600">{error}</p>
-             : hint ? <p id={`${id}-hint`} className="text-xs text-gray-500">{hint}</p> : null}
+             className={`w-full rounded-lg border bg-zinc-900 px-3 py-2 text-zinc-100 outline-none placeholder:text-zinc-600 focus:ring-2 focus:ring-blue-500 ${error ? "border-red-500" : "border-zinc-700"}`} />
+      {error ? <p id={`${id}-err`} className="text-sm text-red-400">{error}</p>
+             : hint ? <p id={`${id}-hint`} className="text-xs text-zinc-500">{hint}</p> : null}
     </div>
   );
 }

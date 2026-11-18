@@ -32,6 +32,7 @@ import { CustomizePanel, LayersPanel, NewMarkerForm, PlacesPanel, ToolsPanel, ty
 import { messages as controlMessages } from "./controls/messages";
 import { clearPrefs, loadMarkers, loadPrefs, loadShapes, newId, saveMarkers, savePrefs, saveShapes, type Shape, type UserMarker } from "./controls/store";
 import { ZoomSlider } from "./controls/ZoomSlider";
+import { PlaceCard } from "./PlaceCard";
 
 // Worker file is copied into public/ by scripts/copy-map-worker.mjs.
 setWorkerUrl("/maplibre-gl-worker.js");
@@ -85,6 +86,14 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
   const [activeCity, setActiveCity] = useState<string | null>(startCity?.id ?? null);
   const [data, setData] = useState<CrowdData | null>(null);
   const [selected, setSelected] = useState<string | null>(initialPlace?.id ?? null);
+  // The picked place shows as a flip card; "More details" opens the full panel.
+  const [details, setDetails] = useState(false);
+  const [cardFocus, setCardFocus] = useState(0);
+  const selectedRef = useRef<string | null>(null);
+  useEffect(() => { selectedRef.current = selected; }, [selected]);
+  /** Shows a place as a card (never straight into the full panel). */
+  // Only uses state setters, so the map's one-time handlers can safely keep the first copy.
+  function selectPlace(id: string | null) { setDetails(false); setSelected(id); }
   const [panel, setPanel] = useState<"filters" | "list" | null>(null);
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [me, setMe] = useState<LatLng | null>(null);
@@ -147,6 +156,8 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
       if (mode === "line" || mode === "area") { setDrawPts((p) => [...p, pt]); return; }
       // Empty spot: offer to drop a marker. Clicks on a place open the place instead.
       if (m.getLayer("places") && m.queryRenderedFeatures(e.point, { layers: ["places"] }).length) return;
+      // With a place card open, a click elsewhere just closes it.
+      if (selectedRef.current) { selectPlace(null); return; }
       setNewMarker({ lat: e.lngLat.lat, lng: e.lngLat.lng, x: e.point.x, y: e.point.y, w: m.getContainer().clientWidth });
     });
     m.on("load", () => {
@@ -196,7 +207,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
       m.on("click", "places", (e: MapLayerMouseEvent) => {
         if (toolRef.current) return; // measuring or drawing: clicks only add points
         const id = e.features?.[0]?.properties?.id;
-        if (typeof id === "string") setSelected(id);
+        if (typeof id === "string") selectPlace(id);
       });
       m.on("mouseenter", "places", () => { m.getCanvas().style.cursor = "pointer"; });
       m.on("mouseleave", "places", () => { m.getCanvas().style.cursor = ""; });
@@ -263,7 +274,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
       el.innerHTML = iconSvg(quickIcon(a.kind), 16);
       el.className = "grid h-7 w-7 place-items-center rounded-full bg-white text-base shadow-md ring-2 ring-amber-400";
       el.setAttribute("aria-label", a.kind.replace("_", " "));
-      if (a.place_id) el.addEventListener("click", (ev) => { if (toolRef.current) return; ev.stopPropagation(); setSelected(a.place_id); });
+      if (a.place_id) el.addEventListener("click", (ev) => { if (toolRef.current) return; ev.stopPropagation(); selectPlace(a.place_id); });
       return new Marker({ element: el, offset: [12, -12] }).setLngLat([a.lng, a.lat]).addTo(m);
     });
   }, [data, ready]);
@@ -488,6 +499,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
   /** Centre on a place (switching city if needed) and open its panel. */
   function openPlace(p: { id: string; lat: number; lng: number; city_id?: string }) {
     if (p.city_id && p.city_id !== activeCity) setActiveCity(p.city_id);
+    setDetails(false);
     setSelected(p.id);
     if (window.matchMedia("(max-width: 639px)").matches) setPanel(null);
     map.current?.flyTo({ center: [p.lng, p.lat], zoom: Math.max(map.current.getZoom(), 15), essential: true });
@@ -587,8 +599,8 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
 
       {/* Right edge: zoom slider at the top, round buttons at the bottom (above the dock).
           Moves left of the place panel when it's open. */}
-      <div data-map-ui className={`pointer-events-none absolute bottom-[5.25rem] right-2.5 top-[7.25rem] z-10 flex flex-col items-end justify-between gap-2 print:hidden ${selected ? "sm:right-[25.5rem]" : ""}`}>
-        <div className={`pointer-events-auto ${selected ? "hidden sm:block" : ""}`}>
+      <div data-map-ui className={`pointer-events-none absolute bottom-[5.25rem] right-2.5 top-[7.25rem] z-10 flex flex-col items-end justify-between gap-2 print:hidden ${details ? "sm:right-[25.5rem]" : ""}`}>
+        <div className={`pointer-events-auto ${details ? "hidden sm:block" : ""}`}>
           <ZoomSlider value={zoom} onChange={(z) => map.current?.easeTo({ zoom: z, duration: 250 })}
                       labels={{ zoom: tc("zoom"), zoomIn: tc("zoomIn"), zoomOut: tc("zoomOut"), slider: tc("zoomSlider") }} />
         </div>
@@ -598,7 +610,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
             <span aria-hidden style={{ transform: `rotate(${-bearing}deg)` }} className="transition-transform"><Icon name="compass" size={18} /></span>
           </button>
         )}
-        <button type="button" onClick={toggleFullscreen} className={`${roundBtn} w-auto px-3 text-xs font-medium`} aria-pressed={fullscreen}>
+        <button type="button" onClick={toggleFullscreen} className={`${roundBtn} hidden w-auto px-3 text-xs font-medium sm:grid`} aria-pressed={fullscreen}>
           {fullscreen ? tc("exitFullscreen") : tc("fullscreen")}
         </button>
         {locError && panel !== "filters" && <p className="max-w-56 rounded-md bg-neutral-900 px-2 py-1 text-xs text-neutral-100 shadow">{locError}</p>}
@@ -662,7 +674,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
       )}
 
       <MapDock items={dockItems} label={tc("dock.label")}
-               active={dockPanel} onPick={pickDock} />
+               active={dockPanel} onPick={pickDock} shift={!!selected && details} />
 
       {panel === "list" && (
         <PlaceList key={`${activeCity}-${JSON.stringify(filters)}`} lang={lang} items={visible}
@@ -676,17 +688,26 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
       {adding && (
         <AddPlaceSheet lang={lang} onClose={closeAdding}
                        onLocated={(f) => showNewPin(f.lat, f.lng)}
-                       onOpenPlace={(id) => { closeAdding(); setSelected(id); }}
+                       onOpenPlace={(id) => { closeAdding(); selectPlace(id); }}
                        onAdded={(p) => {
                          closeAdding();
                          if (p.cityId !== activeCity) setActiveCity(p.cityId); else void loadCity(p.cityId);
-                         setSelected(p.id);
+                         selectPlace(p.id);
                          map.current?.flyTo({ center: [p.lng, p.lat], zoom: 17, essential: true });
                        }} />
       )}
 
-      {selected && (
-        <PlaceSheet key={selected} placeId={selected} version={placeVersion} lang={lang} onClose={() => setSelected(null)}
+      {selected && !details && (
+        <div data-map-ui className="pointer-events-none absolute inset-x-0 top-[6.5rem] bottom-[4.5rem] z-30 flex items-center justify-center print:hidden sm:top-24">
+          <div className="pointer-events-auto">
+            <PlaceCard placeId={selected} lang={lang} restoreFocus={cardFocus}
+                       onClose={() => setSelected(null)} onMore={() => setDetails(true)} />
+          </div>
+        </div>
+      )}
+      {selected && details && (
+        <PlaceSheet key={selected} placeId={selected} version={placeVersion} lang={lang}
+                    onClose={() => { setDetails(false); setCardFocus((n) => n + 1); }}
                     onChanged={() => activeCity && void loadCity(activeCity)} />
       )}
     </div>
