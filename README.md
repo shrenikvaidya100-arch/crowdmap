@@ -17,6 +17,7 @@ like a traffic map, but for how crowded a place is. Spec: `docs/SPEC.md`.
 - **Admin dashboard**: users, content moderation, audit log with tamper check, bot findings.
 - **Automatic bot detection** every 10 minutes; removals are logged and can be undone by an admin.
 - **Append-only audit log** of every action, hash-chained so tampering shows.
+- **Privacy**: privacy policy and terms pages; people can delete their own account from My activity.
 
 Course requirements: authentication + CAPTCHA (login, sign-up), client + server validation (shared zod
 schemas, re-checked in the database), CRUD (reports, places, uploads, comments, plans, profile), and
@@ -43,6 +44,17 @@ Tests run against the real database, each in a transaction that is rolled back:
 ```bash
 npm run test:db
 ```
+
+### Scheduled jobs
+
+| Job | Where | When |
+|---|---|---|
+| Bot detection (`bot_sweep`) | pg_cron in Supabase | every 10 minutes |
+| Housekeeping (`maintenance`): stale presence, GPS checks older than 90 days | pg_cron in Supabase | hourly |
+| File cleanup for unfinished or deleted uploads; keeps the free database awake | Vercel Cron → `/api/cron/daily` | daily, 3 am IST |
+
+The Vercel job needs `CRON_SECRET` (any long random string) set in Vercel → Environment Variables,
+Production. Without it the route refuses to run.
 
 ### Making the two admins
 
