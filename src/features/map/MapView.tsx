@@ -43,7 +43,10 @@ type LatLng = { lat: number; lng: number };
 const LEVEL_COLOR = ["match", ["get", "level"],
   ...config.crowd.levels.flatMap((l) => [l.level, l.color]), config.crowd.noDataColor] as unknown as string;
 
-export function MapView({ lang, cities }: { lang: Language; cities: MapCity[]; places?: MapPlace[] }) {
+/** A place to open on load (from /?place=<id>). */
+export type LinkedPlace = { id: string; lat: number; lng: number; city_id: string };
+
+export function MapView({ lang, cities, initialPlace = null }: { lang: Language; cities: MapCity[]; places?: MapPlace[]; initialPlace?: LinkedPlace | null }) {
   const t = translator(messages, lang);
   const ts = translator(searchMessages, lang);
   const tp = translator(placeMessages, lang);
@@ -63,11 +66,11 @@ export function MapView({ lang, cities }: { lang: Language; cities: MapCity[]; p
   function toggleSharing() {
     setSharing((on) => { savePresencePreference(!on); return !on; });
   }
-  const startCity = cities.find((c) => c.id === config.defaultCity) ?? cities[0] ?? null;
+  const startCity = cities.find((c) => c.id === (initialPlace?.city_id ?? config.defaultCity)) ?? cities[0] ?? null;
   const [ready, setReady] = useState(false);
   const [activeCity, setActiveCity] = useState<string | null>(startCity?.id ?? null);
   const [data, setData] = useState<CrowdData | null>(null);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(initialPlace?.id ?? null);
   const [panel, setPanel] = useState<"filters" | "list" | null>(null);
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [me, setMe] = useState<LatLng | null>(null);
@@ -80,8 +83,8 @@ export function MapView({ lang, cities }: { lang: Language; cities: MapCity[]; p
     const m = new MLMap({
       container: box.current,
       style: config.map.styleUrl,
-      center: startCity ? [startCity.lng, startCity.lat] : config.map.worldCenter,
-      zoom: startCity ? startCity.default_zoom : config.map.worldZoom,
+      center: initialPlace ? [initialPlace.lng, initialPlace.lat] : startCity ? [startCity.lng, startCity.lat] : config.map.worldCenter,
+      zoom: initialPlace ? 16 : startCity ? startCity.default_zoom : config.map.worldZoom,
       attributionControl: { compact: true },
     });
     map.current = m;

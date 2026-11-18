@@ -9,6 +9,8 @@ export const common = {
     "nav.logout": "Log out",
     "nav.me": "My activity",
     "nav.admin": "Admin",
+    "nav.saved": "Saved",
+    "nav.notifications": "Notifications",
     "nav.language": "हिन्दी",
 
     "auth.loginTitle": "Log in to CrowdMap",
@@ -55,6 +57,8 @@ export const common = {
     "nav.signup": "साइन अप",
     "nav.logout": "लॉग आउट",
     "nav.me": "मेरी गतिविधि",
+    "nav.saved": "सहेजे गए",
+    "nav.notifications": "सूचनाएँ",
     "nav.admin": "एडमिन",
     "nav.language": "English",
 

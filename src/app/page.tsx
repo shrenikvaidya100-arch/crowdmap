@@ -1,5 +1,5 @@
 // Home: the live map. The map itself is User 1's feature (src/features/map).
-import { MapView, type MapCity } from "@/features/map/MapView";
+import { MapView, type LinkedPlace, type MapCity } from "@/features/map/MapView";
 import { isSupabaseConfigured } from "@/lib/env";
 import { translator } from "@/lib/i18n";
 import { common } from "@/lib/i18n/common";
@@ -16,8 +16,19 @@ async function loadCities(): Promise<MapCity[]> {
   return data ?? [];
 }
 
-export default async function Home() {
-  const [lang, cities] = await Promise.all([getLang(), loadCities()]);
+/** /?place=<id> opens that place (links from notifications and the Saved page). */
+async function loadLinkedPlace(id: string | undefined): Promise<LinkedPlace | null> {
+  if (!id || !/^[0-9a-f-]{36}$/i.test(id) || !isSupabaseConfigured()) return null;
+  const supabase = await createClient();
+  const { data } = await supabase.from("places").select("id, lat, lng, city_id").eq("id", id).neq("status", "removed").maybeSingle();
+  return data;
+}
+
+export default async function Home({ searchParams }: PageProps<"/">) {
+  const sp = await searchParams;
+  const [lang, cities, linked] = await Promise.all([
+    getLang(), loadCities(), loadLinkedPlace(typeof sp.place === "string" ? sp.place : undefined),
+  ]);
   const t = translator(common, lang);
   return (
     <main className="relative flex flex-1 flex-col">
@@ -26,7 +37,7 @@ export default async function Home() {
           <strong>{t("setup.title")}:</strong> {t("setup.body")}
         </div>
       )}
-      <MapView lang={lang} cities={cities} />
+      <MapView key={linked?.id ?? "map"} lang={lang} cities={cities} initialPlace={linked} />
     </main>
   );
 }

@@ -5,6 +5,7 @@ export function publicEnv() {
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
     supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "",
     turnstileSiteKey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "",
+    vapidPublicKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "",
   };
 }
 
@@ -19,5 +20,6 @@ export function serverEnv() {
   return {
     supabaseSecretKey: process.env.SUPABASE_SECRET_KEY ?? "",
     turnstileSecretKey: process.env.TURNSTILE_SECRET_KEY ?? "",
+    vapidPrivateKey: process.env.VAPID_PRIVATE_KEY ?? "",
   };
 }

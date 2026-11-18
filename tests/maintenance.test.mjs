@@ -52,7 +52,7 @@ test("cleanup lists unfinished uploads and orphan files older than an hour, noth
 
 test("maintenance jobs are scheduled and not callable from the app", async () => {
   const jobs = (await db.query("select jobname from cron.job order by 1")).rows.map((r) => r.jobname);
-  assert.deepEqual(jobs, ["crowdmap-bot-sweep", "crowdmap-maintenance"]);
+  assert.deepEqual(jobs, ["crowdmap-bot-sweep", "crowdmap-check-watches", "crowdmap-maintenance"]);
   const grants = (await db.query(`select has_function_privilege('authenticated', 'public.maintenance()', 'execute') m,
     has_function_privilege('anon', 'public.media_cleanup_candidates(int)', 'execute') c`)).rows[0];
   assert.deepEqual(grants, { m: false, c: false });

@@ -5,6 +5,7 @@ import type { Language } from "@/lib/config";
 import { translator } from "@/lib/i18n";
 import { common } from "@/lib/i18n/common";
 import type { Viewer } from "@/lib/session";
+import { NotificationBell } from "@/features/alerts/NotificationBell";
 
 export function Header({ lang, viewer }: { lang: Language; viewer: Viewer }) {
   const t = translator(common, lang);
@@ -23,6 +24,8 @@ export function Header({ lang, viewer }: { lang: Language; viewer: Viewer }) {
 
       {viewer ? (
         <>
+          <NotificationBell label={t("nav.notifications")} />
+          <Link className={`${link} hidden sm:inline`} href="/saved">{t("nav.saved")}</Link>
           {viewer.role === "admin" && <Link className={link} href="/admin">{t("nav.admin")}</Link>}
           <Link className={`${link} hidden sm:inline`} href="/me">{t("nav.me")}</Link>
           <form action={logout}>
