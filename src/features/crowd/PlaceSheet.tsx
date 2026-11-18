@@ -113,7 +113,7 @@ export function PlaceSheet({
   return (
     <aside
       aria-label={name || t("loading")}
-      className="absolute inset-x-0 bottom-0 z-30 max-h-[70%] overflow-y-auto rounded-t-2xl bg-white shadow-2xl sm:inset-y-3 sm:left-auto sm:right-3 sm:max-h-none sm:w-96 sm:rounded-2xl dark:bg-gray-900"
+      className="absolute inset-x-0 bottom-0 z-30 max-h-[70%] overflow-y-auto rounded-t-2xl bg-white shadow-2xl sm:bottom-3 sm:top-[4.75rem] sm:left-auto sm:right-3 sm:max-h-none sm:w-96 sm:rounded-2xl dark:bg-gray-900"
     >
       <div className="sticky top-0 flex items-start gap-3 border-b border-gray-100 bg-white/95 px-4 py-3 backdrop-blur dark:border-gray-800 dark:bg-gray-900/95">
         <Icon name={categoryIcon(data?.place.category)} size={26} className="mt-0.5 shrink-0 text-gray-500" />

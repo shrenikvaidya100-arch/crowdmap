@@ -25,18 +25,6 @@ body {
   font-family: var(--font-sans);
 }
 
-/* Custom cursor (SiteCursor): hide the system pointer everywhere it replaces it,
-   but keep the normal typing cursor in text fields. */
-html.custom-cursor,
-html.custom-cursor * {
-  cursor: none !important;
-}
-html.custom-cursor input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="button"]):not([type="submit"]),
-html.custom-cursor textarea,
-html.custom-cursor [contenteditable="true"] {
-  cursor: text !important;
-}
-
 /* Map print view: just the map (and its scale and attribution). */
 @media print {
   header, nav, aside, [data-map-ui] { display: none !important; }

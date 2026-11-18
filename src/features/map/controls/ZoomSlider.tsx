@@ -1,10 +1,9 @@
 'use client';
 // Vertical map zoom slider, adapted from the AdaptiveSlider reference in the
-// design brief: pill track, round white thumb, dots as ticks, spring motion and
-// an animated number. Blue gradient only. Synced both ways with the map:
-// map zoom events set the value, and slider moves call onChange, but a value
-// that came from the map is never sent back to it.
-import { AnimatePresence, motion } from 'motion/react';
+// design brief: pill track, round white thumb, dots as ticks, and a live number. Blue gradient only. Works like a normal slider: while
+// dragging, the thumb follows the pointer exactly and the map jumps with it
+// (onChange(z, true)); otherwise the thumb simply mirrors the map's zoom, which
+// already animates smoothly, so there is no second spring fighting it.
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -12,16 +11,17 @@ const MIN = 1;
 const MAX = 20;
 const STEP = 0.5;
 const THUMB = 44; // px
-const SPRING = { type: 'spring' as const, stiffness: 300, damping: 30 };
 
 export function ZoomSlider({ value, onChange, labels, className }: {
   value: number;
-  onChange: (zoom: number) => void;
+  onChange: (zoom: number, live?: boolean) => void;
   labels: { zoom: string; zoomIn: string; zoomOut: string; slider: string };
   className?: string;
 }) {
   const track = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
+  // The pointer's value while dragging; the map's value the rest of the time.
+  const [dragValue, setDragValue] = useState<number | null>(null);
   // Track height in px (it shrinks on short screens), so the fill and thumb can spring in px.
   const [trackH, setTrackH] = useState(220);
   useEffect(() => {
@@ -31,7 +31,7 @@ export function ZoomSlider({ value, onChange, labels, className }: {
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-  const clamped = Math.min(MAX, Math.max(MIN, value));
+  const clamped = Math.min(MAX, Math.max(MIN, dragging && dragValue != null ? dragValue : value));
   const pct = ((clamped - MIN) / (MAX - MIN)) * 100;
 
   const dots = useMemo(
@@ -48,7 +48,9 @@ export function ZoomSlider({ value, onChange, labels, className }: {
     // The fill grows from the bottom up.
     const usable = r.height - THUMB;
     const y = Math.min(Math.max(r.bottom - clientY - THUMB / 2, 0), usable);
-    onChange(snap(MIN + (y / usable) * (MAX - MIN)));
+    const z = MIN + (y / usable) * (MAX - MIN);
+    setDragValue(z);
+    onChange(z, true);
   }, [onChange]);
 
   function onPointerDown(e: PointerEvent<HTMLDivElement>) {
@@ -77,7 +79,7 @@ export function ZoomSlider({ value, onChange, labels, className }: {
   return (
     <div className={cn('flex w-14 select-none flex-col items-center gap-2 rounded-[28px] bg-neutral-900/90 px-1.5 py-2.5 shadow-2xl shadow-black/30 ring-1 ring-white/10 backdrop-blur', className)}>
       <span className='text-[10px] font-semibold uppercase tracking-wider text-neutral-500'>{labels.zoom}</span>
-      <AnimatedNumber value={clamped.toFixed(1)} className='hidden text-sm font-bold text-neutral-100 tabular-nums min-[420px]:flex' />
+      <span aria-hidden className='hidden text-sm font-bold text-neutral-100 tabular-nums min-[420px]:block'>{clamped.toFixed(1)}</span>
       <button type='button' className={btn} aria-label={labels.zoomIn} onClick={() => onChange(snap(clamped + 1))}>+</button>
 
       <div
@@ -92,50 +94,25 @@ export function ZoomSlider({ value, onChange, labels, className }: {
         aria-valuetext={clamped.toFixed(1)}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
-        onPointerUp={() => setDragging(false)}
-        onPointerCancel={() => setDragging(false)}
+        onPointerUp={() => { setDragging(false); setDragValue(null); }}
+        onPointerCancel={() => { setDragging(false); setDragValue(null); }}
         onKeyDown={onKeyDown}
         className='relative h-[clamp(88px,calc(100svh-31rem),220px)] w-11 cursor-pointer touch-none overflow-hidden rounded-full bg-neutral-800 outline-none focus-visible:ring-2 focus-visible:ring-blue-400 sm:h-[220px]'
       >
         <div className='pointer-events-none absolute inset-0 flex flex-col items-center justify-between py-4'>{dots}</div>
-        <motion.div
+        <div
           className='pointer-events-none absolute bottom-0 left-0 w-full rounded-full'
-          style={{ background: 'linear-gradient(to top, #0B5FD6, #0894FF)' }}
-          initial={false}
-          animate={{ height: (pct / 100) * (trackH - THUMB) + THUMB }}
-          transition={dragging ? { duration: 0 } : SPRING}
+          style={{ background: 'linear-gradient(to top, #0B5FD6, #0894FF)', height: (pct / 100) * (trackH - THUMB) + THUMB }}
         />
-        <motion.div
+        <div
           className='pointer-events-none absolute left-0 flex w-full items-center justify-center'
-          style={{ height: THUMB }}
-          initial={false}
-          animate={{ bottom: (pct / 100) * (trackH - THUMB) }}
-          transition={dragging ? { duration: 0 } : SPRING}
+          style={{ height: THUMB, bottom: (pct / 100) * (trackH - THUMB) }}
         >
-          <div className='size-9 rounded-full border-2 border-[#0894FF] bg-white shadow-[inset_0_2px_4px_rgba(0,0,0,0.06)]' />
-        </motion.div>
+          <div className={cn('size-9 rounded-full border-2 border-[#0894FF] bg-white shadow-[inset_0_2px_4px_rgba(0,0,0,0.06)] transition-transform', dragging && 'scale-110')} />
+        </div>
       </div>
 
       <button type='button' className={btn} aria-label={labels.zoomOut} onClick={() => onChange(snap(clamped - 1))}>-</button>
-    </div>
-  );
-}
-
-function AnimatedNumber({ value, className }: { value: string; className?: string }) {
-  return (
-    <div className={cn('flex overflow-hidden will-change-transform', className)} aria-hidden>
-      <AnimatePresence mode='popLayout' initial={false}>
-        {value.split('').map((char, i) => (
-          <motion.span
-            key={char + i}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0, transition: { type: 'spring', stiffness: 200, damping: 20 } }}
-            exit={{ opacity: 0, y: -8 }}
-          >
-            {char}
-          </motion.span>
-        ))}
-      </AnimatePresence>
     </div>
   );
 }

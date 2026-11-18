@@ -1,14 +1,16 @@
 'use client';
 // The rotating Earth behind the home page hero (Three.js).
 // Night-lights texture (NASA, public domain): the bright parts are where people are.
-// Rotates slowly all the time; scrolling down speeds it up, and it eases back to
-// the slow spin when scrolling stops. Pauses off screen and in hidden tabs, and
+// Rotates slowly all the time and spins with the scroll wheel or trackpad (and a
+// swipe on phones): down spins it forward, up spins it back, then it eases back
+// to the slow spin. The home page doesn't scroll, so this reads wheel and touch
+// moves directly rather than the page's scroll position. Pauses off screen and in hidden tabs, and
 // keeps a much gentler spin for people who prefer reduced motion.
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 
 const BASE_SPEED = 0.05; // radians per second
-const MAX_BOOST = 1.6; // extra radians per second at most while scrolling
+const MAX_BOOST = 3; // extra radians per second at most while scrolling (either way)
 const EASE = 2.4; // how quickly the boost fades (per second)
 
 const ATMOSPHERE_VERTEX = `
@@ -133,15 +135,26 @@ export function Earth({ className }: { className?: string }) {
     const ro = new ResizeObserver(resize);
     ro.observe(el);
 
-    // Scroll boost: scrolling down adds speed, which fades back smoothly.
+    // Scroll spin: each wheel or swipe step adds speed in its direction, which fades back smoothly.
     let boost = 0;
-    let lastY = window.scrollY;
-    const onScroll = () => {
-      const y = window.scrollY;
-      const dy = y - lastY;
-      lastY = y;
-      if (dy > 0 && !reduced) boost = Math.min(MAX_BOOST, boost + dy * 0.004);
+    const push = (dy: number) => {
+      if (reduced) return;
+      boost = Math.max(-MAX_BOOST, Math.min(MAX_BOOST, boost + dy * 0.006));
     };
+    const onWheel = (e: WheelEvent) => push(e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY);
+    let touchY: number | null = null;
+    const onTouchStart = (e: TouchEvent) => { touchY = e.touches[0]?.clientY ?? null; };
+    const onTouchMove = (e: TouchEvent) => {
+      const y = e.touches[0]?.clientY;
+      if (y == null || touchY == null) return;
+      push((touchY - y) * 1.5);
+      touchY = y;
+    };
+    let lastY = window.scrollY;
+    const onScroll = () => { const y = window.scrollY; push(y - lastY); lastY = y; };
+    window.addEventListener('wheel', onWheel, { passive: true });
+    window.addEventListener('touchstart', onTouchStart, { passive: true });
+    window.addEventListener('touchmove', onTouchMove, { passive: true });
     window.addEventListener('scroll', onScroll, { passive: true });
 
     let visible = true;
@@ -164,6 +177,9 @@ export function Earth({ className }: { className?: string }) {
     return () => {
       cancelAnimationFrame(frame);
       window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('wheel', onWheel);
+      window.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('touchmove', onTouchMove);
       ro.disconnect();
       io.disconnect();
       texture.dispose();

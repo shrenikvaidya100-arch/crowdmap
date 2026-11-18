@@ -1,4 +1,3 @@
-import { Icon } from "@/components/icons/Icon";
 // "My activity": profile plus everything the user has shared. Loaded with the
 // user's own session, so row-level security returns only their rows.
 import { redirect } from "next/navigation";
@@ -9,6 +8,7 @@ import {
 import { messages } from "@/features/profile/messages";
 import { DeleteAccount } from "@/features/profile/DeleteAccount";
 import { ProfileForm } from "@/features/profile/ProfileForm";
+import { ProfileHero } from "@/features/profile/ProfileHero";
 import { translator } from "@/lib/i18n";
 import { getLang } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
@@ -34,7 +34,7 @@ async function loadActivity() {
   const uid = auth.user.id;
 
   const [profile, cities, reports, alerts, plans, places, log, uploads, comments] = await Promise.all([
-    supabase.from("profiles").select("display_name, preferred_lang, home_city, created_at, trust_score, role").eq("id", uid).single(),
+    supabase.from("profiles").select("display_name, preferred_lang, home_city, created_at, trust_score, role, avatar_seed").eq("id", uid).single(),
     supabase.from("cities").select("id, name, name_hi").order("sort_order"),
     supabase.from("crowd_reports").select(`id, level, created_at, ${PLACE}`).eq("user_id", uid)
       .order("created_at", { ascending: false }).limit(500),
@@ -83,17 +83,11 @@ export default async function MyActivityPage() {
     .format(new Date(data.profile.created_at));
 
   return (
-    <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
-      <header className="mb-5">
-        <h1 className="text-2xl font-semibold">{t("title")}</h1>
-        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{t("subtitle")}</p>
-        <p className="mt-2 flex flex-wrap gap-x-4 text-sm">
-          <span className="inline-flex items-center gap-1.5"><Icon name="user" size={16} /> {data.profile.display_name}</span>
-          <span className="text-gray-500">{t("memberSince", { date: since })}</span>
-          {/* Trust score and the activity log are for admins only. */}
-          {isAdmin && <span className="inline-flex items-center gap-1.5 text-gray-500" title={t("trustHint")}><Icon name="shield" size={16} /> {t("trust", { pct: Math.round(data.profile.trust_score * 100) })}</span>}
-        </p>
-      </header>
+    <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-12 pt-4">
+      <ProfileHero name={data.profile.display_name} avatarSeed={data.profile.avatar_seed ?? null}
+                   since={t("memberSince", { date: since })} subtitle={t("subtitle")}
+                   homeCity={data.profile.home_city ? cityNames[data.profile.home_city] ?? null : null}
+                   admin={isAdmin ? { label: t("adminRole"), hint: t("trustHint"), trust: t("trust", { pct: Math.round(data.profile.trust_score * 100) }) } : null} />
 
       <ActivityTabs
         lang={lang} now={data.now} cityNames={cityNames}

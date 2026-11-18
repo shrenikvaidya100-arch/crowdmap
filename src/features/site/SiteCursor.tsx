@@ -1,14 +1,12 @@
 'use client';
-// Site cursor (TargetCursor): spinning brackets that lock onto links, buttons
-// and anything marked .cursor-target, with a short word under the dot.
-// Elements can choose their word with data-cursor-label (or data-cursor).
-// Mouse and trackpad only: touch screens keep normal taps, and text fields
-// keep the normal typing cursor.
+// Site cursor: the normal pointer, plus a soft highlight that pops onto
+// buttons and links under it and shrinks back into the pointer when it moves
+// off. Mouse and trackpad only; touch screens keep normal taps.
 import { useSyncExternalStore } from 'react';
-import TargetCursor from '@/components/core/target-cursor';
+import PopCursor from '@/components/core/pop-cursor';
 
-const TARGETS = '.cursor-target,a[href],button,[role="button"],[role="option"],[role="tab"],[role="switch"],select,summary,label[for]';
-const TYPING = 'input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="button"]):not([type="submit"]),textarea,[contenteditable="true"]';
+const TARGETS = 'a[href],button,[role="button"],[role="option"],[role="tab"],[role="switch"],[role="menuitem"],select,summary,label[for]';
+const TYPING = 'input,textarea,[contenteditable="true"],.maplibregl-canvas';
 const FINE = '(hover: hover) and (pointer: fine)';
 
 function subscribe(cb: () => void) {
@@ -17,13 +15,8 @@ function subscribe(cb: () => void) {
   return () => mq.removeEventListener('change', cb);
 }
 
-// Labels only where an element asks for one, like the snippet's data-cursor-label.
 export function SiteCursor() {
   const enabled = useSyncExternalStore(subscribe, () => window.matchMedia(FINE).matches, () => false);
   if (!enabled) return null;
-  return (
-    <TargetCursor spinDuration={2} hideDefaultCursor parallaxOn
-                  targetSelector={TARGETS} ignoreSelector={TYPING}
-                  getLabel={(el) => el.getAttribute('data-cursor')} />
-  );
+  return <PopCursor targetSelector={TARGETS} ignoreSelector={TYPING} />;
 }

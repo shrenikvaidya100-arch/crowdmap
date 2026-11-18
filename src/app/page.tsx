@@ -22,7 +22,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   return (
     <main className="relative isolate flex min-h-[100svh] flex-1 flex-col items-center overflow-hidden bg-black px-4 pt-[18vh] text-center text-zinc-100">
       {/* Just the globe and the search. */}
-      <Earth className="absolute inset-x-0 -bottom-[58vh] -z-10 h-[110vh] sm:-bottom-[68vh] sm:h-[125vh]" />
+      <Earth className="absolute inset-x-0 -bottom-[48vh] -z-10 h-[110vh] sm:-bottom-[56vh] sm:h-[125vh]" />
       {welcome && (
         <p role="status" className="mb-6 rounded-full bg-blue-600/15 px-4 py-1.5 text-sm text-blue-200 ring-1 ring-blue-500/30">
           {lang === "hi" ? `CrowdMap में आपका स्वागत है, ${welcome}।` : `Welcome to CrowdMap, ${welcome}.`}
