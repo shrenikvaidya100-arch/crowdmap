@@ -2,9 +2,11 @@
 // user's own session, so row-level security returns only their rows.
 import { redirect } from "next/navigation";
 import {
-  ActivityTabs, type AddedPlaceRow, type AlertRow, type LogRow, type PlanRow, type ReportRow,
+  ActivityTabs, type AddedPlaceRow, type AlertRow, type CommentRow, type LogRow, type PlanRow, type ReportRow,
+  type UploadRow,
 } from "@/features/profile/ActivityTabs";
 import { messages } from "@/features/profile/messages";
+import { DeleteAccount } from "@/features/profile/DeleteAccount";
 import { ProfileForm } from "@/features/profile/ProfileForm";
 import { translator } from "@/lib/i18n";
 import { getLang } from "@/lib/i18n/server";
@@ -19,13 +21,18 @@ type MyAlert = {
   place_id: string | null; place_name: string | null; place_name_hi: string | null; city_id: string;
 };
 
+type MyComment = {
+  id: string; body: string; created_at: string; status: string; media_kind: CommentRow["media_kind"];
+  place_id: string; place_name: string; place_name_hi: string | null; city_id: string;
+};
+
 async function loadActivity() {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return null;
   const uid = auth.user.id;
 
-  const [profile, cities, reports, alerts, plans, places, log] = await Promise.all([
+  const [profile, cities, reports, alerts, plans, places, log, uploads, comments] = await Promise.all([
     supabase.from("profiles").select("display_name, preferred_lang, home_city, created_at, trust_score").eq("id", uid).single(),
     supabase.from("cities").select("id, name, name_hi").order("sort_order"),
     supabase.from("crowd_reports").select(`id, level, created_at, ${PLACE}`).eq("user_id", uid)
@@ -38,8 +45,11 @@ async function loadActivity() {
       .order("created_at", { ascending: false }).limit(500),
     supabase.from("audit_log").select("id, at, action, target_type, details").eq("actor_id", uid)
       .order("id", { ascending: false }).limit(300),
+    supabase.from("media").select(`id, kind, caption, status, removed_by, created_at, ${PLACE}`).eq("user_id", uid)
+      .order("created_at", { ascending: false }).limit(500),
+    supabase.rpc("my_comments"),
   ]);
-  for (const [name, r] of Object.entries({ profile, cities, reports, alerts, plans, places, log })) {
+  for (const [name, r] of Object.entries({ profile, cities, reports, alerts, plans, places, log, uploads, comments })) {
     if (r.error) console.error(`me/${name}`, r.error.message);
   }
   return {
@@ -54,6 +64,11 @@ async function loadActivity() {
     plans: (plans.data ?? []) as unknown as PlanRow[],
     places: (places.data ?? []) as AddedPlaceRow[],
     log: (log.data ?? []) as LogRow[],
+    uploads: (uploads.data ?? []) as unknown as UploadRow[],
+    comments: ((comments.data ?? []) as MyComment[]).map((c): CommentRow => ({
+      id: c.id, body: c.body, status: c.status, created_at: c.created_at, media_kind: c.media_kind,
+      place: { id: c.place_id, name: c.place_name, name_hi: c.place_name_hi, city_id: c.city_id },
+    })),
   };
 }
 
@@ -79,13 +94,17 @@ export default async function MyActivityPage() {
 
       <ActivityTabs
         lang={lang} now={data.now} cityNames={cityNames}
-        reports={data.reports} alerts={data.alerts} plans={data.plans} places={data.places} log={data.log}
+        reports={data.reports} alerts={data.alerts} uploads={data.uploads} comments={data.comments}
+        plans={data.plans} places={data.places} log={data.log}
         profile={
-          <ProfileForm lang={lang} cities={data.cities} initial={{
-            displayName: data.profile.display_name,
-            preferredLang: data.profile.preferred_lang,
-            homeCity: data.profile.home_city ?? "",
-          }} />
+          <>
+            <ProfileForm lang={lang} cities={data.cities} initial={{
+              displayName: data.profile.display_name,
+              preferredLang: data.profile.preferred_lang,
+              homeCity: data.profile.home_city ?? "",
+            }} />
+            <DeleteAccount lang={lang} />
+          </>
         }
       />
     </main>

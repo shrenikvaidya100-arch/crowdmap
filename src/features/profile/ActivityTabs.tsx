@@ -11,6 +11,8 @@ import { quickIcon, CATEGORY_ICON } from "@/features/crowd/config";
 import { messages as crowdMessages } from "@/features/crowd/messages";
 import { cancelPlan } from "@/features/crowd/plan/actions";
 import { deleteMyPlace } from "@/features/places/actions";
+import { deleteComment, deleteMedia } from "@/features/media/actions";
+import { MEDIA_ICON, type MediaKind } from "@/features/media/config";
 import { messages } from "./messages";
 
 type PlaceRef = { id: string; name: string; name_hi: string | null; city_id: string } | null;
@@ -18,16 +20,18 @@ export type ReportRow = { id: string; level: number; created_at: string; place: 
 export type AlertRow = { id: string; kind: string; created_at: string; expires_at: string; still_there: number; gone: number; place: PlaceRef };
 export type PlanRow = { id: string; planned_for: string; place: PlaceRef };
 export type AddedPlaceRow = { id: string; name: string; name_hi: string | null; category: string; status: string; created_at: string; city_id: string };
+export type UploadRow = { id: string; kind: MediaKind; caption: string | null; status: string; removed_by: string | null; created_at: string; place: PlaceRef };
+export type CommentRow = { id: string; body: string; status: string; created_at: string; media_kind: MediaKind; place: PlaceRef };
 export type LogRow = { id: number; at: string; action: string; target_type: string | null; details: Record<string, unknown> };
 
-type Tab = "profile" | "reports" | "alerts" | "plans" | "places" | "log";
+type Tab = "profile" | "reports" | "alerts" | "uploads" | "comments" | "plans" | "places" | "log";
 type Sort = "newest" | "oldest" | "name" | "level";
 
 const levelColor = (l: number) => config.crowd.levels.find((x) => x.level === l)?.color ?? config.crowd.noDataColor;
 const EDIT_MINUTES = 15;
 
 export function ActivityTabs({
-  lang, now, cityNames, profile, reports, alerts, plans, places, log,
+  lang, now, cityNames, profile, reports, alerts, uploads, comments, plans, places, log,
 }: {
   lang: Language;
   /** Server time when the page was rendered (keeps "ago" and "editable" stable). */
@@ -38,6 +42,8 @@ export function ActivityTabs({
   alerts: AlertRow[];
   plans: PlanRow[];
   places: AddedPlaceRow[];
+  uploads: UploadRow[];
+  comments: CommentRow[];
   log: LogRow[];
 }) {
   const t = translator(messages, lang);
@@ -66,13 +72,17 @@ export function ActivityTabs({
   }
 
   // Shared filtering and sorting for the place-based tabs.
-  function arrange<T>(rows: T[], get: { place: (r: T) => PlaceRef; date: (r: T) => string; level?: (r: T) => number }) {
+  function arrange<T>(rows: T[], get: {
+    place: (r: T) => PlaceRef; date: (r: T) => string; level?: (r: T) => number;
+    /** Extra searchable text (caption, comment), besides the place name. */
+    text?: (r: T) => string | null;
+  }) {
     const needle = q.trim().toLowerCase();
     const out = rows.filter((r) => {
       const p = get.place(r);
       if (city && p?.city_id !== city) return false;
       if (!needle) return true;
-      return [p?.name, p?.name_hi].some((s) => s?.toLowerCase().includes(needle));
+      return [p?.name, p?.name_hi, get.text?.(r)].some((s) => s?.toLowerCase().includes(needle));
     });
     out.sort((a, b) => {
       if (sort === "name") return placeName(get.place(a)).localeCompare(placeName(get.place(b)));
@@ -89,6 +99,12 @@ export function ActivityTabs({
   const shownAlerts = useMemo(() => arrange(alerts, { place: (r) => r.place, date: (r) => r.created_at }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [alerts, q, city, sort, lang]);
+  const shownUploads = useMemo(() => arrange(uploads, { place: (r) => r.place, date: (r) => r.created_at, text: (r) => r.caption }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [uploads, q, city, sort, lang]);
+  const shownComments = useMemo(() => arrange(comments, { place: (r) => r.place, date: (r) => r.created_at, text: (r) => r.body }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [comments, q, city, sort, lang]);
   const shownPlans = useMemo(() => arrange(plans, { place: (r) => r.place, date: (r) => r.planned_for }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [plans, q, city, sort, lang]);
@@ -103,7 +119,8 @@ export function ActivityTabs({
   }, [log, q, sort]);
 
   const counts: Record<Tab, number | null> = {
-    profile: null, reports: reports.length, alerts: alerts.length, plans: plans.length, places: places.length, log: log.length,
+    profile: null, reports: reports.length, alerts: alerts.length, uploads: uploads.length, comments: comments.length,
+    plans: plans.length, places: places.length, log: log.length,
   };
 
   const th = "px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-gray-500";
@@ -212,6 +229,54 @@ export function ActivityTabs({
                 </>
               )}
 
+              {tab === "uploads" && (
+                <>
+                  <thead className="bg-gray-50 dark:bg-gray-900"><tr>
+                    <th className={th}>{t("type")}</th><th className={th}>{t("caption")}</th><th className={th}>{t("place")}</th>
+                    <th className={th}>{t("when")}</th><th className={th}>{t("status")}</th><th className={th}>{t("actions")}</th></tr></thead>
+                  <tbody>
+                    {shownUploads.map((m) => (
+                      <tr key={m.id} className="border-t border-gray-100 dark:border-gray-800">
+                        <td className={td}><span aria-hidden>{MEDIA_ICON[m.kind]}</span> {t(`media.${m.kind}`)}</td>
+                        <td className={`${td} max-w-xs truncate`} title={m.caption ?? ""}>{m.caption || "—"}</td>
+                        <td className={td}>{placeName(m.place)}</td>
+                        <td className={td}>{fmt(m.created_at)}</td>
+                        <td className={td}>{m.status === "visible" ? <span className="text-green-700">{t("shown")}</span>
+                          : m.status === "removed" ? <span className="text-red-600">{t("hiddenByAdmin")}</span>
+                          : <span className="text-gray-500">{t("unfinished")}</span>}</td>
+                        <td className={td}>
+                          <button type="button" className={`${linkBtn} text-red-600`} disabled={busy === m.id}
+                                  onClick={() => void run(m.id, () => deleteMedia(m.id), "confirmDeleteUpload")}>{t("delete")}</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </>
+              )}
+
+              {tab === "comments" && (
+                <>
+                  <thead className="bg-gray-50 dark:bg-gray-900"><tr>
+                    <th className={th}>{t("comment")}</th><th className={th}>{t("place")}</th>
+                    <th className={th}>{t("when")}</th><th className={th}>{t("status")}</th><th className={th}>{t("actions")}</th></tr></thead>
+                  <tbody>
+                    {shownComments.map((c) => (
+                      <tr key={c.id} className="border-t border-gray-100 dark:border-gray-800">
+                        <td className={`${td} max-w-sm`}><span className="line-clamp-2 break-words">{c.body}</span></td>
+                        <td className={td}><span aria-hidden>{MEDIA_ICON[c.media_kind]}</span> {placeName(c.place)}</td>
+                        <td className={td}>{fmt(c.created_at)}</td>
+                        <td className={td}>{c.status === "visible" ? <span className="text-green-700">{t("shown")}</span>
+                          : <span className="text-red-600">{t("hiddenByAdmin")}</span>}</td>
+                        <td className={td}>
+                          <button type="button" className={`${linkBtn} text-red-600`} disabled={busy === c.id}
+                                  onClick={() => void run(c.id, () => deleteComment(c.id), "confirmDelete")}>{t("delete")}</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </>
+              )}
+
               {tab === "plans" && (
                 <>
                   <thead className="bg-gray-50 dark:bg-gray-900"><tr>
@@ -284,6 +349,8 @@ export function ActivityTabs({
             {(() => {
               const [shown, total] = tab === "reports" ? [shownReports.length, reports.length]
                 : tab === "alerts" ? [shownAlerts.length, alerts.length]
+                : tab === "uploads" ? [shownUploads.length, uploads.length]
+                : tab === "comments" ? [shownComments.length, comments.length]
                 : tab === "plans" ? [shownPlans.length, plans.length]
                 : tab === "places" ? [shownPlaces.length, places.length]
                 : [shownLog.length, log.length];
