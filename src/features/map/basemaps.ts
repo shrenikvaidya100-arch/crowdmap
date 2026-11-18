@@ -1,6 +1,8 @@
 // Map types (basemaps) and overlays. Street, Felt-style, Dark and 3D are free
-// (OpenFreeMap, no key). Satellite, Terrain and Contours use MapTiler, which needs
-// NEXT_PUBLIC_MAPTILER_KEY (a public, domain-restricted browser key).
+// (OpenFreeMap, no key). Satellite uses MapTiler when NEXT_PUBLIC_MAPTILER_KEY is
+// set, otherwise Esri World Imagery (free, no key, with attribution). Terrain
+// and Contours need the MapTiler key.
+import type { StyleSpecification } from "maplibre-gl";
 import { publicEnv } from "@/lib/env";
 
 export type BasemapId = "street" | "felt" | "dark" | "3d" | "satellite" | "terrain";
@@ -11,7 +13,7 @@ export const BASEMAPS: { id: BasemapId; needsKey: boolean }[] = [
   { id: "felt", needsKey: false },
   { id: "dark", needsKey: false },
   { id: "3d", needsKey: false },
-  { id: "satellite", needsKey: true },
+  { id: "satellite", needsKey: false },
   { id: "terrain", needsKey: true },
 ];
 
@@ -31,8 +33,26 @@ export const DEFAULT_OVERLAYS: Record<OverlayId, boolean> = {
 
 export const mapTilerKey = () => publicEnv().mapTilerKey;
 
-export function styleUrl(id: BasemapId): string {
+const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services";
+/** Satellite photos with place names on top, without any key. */
+const ESRI_SATELLITE: StyleSpecification = {
+  version: 8,
+  // Same glyphs as the other styles, so our labels keep working.
+  glyphs: "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf",
+  sources: {
+    imagery: { type: "raster", tileSize: 256, maxzoom: 19, tiles: [`${ESRI}/World_Imagery/MapServer/tile/{z}/{y}/{x}`],
+      attribution: "Imagery &copy; Esri, Maxar, Earthstar Geographics" },
+    names: { type: "raster", tileSize: 256, maxzoom: 19, tiles: [`${ESRI}/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}`] },
+  },
+  layers: [
+    { id: "imagery", type: "raster", source: "imagery" },
+    { id: "names", type: "raster", source: "names" },
+  ],
+};
+
+export function styleUrl(id: BasemapId): string | StyleSpecification {
   const key = mapTilerKey();
+  if (id === "satellite" && !key) return ESRI_SATELLITE;
   switch (id) {
     case "felt": return "https://tiles.openfreemap.org/styles/positron";
     case "dark": return "https://tiles.openfreemap.org/styles/dark";

@@ -1,4 +1,5 @@
 'use client';
+import { Icon } from '@/components/icons/Icon';
 // The four map panels opened from the dock: Layers, Customize, Places, Tools.
 // Plain text labels throughout (design brief), switches are real role="switch".
 import { useState, type ReactNode } from 'react';
@@ -17,7 +18,7 @@ export function Panel({ title, onClose, closeLabel, children }: { title: string;
              className='absolute inset-x-0 bottom-0 z-40 max-h-[70%] overflow-y-auto rounded-t-2xl bg-neutral-950/95 p-4 text-sm text-neutral-200 shadow-2xl ring-1 ring-white/10 backdrop-blur sm:inset-x-auto sm:bottom-24 sm:left-3 sm:max-h-[calc(100%-9rem)] sm:w-[340px] sm:rounded-2xl'>
       <div className='mb-3 flex items-center justify-between'>
         <h2 className='text-base font-semibold text-white'>{title}</h2>
-        <button type='button' onClick={onClose} className='rounded-md px-2 py-1 text-xs text-neutral-400 hover:bg-neutral-800 hover:text-white'>{closeLabel}</button>
+        <button type='button' onClick={onClose} aria-label={closeLabel} title={closeLabel} className='grid h-8 w-8 place-items-center rounded-full text-neutral-400 hover:bg-neutral-800 hover:text-white'><Icon name='close' size={16} /></button>
       </div>
       <div className='space-y-5'>{children}</div>
     </section>

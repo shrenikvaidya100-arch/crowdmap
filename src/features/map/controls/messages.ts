@@ -5,7 +5,7 @@ export const messages = {
     // dock
     "dock.home": "Home", "dock.map": "Map", "dock.layers": "Layers", "dock.customize": "Customize",
     "dock.places": "Places", "dock.tools": "Tools", "dock.theme": "Theme", "dock.label": "Map tools",
-    close: "Close",
+    close: "Close", pin: "Pin",
     // zoom
     zoom: "Zoom", zoomIn: "Zoom in", zoomOut: "Zoom out", zoomSlider: "Map zoom",
     resetNorth: "Reset north", fullscreen: "Full screen", exitFullscreen: "Exit full screen",
@@ -42,6 +42,6 @@ export const messages = {
     "dock.places": "जगहें", "dock.tools": "टूल", "dock.theme": "थीम",
     zoom: "ज़ूम", "base.street": "सड़क", "base.dark": "डार्क", "base.satellite": "सैटेलाइट", "base.terrain": "भू-भाग",
     "ov.crowd": "भीड़ का स्तर", "ov.alerts": "अलर्ट", "ov.labels": "नाम", "ov.buildings": "इमारतें", "ov.traffic": "ट्रैफ़िक",
-    save: "सहेजें", cancel: "रद्द करें", delete: "हटाएँ", close: "बंद करें",
+    save: "सहेजें", cancel: "रद्द करें", delete: "हटाएँ", close: "बंद करें", pin: "पिन",
   },
 } satisfies Messages;

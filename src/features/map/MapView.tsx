@@ -94,7 +94,11 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
   useEffect(() => { selectedRef.current = selected; }, [selected]);
   /** Shows a place as a card (never straight into the full panel). */
   // Only uses state setters, so the map's one-time handlers can safely keep the first copy.
-  function selectPlace(id: string | null) { setDetails(false); setSelected(id); }
+  function selectPlace(id: string | null) {
+    setDetails(false); setSelected(id);
+    // One window at a time: a place card closes the panels.
+    if (id) { setDockPanel(null); setPanel(null); setAdding(false); }
+  }
   const [panel, setPanel] = useState<"filters" | "list" | null>(null);
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [me, setMe] = useState<LatLng | null>(null);
@@ -103,7 +107,6 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
 
   // Map type, layers, style and the viewer's own extras (step 4 of the design brief).
   const tc = translator(controlMessages, lang);
-  const router = useRouter();
   const rootRef = useRef<HTMLDivElement>(null);
   const [basemap, setBasemap] = useState<BasemapId>("street");
   const [overlays, setOverlays] = useState<Record<OverlayId, boolean>>(DEFAULT_OVERLAYS);
@@ -111,6 +114,8 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
   // The site's day/night setting drives the map's light and dark palettes.
   const { resolved: siteTheme, setTheme: setSiteTheme } = useTheme();
   const paletteRef = useRef<MapPrefs["palette"]>(DEFAULT_PREFS.palette);
+  const prefsRef = useRef(prefs);
+  useEffect(() => { prefsRef.current = prefs; }, [prefs]);
   useEffect(() => { paletteRef.current = prefs.palette; }, [prefs.palette]);
   const [dockPanel, setDockPanel] = useState<"layers" | "customize" | "places" | "tools" | null>(null);
   const [zoom, setZoom] = useState(initialPlace ? 16 : initialFocus ? initialFocus.zoom : startCity?.default_zoom ?? 12);
@@ -141,6 +146,8 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
         : startCity ? [startCity.lng, startCity.lat] : config.map.worldCenter,
       zoom: initialPlace ? 16 : initialFocus ? initialFocus.zoom : startCity ? startCity.default_zoom : config.map.worldZoom,
       attributionControl: { compact: true },
+      // Double tap drops a pin instead of zooming.
+      doubleClickZoom: false,
     });
     map.current = m;
     m.addControl(new ScaleControl({ maxWidth: 100, unit: "metric" }), "bottom-left");
@@ -159,12 +166,20 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
       if (mode === "measure") { setMeasurePts((p) => [...p, pt]); return; }
       if (mode === "point") { setDrawPts([pt]); return; }
       if (mode === "line" || mode === "area") { setDrawPts((p) => [...p, pt]); return; }
-      // Empty spot: offer to drop a marker. Clicks on a place open the place instead.
+      // Clicks on a place open the place; a tap on an empty spot closes everything.
       if (m.getLayer("places") && m.queryRenderedFeatures(e.point, { layers: ["places"] }).length) return;
-      // With a place card open, a click elsewhere just closes it.
-      if (selectedRef.current) { selectPlace(null); return; }
-      setNewMarker({ lat: e.lngLat.lat, lng: e.lngLat.lng, x: e.point.x, y: e.point.y, w: m.getContainer().clientWidth });
+      selectPlace(null); setPanel(null); setDockPanel(null); setNewMarker(null);
     });
+    // Double tap or right click drops a pin right there (no form, no colour picker).
+    const pin = (e: MapMouseEvent) => {
+      if (toolRef.current) return;
+      e.preventDefault();
+      dropPin(e.lngLat.lat, e.lngLat.lng);
+    };
+    m.on("dblclick", pin);
+    m.on("contextmenu", pin);
+    // Scrolling the map shows the zoom control for a moment.
+    m.on("wheel", () => flashZoom());
     m.on("load", () => {
       m.addSource("places", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
       // Blue halo where CrowdMap users are right now (drawn under the dots).
@@ -431,17 +446,33 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
 
   function pickDock(k: DockKey) {
     setNewMarker(null);
-    if (k === "home") { router.push("/"); return; }
+    // One window at a time.
+    setSelected(null); setPanel(null); setAdding(false);
     if (k === "map") {
       setDockPanel(null); setToolMode(null);
       const c = cities.find((x) => x.id === activeCity);
       if (c) map.current?.flyTo({ center: [c.lng, c.lat], zoom: c.default_zoom, pitch: 0, bearing: 0, essential: true });
       return;
     }
-    if (k === "theme") { setSiteTheme(siteTheme === "dark" ? "light" : "dark"); return; }
-    setSelected(null);
-    setPanel(null);
     setDockPanel((p) => (p === k ? null : k));
+  }
+
+  function dropPin(lat: number, lng: number) {
+    setMarkers((prev) => {
+      const next = [{ id: newId(), name: `${tc("pin")} ${prev.length + 1}`, color: prefsRef.current.drawColor, lat, lng, at: Date.now() }, ...prev];
+      saveMarkers(next);
+      return next;
+    });
+    setOverlays((o) => ({ ...o, saved: true }));
+  }
+  // Zoom control: hidden behind a button; scrolling shows it for a moment.
+  const [zoomOpen, setZoomOpen] = useState(false);
+  const [zoomFlash, setZoomFlash] = useState(false);
+  const zoomTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  function flashZoom() {
+    setZoomFlash(true);
+    clearTimeout(zoomTimer.current);
+    zoomTimer.current = setTimeout(() => setZoomFlash(false), 2200);
   }
 
   function saveMarker(name: string, color: string) {
@@ -526,6 +557,9 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
     m.flyTo({ center: [lng, lat], zoom: 17, essential: true });
   }
 
+  /** One window at a time: closes the dock panel, the place card and Add place. */
+  function closeOthers() { setDockPanel(null); setSelected(null); setDetails(false); setAdding(false); setNewMarker(null); }
+
   function closeAdding() {
     setAdding(false);
     newPin.current?.remove();
@@ -562,8 +596,8 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
   const toolBtn = (on: boolean) =>
     `relative shrink-0 rounded-full px-3.5 py-2 text-sm font-medium shadow ${on ? "bg-blue-600 text-white" : "bg-white text-gray-800 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-100"}`;
 
-  const dockItems: { key: DockKey; label: string }[] = (["home", "map", "layers", "customize", "places", "tools", "theme"] as const)
-    .map((k) => ({ key: k, label: k === "theme" ? (siteTheme === "dark" ? tc("palette.light") : tc("palette.dark")) : tc(`dock.${k}`) }));
+  const dockItems: { key: DockKey; label: string }[] = (["map", "layers", "customize", "places", "tools"] as const)
+    .map((k) => ({ key: k, label: tc(`dock.${k}`) }));
   const roundBtn = "grid h-10 w-10 place-items-center rounded-full bg-neutral-900/90 text-neutral-100 shadow-lg ring-1 ring-white/10 backdrop-blur hover:bg-neutral-800";
 
   return (
@@ -579,23 +613,23 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
         </div>
       )}
 
-      <div className="absolute inset-x-0 top-0 z-30 space-y-2 p-3">
+      <div className="absolute inset-x-0 top-16 z-30 space-y-2 px-3">
         <div className="flex items-center gap-2">
           <SearchBox lang={lang} city={activeCity} cityNames={cityNames} onPick={(h: SearchHit) => openPlace(h)} />
           <button type="button" className={toolBtn(panel === "filters")} aria-expanded={panel === "filters"}
                   aria-label={activeFilters ? `${ts("filters")} (${activeFilters})` : ts("filters")}
-                  onClick={() => setPanel(panel === "filters" ? null : "filters")}>
+                  onClick={() => { closeOthers(); setPanel(panel === "filters" ? null : "filters"); }}>
             <Icon name="filters" size={16} /> <span className="hidden sm:inline">{ts("filters")}</span>
             {activeFilters > 0 && (
               <span className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full bg-red-600 text-[11px] text-white">{activeFilters}</span>
             )}
           </button>
           <button type="button" className={toolBtn(panel === "list")} aria-expanded={panel === "list"} aria-label={ts("list")}
-                  onClick={() => setPanel(panel === "list" ? null : "list")}>
+                  onClick={() => { closeOthers(); setPanel(panel === "list" ? null : "list"); }}>
             <Icon name="list" size={16} /> <span className="hidden sm:inline">{ts("list")}</span>
           </button>
           <button type="button" className={toolBtn(adding)} aria-label={tp("addButton")}
-                  onClick={() => { setSelected(null); setPanel(null); setAdding(true); }}>
+                  onClick={() => { closeOthers(); setPanel(null); setAdding(true); }}>
             <Icon name="plus" size={16} /> <span className="hidden lg:inline">{tp("addButton")}</span>
           </button>
         </div>
@@ -611,10 +645,18 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
 
       {/* Right edge: zoom slider at the top, round buttons at the bottom (above the dock).
           Moves left of the place panel when it's open. */}
-      <div data-map-ui className={`pointer-events-none absolute bottom-[5.25rem] right-2.5 top-[7.25rem] z-10 flex flex-col items-end justify-between gap-2 print:hidden ${details ? "sm:right-[25.5rem]" : ""}`}>
-        <div className={`pointer-events-auto ${details ? "hidden sm:block" : ""}`}>
-          <ZoomSlider value={zoom} onChange={(z) => map.current?.easeTo({ zoom: z, duration: 250 })}
-                      labels={{ zoom: tc("zoom"), zoomIn: tc("zoomIn"), zoomOut: tc("zoomOut"), slider: tc("zoomSlider") }} />
+      <div data-map-ui className={`pointer-events-none absolute bottom-[5.25rem] right-2.5 top-[13.5rem] z-10 flex flex-col items-end justify-between gap-2 print:hidden ${details ? "sm:right-[25.5rem]" : ""}`}>
+        <div className={`pointer-events-auto flex flex-col items-end gap-2 ${details ? "hidden sm:flex" : ""}`}>
+          <button type="button" onClick={() => setZoomOpen((o) => !o)} aria-expanded={zoomOpen} aria-label={tc("zoom")} title={tc("zoom")}
+                  className={`${roundBtn} w-auto px-3 text-xs font-semibold tabular-nums`}>
+            {zoom.toFixed(1)}
+          </button>
+          {(zoomOpen || zoomFlash) && (
+            <div onPointerEnter={() => clearTimeout(zoomTimer.current)} onPointerLeave={() => { if (zoomFlash) flashZoom(); }}>
+              <ZoomSlider value={zoom} onChange={(z) => map.current?.easeTo({ zoom: z, duration: 250 })}
+                          labels={{ zoom: tc("zoom"), zoomIn: tc("zoomIn"), zoomOut: tc("zoomOut"), slider: tc("zoomSlider") }} />
+            </div>
+          )}
         </div>
         <div className="pointer-events-auto flex flex-col items-end gap-2">
         {(Math.abs(bearing) > 0.5 || pitch > 0.5) && (
@@ -729,7 +771,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
 function Legend({ lang, shown, places, live, sample }: { lang: Language; shown: number; places: number; live: number; sample: number }) {
   const t = translator(messages, lang);
   return (
-    <div data-map-ui className="absolute bottom-[5.5rem] left-3 z-10 max-w-[calc(100%-5rem)] rounded-lg bg-neutral-950/90 px-3 py-2 text-xs text-neutral-200 shadow-lg ring-1 ring-white/10 backdrop-blur sm:bottom-10 print:bottom-3">
+    <div data-map-ui className="absolute right-3 top-[8.75rem] z-10 max-w-[15rem] rounded-xl bg-neutral-950/90 px-3 py-2 text-xs text-neutral-200 shadow-lg ring-1 ring-white/10 backdrop-blur print:top-3">
       <div className="flex flex-wrap gap-x-3 gap-y-1">
         {config.crowd.levels.map((l) => (
           <span key={l.level} className="flex items-center gap-1.5">

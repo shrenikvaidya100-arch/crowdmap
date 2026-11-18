@@ -6,6 +6,7 @@
 // Tapping or dragging the card turns it; buttons never do.
 import { useEffect, useRef, useState } from 'react';
 import CardFlip from '@/components/core/card-flip';
+import { Icon } from '@/components/icons/Icon';
 import { Reminder } from '@/features/alerts/Reminder';
 import { messages as placeMessages } from '@/features/places/messages';
 import { config, type Language } from '@/lib/config';
@@ -147,8 +148,9 @@ export function PlaceCard({ placeId, lang, onMore, onClose, restoreFocus }: {
 
   return (
     <div ref={box} className='flex flex-col items-center gap-2'>
-      <button type='button' onClick={onClose} className='self-end rounded-full bg-zinc-950/90 px-3 py-1 text-xs font-medium text-zinc-200 ring-1 ring-white/10 hover:text-white'>
-        {t('close')}
+      <button type='button' onClick={onClose} aria-label={t('close')} title={t('close')}
+              className='grid h-8 w-8 place-items-center self-end rounded-full bg-zinc-950/90 text-zinc-200 ring-1 ring-white/10 hover:text-white'>
+        <Icon name='close' size={16} />
       </button>
       {failed ? (
         <p className='rounded-xl bg-zinc-950 px-4 py-3 text-sm text-zinc-200'>{t('result.error')}</p>
