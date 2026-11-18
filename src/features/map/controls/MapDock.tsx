@@ -4,9 +4,9 @@
 import { Dock, DockIcon, DockItem, DockLabel } from '@/components/core/dock';
 import { Icon, type IconName } from '@/components/icons/Icon';
 
-export type DockKey = 'map' | 'layers' | 'customize' | 'places' | 'tools';
+export type DockKey = 'layers' | 'customize' | 'places' | 'tools';
 
-const ICON: Record<DockKey, IconName> = { map: 'map', layers: 'layers', customize: 'settings', places: 'pin', tools: 'ruler' };
+const ICON: Record<DockKey, IconName> = { layers: 'layers', customize: 'settings', places: 'pin', tools: 'ruler' };
 
 export function MapDock({ items, active, onPick, label, shift = false }: {
   items: { key: DockKey; label: string }[];

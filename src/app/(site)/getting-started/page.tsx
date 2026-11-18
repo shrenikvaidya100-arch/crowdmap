@@ -1,10 +1,12 @@
 import Link from "next/link";
-import { InfoPage } from "../InfoPage";
+import { ScrollLine, Spotlight } from "@/features/site/InfoFx";
+import { Reveal } from "@/features/site/Reveal";
+import { InfoPage, PROSE } from "../InfoPage";
 
 export const metadata = { title: "Getting Started · CrowdMap" };
 
 const STEPS: { title: string; body: React.ReactNode }[] = [
-  { title: "Open the map", body: <>Pick Indore, Delhi or Mumbai. Each dot is a place, coloured from green (quiet) to red (packed). Faded dots are estimates; solid dots have live reports.</> },
+  { title: "Open the map", body: <>Pick a city from the list at the top, or move the map and it follows you. Each dot is a place, coloured from green (quiet) to red (packed). Faded dots are estimates; solid dots have live reports.</> },
   { title: "Tap a place", body: <>See how crowded it is now, the expected crowd for the rest of the day, the best time to go, and photos from people there.</> },
   { title: "Sign in", body: <>Use Google or your email. <Link href="/login" className="text-blue-400 underline">Sign in here</Link>. Signing in lets you report, save places and get alerts.</> },
   { title: "Report when you're there", body: <>Tap how crowded it is, or post a quick alert like a long queue. We check your location first, so stand at the place when you report.</> },
@@ -15,17 +17,23 @@ const STEPS: { title: string; body: React.ReactNode }[] = [
 export default function GettingStartedPage() {
   return (
     <InfoPage title="Getting Started" intro="Six steps, about two minutes.">
-      <ol className="space-y-8">
-        {STEPS.map((s, i) => (
-          <li key={s.title} className="flex list-none gap-4">
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-zinc-700 text-sm font-medium text-zinc-200">{i + 1}</span>
-            <div>
-              <h2>{s.title}</h2>
-              <p className="!mt-1.5">{s.body}</p>
-            </div>
-          </li>
-        ))}
-      </ol>
+      <ScrollLine>
+        <ol className="space-y-5">
+          {STEPS.map((s, i) => (
+            <li key={s.title} className="relative pl-12">
+              <span aria-hidden className="absolute left-0 top-6 grid h-8 w-8 place-items-center rounded-full bg-black font-mono text-xs font-semibold text-white ring-1 ring-[#0894FF]/60 shadow-[0_0_18px_rgba(8,148,255,0.45)]">{i + 1}</span>
+              <Reveal delay={Math.min(i, 4) * 80}>
+                <Spotlight className="p-6">
+                  <div className={PROSE}>
+                    <h2>{s.title}</h2>
+                    <p className="!mt-2">{s.body}</p>
+                  </div>
+                </Spotlight>
+              </Reveal>
+            </li>
+          ))}
+        </ol>
+      </ScrollLine>
     </InfoPage>
   );
 }

@@ -1,20 +1,18 @@
 'use client';
 // Account menu in the header (KokonutUI ProfileDropdown) for signed-in people:
 // their name, email and face; Profile, Settings, Saved places, Reminders, Admin
-// (admins only), and press-and-hold Sign out.
+// (admins only), and Sign out (asks first). Day/night lives in the header only.
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import ProfileDropdown from '@/components/core/profile-dropdown';
 import { logout } from '@/app/(auth)/actions';
 import { UserAvatar } from '@/features/profile/UserAvatar';
-import { useTheme } from '@/lib/theme';
 
 export function AccountMenu({ viewer, labels }: {
   viewer: { id: string; displayName: string; email: string; role: 'user' | 'admin'; avatarSeed: string | null };
   labels: { profile: string; settings: string; saved: string; reminders: string; admin: string; setupAvatar: string; signOutTitle: string; signOutBody: string; signOut: string; cancel: string };
 }) {
   const router = useRouter();
-  const { choice, setTheme } = useTheme();
   const [ask, setAsk] = useState(false);
   const [busy, setBusy] = useState(false);
   const initials = viewer.displayName.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join('');
@@ -35,8 +33,7 @@ export function AccountMenu({ viewer, labels }: {
       }]}
       items={items}
       showStatus={false}
-      theme={choice}
-      onThemeChange={setTheme}
+      showTheme={false}
       onSignOut={() => setAsk(true)}
       triggerClassName='w-auto rounded-full border-white/10 bg-black/70 p-1 text-zinc-100 shadow-lg backdrop-blur-md hover:bg-black/80 [&_[data-identity-text]]:hidden'
     />

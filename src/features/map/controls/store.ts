@@ -3,7 +3,7 @@
 // storage can be blocked (private windows, strict settings).
 import { DEFAULT_PREFS, type MapPrefs } from "../mapLayers";
 
-export type UserMarker = { id: string; name: string; color: string; lat: number; lng: number; at: number };
+export type UserMarker = { id: string; name: string; color: string; lat: number; lng: number; at: number; /** Dropped with a double tap or right click. */ quick?: boolean };
 export type Shape = { id: string; kind: "point" | "line" | "area"; name: string; color: string; coords: [number, number][]; at: number };
 
 const KEYS = { markers: "crowdmap.markers", shapes: "crowdmap.shapes", prefs: "crowdmap.mapStyle" };

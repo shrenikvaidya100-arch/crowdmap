@@ -6,6 +6,8 @@ export const messages = {
     "dock.home": "Home", "dock.map": "Map", "dock.layers": "Layers", "dock.customize": "Customize",
     "dock.places": "Places", "dock.tools": "Tools", "dock.theme": "Theme", "dock.label": "Map tools",
     close: "Close", pin: "Pin",
+    clearPins: "Clear pins", pinsCleared: "Pins cleared", undo: "Undo",
+    "city.pick": "Choose a city", "city.search": "Search cities or states", "city.none": "No city found",
     // zoom
     zoom: "Zoom", zoomIn: "Zoom in", zoomOut: "Zoom out", zoomSlider: "Map zoom",
     resetNorth: "Reset north", fullscreen: "Full screen", exitFullscreen: "Exit full screen",
@@ -43,5 +45,7 @@ export const messages = {
     zoom: "ज़ूम", "base.street": "सड़क", "base.dark": "डार्क", "base.satellite": "सैटेलाइट", "base.terrain": "भू-भाग",
     "ov.crowd": "भीड़ का स्तर", "ov.alerts": "अलर्ट", "ov.labels": "नाम", "ov.buildings": "इमारतें", "ov.traffic": "ट्रैफ़िक",
     save: "सहेजें", cancel: "रद्द करें", delete: "हटाएँ", close: "बंद करें", pin: "पिन",
+    clearPins: "पिन हटाएँ", pinsCleared: "पिन हटा दिए", undo: "वापस लाएँ",
+    "city.pick": "शहर चुनें", "city.search": "शहर या राज्य खोजें", "city.none": "कोई शहर नहीं मिला",
   },
 } satisfies Messages;

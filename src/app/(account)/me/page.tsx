@@ -34,7 +34,7 @@ async function loadActivity() {
   const uid = auth.user.id;
 
   const [profile, cities, reports, alerts, plans, places, log, uploads, comments] = await Promise.all([
-    supabase.from("profiles").select("display_name, preferred_lang, home_city, created_at, trust_score").eq("id", uid).single(),
+    supabase.from("profiles").select("display_name, preferred_lang, home_city, created_at, trust_score, role").eq("id", uid).single(),
     supabase.from("cities").select("id, name, name_hi").order("sort_order"),
     supabase.from("crowd_reports").select(`id, level, created_at, ${PLACE}`).eq("user_id", uid)
       .order("created_at", { ascending: false }).limit(500),
@@ -77,6 +77,7 @@ export default async function MyActivityPage() {
   const [lang, data] = await Promise.all([getLang(), loadActivity()]);
   if (!data || !data.profile) redirect("/login?next=/me");
   const t = translator(messages, lang);
+  const isAdmin = data.profile.role === "admin";
   const cityNames = Object.fromEntries(data.cities.map((c) => [c.id, lang === "hi" && c.name_hi ? c.name_hi : c.name]));
   const since = new Intl.DateTimeFormat(lang === "hi" ? "hi-IN" : "en-IN", { month: "long", year: "numeric", timeZone: "Asia/Kolkata" })
     .format(new Date(data.profile.created_at));
@@ -89,14 +90,15 @@ export default async function MyActivityPage() {
         <p className="mt-2 flex flex-wrap gap-x-4 text-sm">
           <span className="inline-flex items-center gap-1.5"><Icon name="user" size={16} /> {data.profile.display_name}</span>
           <span className="text-gray-500">{t("memberSince", { date: since })}</span>
-          <span className="inline-flex items-center gap-1.5 text-gray-500" title={t("trustHint")}><Icon name="shield" size={16} /> {t("trust", { pct: Math.round(data.profile.trust_score * 100) })}</span>
+          {/* Trust score and the activity log are for admins only. */}
+          {isAdmin && <span className="inline-flex items-center gap-1.5 text-gray-500" title={t("trustHint")}><Icon name="shield" size={16} /> {t("trust", { pct: Math.round(data.profile.trust_score * 100) })}</span>}
         </p>
       </header>
 
       <ActivityTabs
         lang={lang} now={data.now} cityNames={cityNames}
         reports={data.reports} alerts={data.alerts} uploads={data.uploads} comments={data.comments}
-        plans={data.plans} places={data.places} log={data.log}
+        plans={data.plans} places={data.places} log={isAdmin ? data.log : undefined}
         profile={
           <>
             <ProfileForm lang={lang} cities={data.cities} initial={{
