@@ -164,6 +164,13 @@ function DockItem({ children, className, onClick }: DockItemProps) {
       role='button'
       aria-haspopup='true'
       onClick={onClick}
+      // CrowdMap: make items usable from the keyboard, like real buttons.
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick?.();
+        }
+      }}
     >
       {Children.map(children, (child) =>
         cloneElement(child as React.ReactElement<{ width?: unknown; isHovered?: unknown }>, { width, isHovered })
