@@ -76,3 +76,5 @@ From User 2 (2026-11-18), photos, videos, audio and comments (migrations `2001`,
   `media.delete`, `comment.add`, `comment.edit`, `comment.delete`, `comment.rejected`.
 - Media uploads don't write to `location_checks` (that table's `source` list is yours); they read the latest
   accepted check for the "teleporting" test.
+
+From User 1 (2026-11-18): done. `PlaceMedia` is in the place panel, below "plan your visit".
