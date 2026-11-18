@@ -39,6 +39,9 @@ export type DockItemProps = {
   className?: string;
   children: React.ReactNode;
   onClick?: () => void;
+  /** CrowdMap: accessible name and toggle state. */
+  'aria-label'?: string;
+  'aria-pressed'?: boolean;
 };
 
 export type DockLabelProps = {
@@ -128,7 +131,7 @@ function Dock({
   );
 }
 
-function DockItem({ children, className, onClick }: DockItemProps) {
+function DockItem({ children, className, onClick, 'aria-label': ariaLabel, 'aria-pressed': ariaPressed }: DockItemProps) {
   const ref = useRef<HTMLDivElement>(null);
 
   const { distance, magnification, mouseX, spring } = useDock();
@@ -162,7 +165,8 @@ function DockItem({ children, className, onClick }: DockItemProps) {
       )}
       tabIndex={0}
       role='button'
-      aria-haspopup='true'
+      aria-label={ariaLabel}
+      aria-pressed={ariaPressed}
       onClick={onClick}
       // CrowdMap: make items usable from the keyboard, like real buttons.
       onKeyDown={(e) => {

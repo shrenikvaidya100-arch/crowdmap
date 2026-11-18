@@ -1026,13 +1026,18 @@ export default function ProfileDropdown({
                     </button>
                   ) : null}
                   <Separator />
-                  <HoldSignOut
-                    duration={holdDuration}
-                    onComplete={(via) => {
+                  {/* CrowdMap: a plain Sign out that asks in a popup (see AccountMenu). */}
+                  <button
+                    type="button"
+                    data-row="signout"
+                    onClick={(e) => {
+                      closeMenu(e.detail === 0 ? "keyboard" : "pointer", false);
                       onSignOut?.();
-                      closeMenu(via, true);
                     }}
-                  />
+                    className="flex h-9 w-full items-center gap-2 rounded-lg px-2.5 text-left text-sm text-red-600 outline-none hover:bg-red-50 focus-visible:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10 dark:focus-visible:bg-red-500/10"
+                  >
+                    Sign out
+                  </button>
                 </motion.div>
               </div>
 

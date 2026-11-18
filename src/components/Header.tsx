@@ -1,20 +1,21 @@
-// Site header on every page: logo, main navigation, language, and either
-// Sign In or the signed-in links (notifications, saved, account).
+// Site header: floating bubbles over the page. Left: the logo. Right: day/night,
+// notifications and the account (or Sign In). The main navigation shows only
+// on the home page; the map runs underneath the bubbles.
 import Link from "next/link";
-import { setLanguage } from "@/app/lang-actions";
 import { Icon } from "@/components/icons/Icon";
 import { NotificationBell } from "@/features/alerts/NotificationBell";
 import { AccountMenu } from "@/features/site/AccountMenu";
-import { NavTabs } from "@/features/site/NavTabs";
+import { HeaderSpacer, HomeNav } from "@/features/site/HeaderParts";
 import { ThemeToggle } from "@/features/site/ThemeToggle";
 import type { Language } from "@/lib/config";
 import { translator } from "@/lib/i18n";
 import { common } from "@/lib/i18n/common";
 import type { Viewer } from "@/lib/session";
 
+const bubble = "pointer-events-auto flex items-center rounded-full bg-black/70 shadow-lg ring-1 ring-white/10 backdrop-blur-md";
+
 export function Header({ lang, viewer }: { lang: Language; viewer: Viewer }) {
   const t = translator(common, lang);
-  const link = "rounded-md px-1.5 py-1.5 sm:px-2.5 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-zinc-50";
   const items = [
     { label: t("nav.home"), href: "/" },
     { label: t("nav.map"), href: "/map" },
@@ -24,32 +25,34 @@ export function Header({ lang, viewer }: { lang: Language; viewer: Viewer }) {
     { label: t("nav.contact"), href: "/contact" },
   ];
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-zinc-800/80 bg-black/80 px-3 text-zinc-100 backdrop-blur sm:px-5">
-      <Link href="/" className="mr-2 flex items-center gap-2 font-semibold tracking-tight text-zinc-50">
-        <span aria-hidden className="grid h-7 w-7 place-items-center rounded-lg bg-blue-600 text-white"><Icon name="logo" size={18} /></span>
-        CrowdMap
-      </Link>
-      <NavTabs items={items} menuLabel={t("nav.menu")} />
-      <div className="ml-auto flex items-center gap-1">
-        <form action={setLanguage}>
-          <input type="hidden" name="lang" value={lang === "en" ? "hi" : "en"} />
-          <button className={link} type="submit">{t("nav.language")}</button>
-        </form>
-        <ThemeToggle labels={{ toNight: t("theme.toNight"), toDay: t("theme.toDay"), nightOn: t("theme.nightOn"), dayOn: t("theme.dayOn") }} />
-        {viewer ? (
-          <>
-            <NotificationBell label={t("nav.notifications")} />
-            <AccountMenu viewer={viewer} labels={{
-              profile: t("menu.profile"), settings: t("menu.settings"), saved: t("menu.saved"),
-              reminders: t("menu.reminders"), admin: t("nav.admin"), setupAvatar: t("menu.setupAvatar"),
-            }} />
-          </>
-        ) : (
-          <Link href="/login" className="whitespace-nowrap rounded-md border border-zinc-600 px-3 py-1.5 text-sm font-medium text-zinc-50 hover:border-zinc-400 hover:bg-zinc-900">
-            {t("nav.signIn")}
-          </Link>
-        )}
-      </div>
-    </header>
+    <>
+      <header className="pointer-events-none fixed inset-x-0 top-0 z-40 flex h-16 items-center gap-2 px-3 text-zinc-100 sm:px-4 print:hidden">
+        <Link href="/" aria-label="CrowdMap" className={`${bubble} gap-2 py-1.5 pl-1.5 pr-3.5 font-semibold tracking-tight text-zinc-50`}>
+          <span aria-hidden className="grid h-7 w-7 place-items-center rounded-full bg-blue-600 text-white"><Icon name="logo" size={17} /></span>
+          <span className="hidden sm:inline">CrowdMap</span>
+        </Link>
+        <div className="mx-auto"><HomeNav items={items} menuLabel={t("nav.menu")} /></div>
+        <div className="flex items-center gap-2">
+          <div className={`${bubble} p-1.5`}>
+            <ThemeToggle labels={{ toNight: t("theme.toNight"), toDay: t("theme.toDay"), nightOn: t("theme.nightOn"), dayOn: t("theme.dayOn") }} />
+          </div>
+          {viewer ? (
+            <>
+              <div className={`${bubble} p-0.5`}><NotificationBell label={t("nav.notifications")} /></div>
+              <div className="pointer-events-auto"><AccountMenu viewer={viewer} labels={{
+                profile: t("menu.profile"), settings: t("menu.settings"), saved: t("menu.saved"),
+                reminders: t("menu.reminders"), admin: t("nav.admin"), setupAvatar: t("menu.setupAvatar"),
+                signOutTitle: t("menu.signOutTitle"), signOutBody: t("menu.signOutBody"), signOut: t("menu.signOut"), cancel: t("menu.cancel"),
+              }} /></div>
+            </>
+          ) : (
+            <Link href="/login" className={`${bubble} whitespace-nowrap px-4 py-2 text-sm font-medium text-zinc-50 hover:bg-zinc-900`}>
+              {t("nav.signIn")}
+            </Link>
+          )}
+        </div>
+      </header>
+      <HeaderSpacer />
+    </>
   );
 }

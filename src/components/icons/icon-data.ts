@@ -94,6 +94,9 @@ export const ICONS = {
   sidebar_toggle: '<rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M9 4v16"/><path d="m13.5 10 2 2-2 2"/>',
   dashboard: '<rect x="3.5" y="3.5" width="7" height="9" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="5" rx="1.5"/><rect x="13.5" y="11.5" width="7" height="9" rx="1.5"/><rect x="3.5" y="15.5" width="7" height="5" rx="1.5"/>',
   chart: '<path d="M3.5 20.5h17"/><path d="M6.5 17v-4"/><path d="M11 17V8.5"/><path d="M15.5 17v-6"/><path d="M20 17V5"/>',
+  map: '<path d="M9 4.5 3.5 6.5v13l5.5-2 6 2 5.5-2v-13l-5.5 2-6-2Z"/><path d="M9 4.5v13"/><path d="M15 6.5v13"/>',
+  layers: '<path d="m12 3.5 9 4.75-9 4.75-9-4.75 9-4.75Z"/><path d="m3 12.25 9 4.75 9-4.75"/><path d="m3 16.25 9 4.75 9-4.75"/>',
+  ruler: '<path d="m3.5 16.5 13-13 4 4-13 13-4-4Z"/><path d="m7.5 12.5 2 2"/><path d="m10.5 9.5 1.5 1.5"/><path d="m13.5 6.5 2 2"/>',
   image: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="9.5" r="1.75"/><path d="m21 15.5-4.5-4.5L6 20"/>',
 } as const;
 
