@@ -3,7 +3,7 @@
 Working name. A live crowd map for places, not roads: before you leave, see whether
 the temple, market, restaurant or mall is empty or packed, and when it will be quiet.
 
-Status: all decisions below are agreed by User 1 and User 2 (2026-11-17).
+Status: all decisions below are agreed by User 1 and User 2 (2026-11-17), except the city change in section 2, made by User 1 on 2026-11-17 and pending User 2's confirmation.
 
 ---
 
@@ -21,10 +21,10 @@ Status: all decisions below are agreed by User 1 and User 2 (2026-11-17).
 | Order | City | Notes |
 |---|---|---|
 | 1 | Indore | Primary demo city. Full sample data. |
-| 2 | Pondicherry | Sample data |
-| 3 | Vadodara | Sample data |
-| 4 | Chennai | Sample data |
-| 5 | Delhi | Sample data |
+| 2 | Delhi | Places imported from OpenStreetMap |
+| 3 | Mumbai | Places imported from OpenStreetMap |
+
+Changed on 2026-11-17 from five cities (Pondicherry, Vadodara and Chennai dropped, Mumbai added).
 
 The map itself covers the whole world (OpenStreetMap). The cities above are where we
 pre-load places and sample crowd data.
