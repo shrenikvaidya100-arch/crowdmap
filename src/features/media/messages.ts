@@ -77,6 +77,13 @@ export const messages = {
     "result.commentEmpty": "Write something first.",
     "result.commentTooLong": "Comment is too long.",
     "result.duplicate": "You already posted that comment.",
+    reportPhoto: "Report photo", reportVideo: "Report video", reportAudio: "Report audio",
+    reportWhy: "What's wrong with it?", reportNote: "Anything else? (optional)", sendReport: "Send report",
+    "reason.inappropriate": "Inappropriate", "reason.not_this_place": "Not this place",
+    "reason.private_info": "Shows private information", "reason.spam": "Spam", "reason.other": "Other",
+    "result.reported": "Thanks. An admin will look at it.",
+    "result.already_reported": "You already reported this.",
+    "result.own_media": "You can delete your own uploads instead.",
   },
   hi: {
     title: "फ़ोटो, वीडियो और ऑडियो",

@@ -11,6 +11,7 @@ import { useEffect, useRef, useState } from 'react';
 import { GlowEffect } from '@/components/core/glow-effect';
 import { Icon } from '@/components/icons/Icon';
 import { categoryIcon } from '@/features/crowd/config';
+import { logSearch } from '@/features/search/logSearch';
 import type { SearchHit } from '@/features/search/SearchBox';
 import { config, type Language } from '@/lib/config';
 
@@ -85,6 +86,7 @@ export function GlowSearch({ lang, labels }: {
   }, [q, lang]);
 
   function open(r: Result) {
+    logSearch(q, results?.length ?? 0);
     if (r.kind === 'place') router.push(`/map?place=${r.hit.id}`);
     else router.push(`/map?lat=${r.hit.lat.toFixed(5)}&lng=${r.hit.lng.toFixed(5)}&z=${r.hit.zoom}`);
   }

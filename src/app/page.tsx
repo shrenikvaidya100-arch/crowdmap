@@ -11,6 +11,7 @@ import { isSupabaseConfigured } from "@/lib/env";
 import { translator } from "@/lib/i18n";
 import { common } from "@/lib/i18n/common";
 import { getLang } from "@/lib/i18n/server";
+import { getViewer } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 
 async function loadCities() {
@@ -29,7 +30,8 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   const sp = await searchParams;
   if (typeof sp.place === "string") redirect(`/map?place=${encodeURIComponent(sp.place)}`);
 
-  const [lang, cities] = await Promise.all([getLang(), loadCities()]);
+  const [lang, cities, viewer] = await Promise.all([getLang(), loadCities(), getViewer()]);
+  const welcome = sp.welcome === "1" && viewer ? viewer.displayName : null;
   const t = translator(messages, lang);
   const tc = translator(common, lang);
   const links = [
@@ -45,6 +47,11 @@ export default async function Home({ searchParams }: PageProps<"/">) {
         <Earth className="absolute inset-x-0 -bottom-[38vh] -z-10 h-[105vh] sm:-bottom-[45vh] sm:h-[120vh]" />
         {/* Soft edge where the hero ends, so the globe fades into the page. */}
         <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-40 bg-gradient-to-b from-transparent to-black" />
+        {welcome && (
+          <p role="status" className="mb-6 rounded-full bg-blue-600/15 px-4 py-1.5 text-sm text-blue-200 ring-1 ring-blue-500/30">
+            {lang === "hi" ? `CrowdMap में आपका स्वागत है, ${welcome}।` : `Welcome to CrowdMap, ${welcome}.`}
+          </p>
+        )}
         <h1 className="text-5xl font-semibold tracking-tight text-white sm:text-7xl">CrowdMap</h1>
         <p className="mt-4 max-w-xl text-lg text-zinc-300 sm:text-xl">{t("tagline")}</p>
         <p className="mt-3 max-w-lg text-sm text-zinc-400 sm:text-base">{t("heroBody")}</p>

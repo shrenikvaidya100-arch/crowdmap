@@ -1,10 +1,10 @@
 // Site header on every page: logo, main navigation, language, and either
 // Sign In or the signed-in links (notifications, saved, account).
 import Link from "next/link";
-import { logout } from "@/app/(auth)/actions";
 import { setLanguage } from "@/app/lang-actions";
 import { Icon } from "@/components/icons/Icon";
 import { NotificationBell } from "@/features/alerts/NotificationBell";
+import { AccountMenu } from "@/features/site/AccountMenu";
 import { NavTabs } from "@/features/site/NavTabs";
 import type { Language } from "@/lib/config";
 import { translator } from "@/lib/i18n";
@@ -37,12 +37,10 @@ export function Header({ lang, viewer }: { lang: Language; viewer: Viewer }) {
         {viewer ? (
           <>
             <NotificationBell label={t("nav.notifications")} />
-            <Link className={`${link} hidden lg:inline`} href="/saved">{t("nav.saved")}</Link>
-            {viewer.role === "admin" && <Link className={`${link} hidden sm:inline`} href="/admin">{t("nav.admin")}</Link>}
-            <Link className={`${link} hidden sm:inline`} href="/me">{t("nav.me")}</Link>
-            <form action={logout}>
-              <button className={link} type="submit">{t("nav.logout")}</button>
-            </form>
+            <AccountMenu viewer={viewer} labels={{
+              profile: t("menu.profile"), settings: t("menu.settings"), saved: t("menu.saved"),
+              reminders: t("menu.reminders"), admin: t("nav.admin"), setupAvatar: t("menu.setupAvatar"),
+            }} />
           </>
         ) : (
           <Link href="/login" className="rounded-md border border-zinc-600 px-3 py-1.5 text-sm font-medium text-zinc-50 hover:border-zinc-400 hover:bg-zinc-900">

@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { LANG_COOKIE } from "@/lib/i18n";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { toFieldErrors, type FieldErrors } from "@/lib/validation/auth";
+import { displayNameSchema, toFieldErrors, type FieldErrors } from "@/lib/validation/auth";
 import { profileSchema } from "./validation";
 
 export type ProfileState = { ok?: boolean; message?: string; fields?: FieldErrors };
@@ -71,4 +71,25 @@ export async function deleteAccount(_prev: DeleteAccountState, form: FormData): 
   }
   await supabase.auth.signOut();
   redirect("/?account=deleted");
+}
+
+export type AvatarResult = { ok: boolean; message?: string };
+
+/** Welcome step: saves the display name and the avatar seed (not an image). */
+export async function saveAvatar(input: { displayName: string; seed: string }): Promise<AvatarResult> {
+  const name = displayNameSchema.safeParse(input?.displayName);
+  if (!name.success) return { ok: false, message: name.error.issues[0]?.message ?? "name.short" };
+  const seed = typeof input?.seed === "string" ? input.seed.trim().slice(0, 80) : "";
+  if (seed.length < 3) return { ok: false, message: "error" };
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return { ok: false, message: "signin" };
+  const { error } = await supabase.from("profiles")
+    .update({ display_name: name.data, avatar_seed: seed }).eq("id", auth.user.id);
+  if (error) {
+    console.error("save avatar", error.message);
+    return { ok: false, message: /display_name/.test(error.message) ? "name.chars" : "error" };
+  }
+  revalidatePath("/", "layout");
+  return { ok: true };
 }

@@ -112,3 +112,16 @@ export async function deleteComment(commentId: unknown): Promise<MediaResult> {
   const { data, error } = await supabase.rpc("delete_my_comment", { p_comment: parsed.data });
   return fromRpc(data, error);
 }
+
+const REPORT_REASONS = ["inappropriate", "not_this_place", "private_info", "spam", "other"] as const;
+
+/** "Report photo / video": puts the upload in the admin review queue. */
+export async function reportMedia(input: unknown): Promise<MediaResult> {
+  const v = input as { mediaId?: unknown; reason?: unknown; note?: unknown } | null;
+  if (!idSchema.safeParse(v?.mediaId).success || !REPORT_REASONS.includes(v?.reason as never)) return { ok: false, reason: "invalid" };
+  const note = typeof v?.note === "string" ? v.note.trim().slice(0, 200) : null;
+  const supabase = await signedInClient();
+  if (!supabase) return { ok: false, reason: "signin" };
+  const { data, error } = await supabase.rpc("report_media", { p_media: v!.mediaId, p_reason: v!.reason, p_note: note || null });
+  return fromRpc(data, error);
+}
