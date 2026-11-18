@@ -2,6 +2,7 @@
 // Remove hides the account and everything it posted; Restore brings it all back.
 import Link from "next/link";
 import { formatWhen } from "@/features/admin/format";
+import { requireAdminPage } from "@/features/admin/guard";
 import { messages } from "@/features/admin/messages";
 import { Moderate } from "@/features/admin/Moderate";
 import { Badge, Field, FilterBar, inputCls, Pager } from "@/features/admin/ui";
@@ -22,6 +23,7 @@ type Row = {
 };
 
 export default async function AdminUsers({ searchParams }: PageProps<"/admin/users">) {
+  await requireAdminPage();
   const sp = await searchParams;
   const q = param(sp, "q");
   const status = pick(param(sp, "status"), STATUSES, "");

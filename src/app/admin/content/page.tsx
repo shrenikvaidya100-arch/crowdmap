@@ -2,6 +2,7 @@
 // Hiding keeps the item (and its file) so it can be shown again.
 import Link from "next/link";
 import { formatWhen } from "@/features/admin/format";
+import { requireAdminPage } from "@/features/admin/guard";
 import { messages } from "@/features/admin/messages";
 import { Moderate } from "@/features/admin/Moderate";
 import { Badge, Field, FilterBar, inputCls, Pager } from "@/features/admin/ui";
@@ -27,6 +28,7 @@ type CommentRow = {
 };
 
 export default async function AdminContent({ searchParams }: PageProps<"/admin/content">) {
+  await requireAdminPage();
   const sp = await searchParams;
   const type = pick(param(sp, "type"), TYPES, "media");
   const q = param(sp, "q");

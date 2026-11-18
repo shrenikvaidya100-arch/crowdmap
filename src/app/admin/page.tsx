@@ -2,6 +2,7 @@
 // accounts with the most GPS rejections (a strong bot signal).
 import Link from "next/link";
 import { formatWhen } from "@/features/admin/format";
+import { requireAdminPage } from "@/features/admin/guard";
 import { messages } from "@/features/admin/messages";
 import { Badge } from "@/features/admin/ui";
 import { translator } from "@/lib/i18n";
@@ -17,6 +18,7 @@ type LogRow = { id: number; at: string; actor_name: string | null; actor_role: s
 type UserRow = { id: string; display_name: string; status: string; rejections: number; created_at: string };
 
 export default async function AdminOverview() {
+  await requireAdminPage();
   const lang = await getLang();
   const t = translator(messages, lang);
   const supabase = await createClient();

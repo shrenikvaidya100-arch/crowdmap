@@ -2,6 +2,7 @@
 // and a button that re-checks the whole hash chain.
 import Link from "next/link";
 import { formatWhen } from "@/features/admin/format";
+import { requireAdminPage } from "@/features/admin/guard";
 import { messages } from "@/features/admin/messages";
 import { Badge, Field, FilterBar, inputCls } from "@/features/admin/ui";
 import { param, pick } from "@/features/admin/validation";
@@ -29,6 +30,7 @@ const istDay = (d: string | undefined, addDays = 0) => {
 };
 
 export default async function AdminLog({ searchParams }: PageProps<"/admin/log">) {
+  await requireAdminPage();
   const sp = await searchParams;
   const filters = {
     action: param(sp, "action", 60), actor: param(sp, "actor", 60), target: param(sp, "target", 60),
