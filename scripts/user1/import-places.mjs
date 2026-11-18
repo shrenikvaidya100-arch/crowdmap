@@ -3,13 +3,19 @@
 //
 //   node --env-file=.env.local scripts/user1/import-places.mjs            # all cities
 //   node --env-file=.env.local scripts/user1/import-places.mjs indore     # one city
+//   node --env-file=.env.local scripts/user1/import-places.mjs --missing  # cities with no places yet
 import pg from "pg";
 
 const OVERPASS = "https://overpass-api.de/api/interpreter";
 
 // Search radius around each city centre, in metres.
 // Mumbai is long north-south: 20 km reaches Colaba (Gateway of India) from the centre.
-const CITY_RADIUS = { indore: 12000, delhi: 14000, mumbai: 20000 };
+const CITY_RADIUS = {
+  indore: 12000, delhi: 14000, mumbai: 20000, bengaluru: 15000, hyderabad: 15000, chennai: 15000, kolkata: 14000,
+  pune: 12000, ahmedabad: 12000,
+  // Small hill and north-east capitals: the town itself.
+  leh: 7000, gangtok: 7000, kohima: 7000, aizawl: 7000, itanagar: 7000, shimla: 7000, shillong: 8000, "port-blair": 8000,
+};
 
 // Most places per category per city, keeping the best-documented ones.
 const CAP = {
@@ -59,14 +65,15 @@ out center tags;`;
 
 async function fetchCity(city) {
   const body = new URLSearchParams({ data: query(city.lat, city.lng, CITY_RADIUS[city.id] ?? 10000) });
-  for (let attempt = 1; attempt <= 3; attempt++) {
+  for (let attempt = 1; attempt <= 5; attempt++) {
+    // The free server sometimes hangs or answers 502/429 when busy: give up on a try after 4 minutes.
     const res = await fetch(OVERPASS, {
-      method: "POST", body,
+      method: "POST", body, signal: AbortSignal.timeout(240000),
       headers: { "User-Agent": "CrowdMap-student-project/0.1 (course project; one-off import)" },
-    });
+    }).catch((err) => ({ ok: false, status: err.name }));
     if (res.ok) return (await res.json()).elements;
-    console.warn(`  Overpass ${res.status}, retrying in ${attempt * 20}s`);
-    await new Promise((r) => setTimeout(r, attempt * 20000));
+    console.warn(`  Overpass ${res.status}, trying again in ${attempt * 30}s`);
+    await new Promise((r) => setTimeout(r, attempt * 30000));
   }
   throw new Error(`Overpass failed for ${city.id}`);
 }
@@ -119,11 +126,22 @@ async function main() {
   await db.connect();
   const only = process.argv[2];
   const { rows: cities } = await db.query(
-    "select id, lat, lng from public.cities where $1::text is null or id = $1 order by sort_order", [only ?? null]);
+    `select c.id, c.lat, c.lng from public.cities c
+     where ($1::text is null or c.id = $1)
+       and (not $2 or not exists (select 1 from public.places p where p.city_id = c.id))
+     order by c.sort_order`, [only === "--missing" ? null : only ?? null, only === "--missing"]);
 
   for (const city of cities) {
     console.log(`${city.id}: querying OpenStreetMap…`);
-    const places = toPlaces(await fetchCity(city), city.id);
+    let elements;
+    try {
+      elements = await fetchCity(city);
+    } catch (err) {
+      // Skip it; running with --missing again picks it up.
+      console.warn(`  skipped: ${err.message}`);
+      continue;
+    }
+    const places = toPlaces(elements, city.id);
     // One round trip for the whole city (the database is far away; per-row inserts are slow).
     const rows = places.map(({ score: _score, ...p }) => p);
     const r = await db.query(

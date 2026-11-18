@@ -11,7 +11,7 @@ async function loadCities(): Promise<MapCity[]> {
   if (!isSupabaseConfigured()) return [];
   const supabase = await createClient();
   const { data, error } = await supabase.from("cities")
-    .select("id, name, name_hi, lat, lng, default_zoom").order("sort_order");
+    .select("id, name, name_hi, state, lat, lng, default_zoom").order("sort_order");
   if (error) console.error("cities", error.message);
   return data ?? [];
 }

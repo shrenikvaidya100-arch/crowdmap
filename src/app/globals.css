@@ -42,3 +42,18 @@ html.custom-cursor [contenteditable="true"] {
   header, nav, aside, [data-map-ui] { display: none !important; }
   .maplibregl-ctrl-bottom-right .maplibregl-ctrl-group { display: none !important; }
 }
+
+/* Small popovers (city picker) and the info pages' entrance animations. */
+@keyframes pop {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes rise {
+  from { opacity: 0; transform: translateY(14px); filter: blur(6px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+@keyframes drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(60px, 40px) scale(1.08); }
+  66% { transform: translate(-40px, 70px) scale(0.95); }
+}

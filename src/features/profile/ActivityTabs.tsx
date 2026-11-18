@@ -33,7 +33,7 @@ const levelColor = (l: number) => config.crowd.levels.find((x) => x.level === l)
 const EDIT_MINUTES = 15;
 
 export function ActivityTabs({
-  lang, now, cityNames, profile, reports, alerts, uploads, comments, plans, places, log,
+  lang, now, cityNames, profile, reports, alerts, uploads, comments, plans, places, log: logRows,
 }: {
   lang: Language;
   /** Server time when the page was rendered (keeps "ago" and "editable" stable). */
@@ -46,10 +46,12 @@ export function ActivityTabs({
   places: AddedPlaceRow[];
   uploads: UploadRow[];
   comments: CommentRow[];
-  log: LogRow[];
+  /** Only admins see their activity log; leave it out to hide the tab. */
+  log?: LogRow[];
 }) {
   const t = translator(messages, lang);
   const tc = translator(crowdMessages, lang);
+  const log = useMemo(() => logRows ?? [], [logRows]);
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("profile");
   const [q, setQ] = useState("");
@@ -122,7 +124,7 @@ export function ActivityTabs({
 
   const counts: Record<Tab, number | null> = {
     profile: null, reports: reports.length, alerts: alerts.length, uploads: uploads.length, comments: comments.length,
-    plans: plans.length, places: places.length, log: log.length,
+    plans: plans.length, places: places.length, log: logRows ? log.length : null,
   };
 
   const th = "px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-gray-500";
@@ -132,7 +134,7 @@ export function ActivityTabs({
   return (
     <div>
       <div role="tablist" className="mb-4 flex gap-1 overflow-x-auto border-b border-gray-200 [scrollbar-width:none] dark:border-gray-800">
-        {(Object.keys(counts) as Tab[]).map((k) => (
+        {(Object.keys(counts) as Tab[]).filter((k) => k !== "log" || logRows).map((k) => (
           <button key={k} type="button" role="tab" aria-selected={tab === k}
                   onClick={() => { setTab(k); setQ(""); setCity(""); setSort("newest"); setNotice(null); }}
                   className={`shrink-0 border-b-2 px-3 py-2 text-sm font-medium ${tab === k ? "border-blue-600 text-blue-600" : "border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"}`}>

@@ -20,8 +20,31 @@ const ATMOSPHERE_VERTEX = `
 const ATMOSPHERE_FRAGMENT = `
   varying vec3 vNormal;
   void main() {
-    float intensity = pow(0.72 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 3.2);
-    gl_FragColor = vec4(0.18, 0.52, 1.0, 1.0) * intensity;
+    float intensity = pow(0.74 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.6);
+    gl_FragColor = vec4(0.25, 0.6, 1.0, 1.0) * intensity * 1.15;
+  }`;
+
+// Earth surface: the night lights brightened, a faint blue for the land and sea,
+// and a glow towards the edge so the globe reads clearly against the black page.
+const EARTH_VERTEX = `
+  varying vec2 vUv;
+  varying vec3 vNormal;
+  void main() {
+    vUv = uv;
+    vNormal = normalize(normalMatrix * normal);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }`;
+const EARTH_FRAGMENT = `
+  uniform sampler2D map;
+  varying vec2 vUv;
+  varying vec3 vNormal;
+  void main() {
+    vec3 c = texture2D(map, vUv).rgb;
+    c = pow(c, vec3(0.85)) * 2.1;
+    float rim = pow(1.0 - max(dot(vNormal, vec3(0.0, 0.0, 1.0)), 0.0), 3.0);
+    c += vec3(0.008, 0.018, 0.04) + vec3(0.12, 0.38, 0.95) * rim * 0.35;
+    gl_FragColor = vec4(c, 1.0);
+    #include <colorspace_fragment>
   }`;
 
 export function Earth({ className }: { className?: string }) {
@@ -55,10 +78,12 @@ export function Earth({ className }: { className?: string }) {
 
     const texture = new THREE.TextureLoader().load('/textures/earth-night.jpg');
     texture.colorSpace = THREE.SRGBColorSpace;
-    texture.anisotropy = 4;
+    // Sharpest filtering the device allows, so the city lights stay crisp at an angle.
+    texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    texture.minFilter = THREE.LinearMipmapLinearFilter;
     const earth = new THREE.Mesh(
-      new THREE.SphereGeometry(2, 96, 96),
-      new THREE.MeshBasicMaterial({ map: texture, color: new THREE.Color(1.15, 1.15, 1.25) }),
+      new THREE.SphereGeometry(2, 128, 128),
+      new THREE.ShaderMaterial({ uniforms: { map: { value: texture } }, vertexShader: EARTH_VERTEX, fragmentShader: EARTH_FRAGMENT }),
     );
     earth.rotation.y = -1.2; // start with South Asia in view
     globe.add(earth);
@@ -91,7 +116,7 @@ export function Earth({ className }: { className?: string }) {
     starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
     const stars = new THREE.Points(
       starGeometry,
-      new THREE.PointsMaterial({ color: 0x9fbfff, size: 0.09, transparent: true, opacity: 0.55, depthWrite: false }),
+      new THREE.PointsMaterial({ color: 0x9fbfff, size: 0.1, transparent: true, opacity: 0.75, depthWrite: false }),
     );
     scene.add(stars);
 

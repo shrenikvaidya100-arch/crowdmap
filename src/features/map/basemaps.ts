@@ -1,7 +1,7 @@
 // Map types (basemaps) and overlays. Street, Felt-style, Dark and 3D are free
-// (OpenFreeMap, no key). Satellite uses MapTiler when NEXT_PUBLIC_MAPTILER_KEY is
-// set, otherwise Esri World Imagery (free, no key, with attribution). Terrain
-// and Contours need the MapTiler key.
+// (OpenFreeMap, no key). Satellite is always Esri World Imagery (free, no key,
+// with attribution), so it never depends on the MapTiler key's allowed sites.
+// Terrain and Contours need the MapTiler key.
 import type { StyleSpecification } from "maplibre-gl";
 import { publicEnv } from "@/lib/env";
 
@@ -52,11 +52,10 @@ const ESRI_SATELLITE: StyleSpecification = {
 
 export function styleUrl(id: BasemapId): string | StyleSpecification {
   const key = mapTilerKey();
-  if (id === "satellite" && !key) return ESRI_SATELLITE;
+  if (id === "satellite") return ESRI_SATELLITE;
   switch (id) {
     case "felt": return "https://tiles.openfreemap.org/styles/positron";
     case "dark": return "https://tiles.openfreemap.org/styles/dark";
-    case "satellite": return `https://api.maptiler.com/maps/hybrid/style.json?key=${key}`;
     case "terrain": return `https://api.maptiler.com/maps/outdoor-v2/style.json?key=${key}`;
     default: return "https://tiles.openfreemap.org/styles/liberty";
   }

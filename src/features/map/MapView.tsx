@@ -9,7 +9,6 @@ import {
   Map as MLMap, Marker, ScaleControl, setWorkerUrl,
   type GeoJSONSource, type MapLayerMouseEvent, type MapMouseEvent,
 } from "maplibre-gl";
-import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { preconnect } from "react-dom";
 import { crowdConfig, quickIcon } from "@/features/crowd/config";
@@ -33,6 +32,7 @@ import { CustomizePanel, LayersPanel, NewMarkerForm, PlacesPanel, ToolsPanel, ty
 import { messages as controlMessages } from "./controls/messages";
 import { clearPrefs, loadMarkers, loadPrefs, loadShapes, newId, saveMarkers, savePrefs, saveShapes, type Shape, type UserMarker } from "./controls/store";
 import { ZoomSlider } from "./controls/ZoomSlider";
+import { CityPicker } from "./controls/CityPicker";
 import { PlaceCard } from "./PlaceCard";
 
 // Worker file is copied into public/ by scripts/copy-map-worker.mjs.
@@ -40,7 +40,7 @@ setWorkerUrl("/maplibre-gl-worker.js");
 
 const TILE_ORIGIN = new URL(config.map.styleUrl).origin;
 
-export type MapCity = { id: string; name: string; name_hi: string | null; lat: number; lng: number; default_zoom: number };
+export type MapCity = { id: string; name: string; name_hi: string | null; state?: string | null; lat: number; lng: number; default_zoom: number };
 /** Kept for the home page's props; places are now loaded per city from /api/crowd. */
 export type MapPlace = { id: string; name: string; name_hi: string | null; category: string; lat: number; lng: number; city_id: string };
 
@@ -151,7 +151,15 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
     });
     map.current = m;
     m.addControl(new ScaleControl({ maxWidth: 100, unit: "metric" }), "bottom-left");
-    m.on("moveend", () => { const c = m.getCenter(); setCentre({ lat: c.lat, lng: c.lng }); });
+    m.on("moveend", () => {
+      const c = m.getCenter();
+      setCentre({ lat: c.lat, lng: c.lng });
+      // Follow the map: zoomed in near another city, that city's places load.
+      if (m.getZoom() >= 9.5) {
+        const near = nearestCity(c.lat, c.lng);
+        if (near && Math.hypot(near.lat - c.lat, (near.lng - c.lng) * Math.cos((c.lat * Math.PI) / 180)) < 0.6) setActiveCity(near.id);
+      }
+    });
     let raf = 0;
     const sync = () => {
       cancelAnimationFrame(raf);
@@ -448,18 +456,12 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
     setNewMarker(null);
     // One window at a time.
     setSelected(null); setPanel(null); setAdding(false);
-    if (k === "map") {
-      setDockPanel(null); setToolMode(null);
-      const c = cities.find((x) => x.id === activeCity);
-      if (c) map.current?.flyTo({ center: [c.lng, c.lat], zoom: c.default_zoom, pitch: 0, bearing: 0, essential: true });
-      return;
-    }
     setDockPanel((p) => (p === k ? null : k));
   }
 
   function dropPin(lat: number, lng: number) {
     setMarkers((prev) => {
-      const next = [{ id: newId(), name: `${tc("pin")} ${prev.length + 1}`, color: prefsRef.current.drawColor, lat, lng, at: Date.now() }, ...prev];
+      const next = [{ id: newId(), name: `${tc("pin")} ${prev.length + 1}`, color: prefsRef.current.drawColor, lat, lng, at: Date.now(), quick: true }, ...prev];
       saveMarkers(next);
       return next;
     });
@@ -482,6 +484,27 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
     saveMarkers(next);
     setNewMarker(null);
     setOverlays((o) => ({ ...o, saved: true }));
+  }
+  /** Pins dropped with a double tap or right click (older ones are recognised by their "Pin 3" name). */
+  const isQuick = (mk: UserMarker) => mk.quick ?? /^(Pin|पिन) \d+$/.test(mk.name);
+  const quickCount = markers.filter(isQuick).length;
+  const [clearedPins, setClearedPins] = useState<UserMarker[] | null>(null);
+  const undoTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  function clearPins() {
+    const gone = markers.filter(isQuick);
+    const next = markers.filter((mk) => !isQuick(mk));
+    setMarkers(next);
+    saveMarkers(next);
+    setClearedPins(gone);
+    clearTimeout(undoTimer.current);
+    undoTimer.current = setTimeout(() => setClearedPins(null), 6000);
+  }
+  function undoClear() {
+    if (!clearedPins) return;
+    const next = [...clearedPins, ...markers];
+    setMarkers(next);
+    saveMarkers(next);
+    setClearedPins(null);
   }
   function deleteMarker(id: string) {
     const next = markers.filter((m) => m.id !== id);
@@ -596,7 +619,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
   const toolBtn = (on: boolean) =>
     `relative shrink-0 rounded-full px-3.5 py-2 text-sm font-medium shadow ${on ? "bg-blue-600 text-white" : "bg-white text-gray-800 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-100"}`;
 
-  const dockItems: { key: DockKey; label: string }[] = (["map", "layers", "customize", "places", "tools"] as const)
+  const dockItems: { key: DockKey; label: string }[] = (["layers", "customize", "places", "tools"] as const)
     .map((k) => ({ key: k, label: tc(`dock.${k}`) }));
   const roundBtn = "grid h-10 w-10 place-items-center rounded-full bg-neutral-900/90 text-neutral-100 shadow-lg ring-1 ring-white/10 backdrop-blur hover:bg-neutral-800";
 
@@ -633,13 +656,17 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
             <Icon name="plus" size={16} /> <span className="hidden lg:inline">{tp("addButton")}</span>
           </button>
         </div>
-        <div className="flex gap-2 overflow-x-auto [scrollbar-width:none]">
-          {cities.map((c) => (
-            <button key={c.id} type="button" onClick={() => flyTo(c)}
-                    className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium shadow ${activeCity === c.id ? "bg-blue-600 text-white" : "bg-white text-gray-800 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-100"}`}>
-              {cityNames[c.id]}
+        <div className="flex items-center gap-2">
+          <CityPicker cities={cities.map((c) => ({ id: c.id, name: c.name, name_hi: c.name_hi, state: c.state ?? null }))}
+                      active={activeCity} lang={lang} onPick={(id) => { const c = cities.find((x) => x.id === id); if (c) flyTo(c); }}
+                      labels={{ pick: tc("city.pick"), search: tc("city.search"), none: tc("city.none") }} />
+          {(quickCount > 0 || clearedPins) && (
+            <button type="button" onClick={clearedPins ? undoClear : clearPins}
+                    className="flex items-center gap-1.5 rounded-full bg-white px-3.5 py-1.5 text-sm font-medium text-gray-800 shadow hover:bg-gray-50 motion-safe:animate-[pop_160ms_ease-out] dark:bg-gray-900 dark:text-gray-100 dark:hover:bg-gray-800">
+              <Icon name={clearedPins ? "arrow_left" : "close"} size={14} />
+              {clearedPins ? `${tc("pinsCleared")} · ${tc("undo")}` : `${tc("clearPins")} (${quickCount})`}
             </button>
-          ))}
+          )}
         </div>
       </div>
 

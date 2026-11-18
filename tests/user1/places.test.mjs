@@ -65,7 +65,7 @@ test("new accounts, bad names, bad categories, weak GPS and places outside citie
   await asOwner();
   const traveller = await newUser(); // no earlier location, so no "impossible travel"
   await actAs(traveller);
-  assert.equal((await add("Test Shop", "cafe", { lat: 25.3176, lng: 82.9739 })).reason, "outside_cities"); // Varanasi
+  assert.equal((await add("Test Shop", "cafe", { lat: 6.9271, lng: 79.8612 })).reason, "outside_cities"); // Colombo, Sri Lanka
 }));
 
 test("duplicates within 50 m are refused and point to the existing place", () => inTx(async () => {
