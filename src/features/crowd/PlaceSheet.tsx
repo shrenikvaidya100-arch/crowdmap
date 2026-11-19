@@ -11,6 +11,7 @@ import { PlaceMedia } from "@/features/media/PlaceMedia";
 import { PlaceActions } from "@/features/alerts/PlaceActions";
 import { useCallback, useEffect, useState } from "react";
 import { config, type Language } from "@/lib/config";
+import { UberButton } from "@/features/map/GoPanel";
 import { translator } from "@/lib/i18n";
 import {
   deleteCrowdReport, deleteQuickReport, submitCrowdReport, submitQuickReport,
@@ -277,10 +278,10 @@ export function PlaceSheet({
                 {t("openInMaps")}
               </a>
             )}
-            <a href={config.routing.uberUrl({ lat: data.place.lat, lng: data.place.lng, name: data.place.name })} target="_blank" rel="noopener noreferrer"
-               className="rounded-md bg-black px-3 py-2 text-center text-sm font-semibold text-white ring-1 ring-white/20 hover:bg-zinc-900">
+            <UberButton dest={{ lat: data.place.lat, lng: data.place.lng, name: data.place.name }}
+                        className="flex items-center justify-center gap-2 rounded-md bg-black px-3 py-2 text-sm font-semibold text-white ring-1 ring-white/20 hover:bg-zinc-900">
               {t("uber")}
-            </a>
+            </UberButton>
           </div>
         </div>
       )}

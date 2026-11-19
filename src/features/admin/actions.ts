@@ -2,8 +2,16 @@
 // Admin moderation. The database re-checks that the caller is an active admin,
 // refuses to touch admins, and logs every change with its reason.
 import { revalidatePath } from "next/cache";
+import { getViewer } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
+import { isUnlocked } from "./gate";
 import { moderateSchema, reviewFlagSchema } from "./validation";
+
+/** Admin actions also need the admin check to have been passed (the database checks the role). */
+async function unlocked() {
+  const viewer = await getViewer();
+  return viewer?.role === "admin" && (await isUnlocked(viewer.id));
+}
 
 export type AdminResult = { ok: boolean; reason?: string };
 
@@ -19,6 +27,7 @@ function fromRpc(data: unknown, error: { message: string } | null): AdminResult 
 }
 
 export async function moderate(input: unknown): Promise<AdminResult> {
+  if (!(await unlocked())) return { ok: false, reason: "locked" };
   const parsed = moderateSchema.safeParse(input);
   if (!parsed.success) return { ok: false, reason: parsed.error.issues[0]?.message ?? "invalid" };
   const { target, id, to, reason } = parsed.data;
@@ -37,6 +46,7 @@ export async function moderate(input: unknown): Promise<AdminResult> {
 export type ChainResult = { ok: boolean; intact?: boolean; firstBadId?: number | null; entries?: number };
 
 export async function verifyChain(): Promise<ChainResult> {
+  if (!(await unlocked())) return { ok: false };
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("admin_verify_audit_chain");
   if (error) {
@@ -51,6 +61,7 @@ export async function verifyChain(): Promise<ChainResult> {
 export type SweepResult = { ok: boolean; checked?: number; removed?: number; flagged?: number };
 
 export async function runBotSweep(): Promise<SweepResult> {
+  if (!(await unlocked())) return { ok: false };
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("admin_run_bot_sweep");
   if (error) {
@@ -62,6 +73,7 @@ export async function runBotSweep(): Promise<SweepResult> {
 }
 
 export async function reviewFlag(input: unknown): Promise<AdminResult> {
+  if (!(await unlocked())) return { ok: false, reason: "locked" };
   const parsed = reviewFlagSchema.safeParse(input);
   if (!parsed.success) return { ok: false, reason: "invalid" };
   const supabase = await createClient();
@@ -76,6 +88,7 @@ export async function reviewFlag(input: unknown): Promise<AdminResult> {
 /** Review queue: keep the upload (dismiss its reports) or hide it. */
 export async function resolveReports(mediaId: string, action: "keep" | "hide"): Promise<AdminResult> {
   if (!/^[0-9a-f-]{36}$/i.test(mediaId) || (action !== "keep" && action !== "hide")) return { ok: false, reason: "invalid" };
+  if (!(await unlocked())) return { ok: false, reason: "locked" };
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("admin_resolve_reports", { p_media: mediaId, p_action: action });
   const res = fromRpc(data, error);

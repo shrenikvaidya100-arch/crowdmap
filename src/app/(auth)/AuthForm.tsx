@@ -30,6 +30,7 @@ export function AuthForm({
   const [token, setToken] = useState("");
   const [clientErrors, setClientErrors] = useState<FieldErrors>({});
   const [captchaMissing, setCaptchaMissing] = useState(false);
+  const [agreed, setAgreed] = useState(false);
 
   // Server results arrive as new state objects; the CAPTCHA resets on each one
   // (tokens are single-use). Memoised so ordinary re-renders do NOT reset it.
@@ -59,6 +60,11 @@ export function AuthForm({
 
   function onGoogle(e: React.FormEvent<HTMLFormElement>) {
     setCaptchaMissing(!token);
+    if (mode === "signup" && !agreed) {
+      setClientErrors((p) => ({ ...p, acceptTerms: "terms.required" }));
+      e.preventDefault();
+      return;
+    }
     if (!token) e.preventDefault();
   }
 
@@ -97,6 +103,22 @@ export function AuthForm({
                  autoComplete="new-password" error={errors.confirmPassword && t(errors.confirmPassword)} />
         )}
 
+        {mode === "signup" && (
+          <div className="space-y-1">
+            <label className="flex items-start gap-2.5 text-sm text-zinc-300">
+              <input type="checkbox" name="acceptTerms" checked={agreed} onChange={(e) => { setAgreed(e.target.checked); setClientErrors((p) => ({ ...p, acceptTerms: undefined })); }}
+                     aria-invalid={Boolean(errors.acceptTerms)} aria-describedby={errors.acceptTerms ? "f-terms-err" : undefined}
+                     className="mt-0.5 h-4 w-4 shrink-0 accent-blue-600" />
+              <span>
+                {t("terms.agreeBefore")}{" "}
+                <Link href="/terms" target="_blank" className="font-medium text-blue-400 underline underline-offset-2 hover:text-blue-300">{t("terms.link")}</Link>
+                {t("terms.agreeAfter")}
+              </span>
+            </label>
+            {errors.acceptTerms && <p id="f-terms-err" className="text-sm text-red-400">{t(errors.acceptTerms)}</p>}
+          </div>
+        )}
+
         <Turnstile siteKey={siteKey} lang={lang} resetSignal={captchaReset}
                    onToken={(v) => { setToken(v); if (v) setCaptchaMissing(false); }} />
 
@@ -112,6 +134,8 @@ export function AuthForm({
 
       <form action={googleAction} onSubmit={onGoogle}>
         <input type="hidden" name="next" value={next} />
+        <input type="hidden" name="mode" value={mode} />
+        {mode === "signup" && agreed && <input type="hidden" name="acceptTerms" value="on" />}
         <input type="hidden" name="cf-turnstile-response" value={token} />
         <button type="submit" disabled={busy}
                 className="w-full rounded-lg border border-zinc-700 px-4 py-2.5 font-medium text-zinc-100 hover:border-zinc-500 hover:bg-zinc-900 disabled:opacity-60">

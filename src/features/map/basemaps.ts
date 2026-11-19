@@ -1,7 +1,8 @@
-// Map types (basemaps) and overlays. Street, Felt-style, Dark and 3D are free
-// (OpenFreeMap, no key). Satellite is always Esri World Imagery (free, no key,
-// with attribution), so it never depends on the MapTiler key's allowed sites.
-// Terrain and Contours need the MapTiler key.
+// Map types (basemaps) and overlays. Street, Felt-style, 3D and Terrain are free
+// (OpenFreeMap, no key). Terrain adds real elevation from the free AWS Terrarium
+// tiles (no key): hills and mountains rise in 3D with hill shading. Satellite is
+// Esri World Imagery (free, no key). Only Contours needs the MapTiler key.
+// Dark isn't listed as a map type: the day/night button in Customize covers it.
 import type { StyleSpecification } from "maplibre-gl";
 import { publicEnv } from "@/lib/env";
 
@@ -11,10 +12,9 @@ export type OverlayId = "crowd" | "alerts" | "saved" | "labels" | "buildings" | 
 export const BASEMAPS: { id: BasemapId; needsKey: boolean }[] = [
   { id: "street", needsKey: false },
   { id: "felt", needsKey: false },
-  { id: "dark", needsKey: false },
   { id: "3d", needsKey: false },
+  { id: "terrain", needsKey: false },
   { id: "satellite", needsKey: false },
-  { id: "terrain", needsKey: true },
 ];
 
 export const OVERLAYS: { id: OverlayId; needsKey?: boolean; unavailable?: boolean }[] = [
@@ -56,12 +56,19 @@ export function styleUrl(id: BasemapId): string | StyleSpecification {
   switch (id) {
     case "felt": return "https://tiles.openfreemap.org/styles/positron";
     case "dark": return "https://tiles.openfreemap.org/styles/dark";
-    case "terrain": return `https://api.maptiler.com/maps/outdoor-v2/style.json?key=${key}`;
     default: return "https://tiles.openfreemap.org/styles/liberty";
   }
 }
 
-export const terrainSourceUrl = () => `https://api.maptiler.com/tiles/terrain-rgb-v2/tiles.json?key=${mapTilerKey()}`;
+/** Free elevation tiles (Mapzen Terrarium on AWS Open Data), no key, CORS open. */
+export const TERRAIN_DEM = {
+  type: "raster-dem" as const,
+  tiles: ["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"],
+  encoding: "terrarium" as const,
+  tileSize: 256,
+  maxzoom: 15,
+  attribution: "Elevation: Mapzen Terrarium (AWS Open Data)",
+};
 export const contoursSourceUrl = () => `https://api.maptiler.com/tiles/contours-v2/tiles.json?key=${mapTilerKey()}`;
 
 /** Attribution for the providers each map type adds on top of OpenStreetMap. */

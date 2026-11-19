@@ -3,7 +3,7 @@
 // overlay opacity, drawings and measurements. Called after every style load,
 // because switching map type replaces the whole style.
 import type { Map as MLMap, StyleSpecification } from "maplibre-gl";
-import { contoursSourceUrl, MAPTILER_ATTRIBUTION, mapTilerKey, terrainSourceUrl, type BasemapId, type OverlayId } from "./basemaps";
+import { contoursSourceUrl, MAPTILER_ATTRIBUTION, mapTilerKey, TERRAIN_DEM, type BasemapId, type OverlayId } from "./basemaps";
 
 /** Our own sources and layers; carried over when the basemap changes. */
 export const OWN_SOURCES = ["cm-route", "cm-cities", "places", "cm-shapes", "cm-measure"];
@@ -91,16 +91,26 @@ export function applyOverlays(m: MLMap, basemap: BasemapId, overlays: Record<Ove
     m.removeLayer("cm-contours");
   }
 
-  // Terrain: real elevation for the Terrain map type (MapTiler).
-  if (basemap === "terrain" && key) {
-    if (!m.getSource("cm-dem")) m.addSource("cm-dem", { type: "raster-dem", url: terrainSourceUrl(), tileSize: 256 });
+  // Terrain: real elevation (free Terrarium tiles). Hills and mountains rise in 3D,
+  // with hill shading and a sky so the horizon reads as land, not a flat map.
+  if (basemap === "terrain") {
+    if (!m.getSource("cm-dem")) m.addSource("cm-dem", TERRAIN_DEM);
+    // Hill shading has its own copy of the elevation (MapLibre advises not sharing one source).
+    if (!m.getSource("cm-dem-shade")) m.addSource("cm-dem-shade", TERRAIN_DEM);
     if (!m.getLayer("cm-hillshade")) {
-      m.addLayer({ id: "cm-hillshade", type: "hillshade", source: "cm-dem", paint: { "hillshade-exaggeration": 0.35 } },
-        style.layers.find((l) => l.type === "symbol")?.id);
+      m.addLayer({
+        id: "cm-hillshade", type: "hillshade", source: "cm-dem-shade",
+        paint: {
+          "hillshade-exaggeration": 0.6, "hillshade-shadow-color": "#3f3a2e",
+          "hillshade-highlight-color": "#fffdf5", "hillshade-accent-color": "#6b5b3e",
+        },
+      }, style.layers.find((l) => l.type === "symbol" || l.type === "fill-extrusion")?.id);
     }
-    m.setTerrain({ source: "cm-dem", exaggeration: 1.4 });
-  } else if (m.getTerrain()) {
-    m.setTerrain(null);
+    m.setTerrain({ source: "cm-dem", exaggeration: 1.6 });
+    m.setSky({ "sky-color": "#7cb8ef", "horizon-color": "#dbeafe", "fog-color": "#e5e7eb", "sky-horizon-blend": 0.6, "horizon-fog-blend": 0.6, "fog-ground-blend": 0.3 });
+  } else {
+    if (m.getTerrain()) m.setTerrain(null);
+    if (m.getLayer("cm-hillshade")) m.removeLayer("cm-hillshade");
   }
 
   // Our layers always on top, in a fixed order.

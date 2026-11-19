@@ -31,6 +31,13 @@ export const config = {
     wikiRadiusKm: 2,       // a matching Wikipedia article must be this close
     commonsRadiusM: 150,   // Commons photos must be taken this close to the place
   },
+  // Extra check before the admin area: type the code shown in a distorted image.
+  adminGate: {
+    codeLength: 6,
+    alphabet: "ABCDEFGHJKMNPQRSTUVWXYZ23456789", // no 0/O, 1/I/L look-alikes
+    codeTtlSec: 300,       // a code must be typed within 5 minutes
+    unlockMinutes: 30,     // then the admin area stays open this long
+  },
   // Directions drawn on the map (FOSSGIS OSRM servers: free, no key, fair use) and
   // hand-offs to other apps for turn-by-turn and rides.
   routing: {
@@ -41,13 +48,15 @@ export const config = {
     arrivedM: 40,         // "You've arrived" within this distance
     googleUrl: (lat: number, lng: number, mode: "drive" | "walk") =>
       `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=${mode === "walk" ? "walking" : "driving"}`,
-    // Uber's universal link: opens the app (or m.uber.com) with the drop-off filled in. No key needed.
+    // Uber's web link (developer.uber.com "deep-linking-standard"): pickup and drop-off as JSON,
+    // so m.uber.com opens with both filled in (and the app, where it takes the link). No key needed.
     uberUrl: (to: { lat: number; lng: number; name: string }, from?: { lat: number; lng: number } | null) => {
-      const q = new URLSearchParams({ action: "setPickup" });
-      if (from) { q.set("pickup[latitude]", String(from.lat)); q.set("pickup[longitude]", String(from.lng)); }
-      else q.set("pickup", "my_location");
-      q.set("dropoff[latitude]", String(to.lat)); q.set("dropoff[longitude]", String(to.lng)); q.set("dropoff[nickname]", to.name);
-      return `https://m.uber.com/ul/?${q}`;
+      const spot = (lat: number, lng: number, name: string) =>
+        JSON.stringify({ latitude: Number(lat.toFixed(6)), longitude: Number(lng.toFixed(6)), addressLine1: name });
+      const q = new URLSearchParams();
+      if (from) q.set("pickup", spot(from.lat, from.lng, "Your location"));
+      q.set("drop[0]", spot(to.lat, to.lng, to.name));
+      return `https://m.uber.com/looking?${q}`;
     },
   },
   crowd: {

@@ -58,7 +58,7 @@ export default async function AdminUsers({ searchParams }: PageProps<"/admin/use
         </Field>
       </FilterBar>
 
-      <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-800">
+      <div className="overflow-x-auto border border-zinc-900/20 bg-white dark:border-zinc-800 dark:bg-zinc-900">
         <table className="w-full min-w-[760px] text-left text-sm">
           <thead className="bg-gray-50 text-xs text-gray-600 dark:bg-gray-900 dark:text-gray-400">
             <tr>
@@ -97,7 +97,7 @@ export default async function AdminUsers({ searchParams }: PageProps<"/admin/use
                     {u.role !== "admin" && (u.status === "removed"
                       ? <Moderate lang={lang} target="user" id={u.id} to="active" label={t("restore")} />
                       : <Moderate lang={lang} target="user" id={u.id} to="removed" label={t("remove")} />)}
-                    <Link href={`/admin/log?actor=${u.id}`} className="text-xs text-blue-600 hover:underline">{t("nav.log")}</Link>
+                    <Link href={`/admin/log?actor=${u.id}`} className="text-xs underline underline-offset-2 hover:no-underline">{t("nav.log")}</Link>
                   </div>
                 </td>
               </tr>

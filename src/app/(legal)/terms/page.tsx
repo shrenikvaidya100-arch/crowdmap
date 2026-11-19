@@ -32,6 +32,29 @@ export default function TermsPage() {
         provided as is, without any warranty, and may change or stop at any time.
       </p>
 
+      <h2 id="uploads">Photos and videos you upload</h2>
+      <ul>
+        <li>You are responsible for every photo, video and clip you upload, and for having the right to share it.</li>
+        <li>Don&rsquo;t upload anything that shows other people&rsquo;s faces without their consent, private information,
+          or anything illegal. If an upload causes a complaint or legal claim, you are responsible for it, not CrowdMap.</li>
+        <li>Uploads can be reported by others and hidden or removed by admins. Removals are logged.</li>
+      </ul>
+
+      <h2 id="location">Your location</h2>
+      <ul>
+        <li>When you report a crowd level, post an alert or upload media, your phone&rsquo;s location is checked to
+          confirm you are really at the place.</li>
+        <li>Locations and reports, without your name, are also used to improve the maps: crowd patterns,
+          forecasts, and places that are missing or in the wrong spot.</li>
+        <li>Sharing your live location on the map is optional and can be turned off any time.</li>
+      </ul>
+
+      <h2>Accepting these terms</h2>
+      <p>
+        You accept these terms by ticking the box when you create an account. We keep the date you accepted
+        them with your account.
+      </p>
+
       <h2>Your content</h2>
       <p>
         You keep ownership of what you post. By posting it you let CrowdMap show it to other users on the site.

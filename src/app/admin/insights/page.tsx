@@ -46,7 +46,7 @@ export default async function AdminInsights({ searchParams }: PageProps<"/admin/
     <div className="flex gap-1.5">
       {(Object.keys(RANGES) as Range[]).map((r) => (
         <Link key={r} href={`/admin/insights?range=${r}`} aria-current={r === range ? "page" : undefined}
-              className={`rounded-full px-3 py-1 text-sm ${r === range ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"}`}>
+              className={`border px-3 py-1 text-sm ${r === range ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900" : "border-zinc-900/25 text-zinc-700 hover:border-zinc-900 dark:border-zinc-700 dark:text-zinc-300"}`}>
           {t(`insights.range.${r}`)}
         </Link>
       ))}
@@ -64,7 +64,7 @@ export default async function AdminInsights({ searchParams }: PageProps<"/admin/
           {rangeLinks}
         </div>
         <ActivityTerrain key={`s-${range}`} title={t("insights.searches")} data={searchDays.map((d) => d.n)} endDate={end} />
-        <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-800">
+        <div className="overflow-x-auto border border-zinc-900/20 bg-white dark:border-zinc-800 dark:bg-zinc-900">
           <table className="w-full min-w-[520px] text-left text-sm">
             <thead className="bg-gray-50 text-xs text-gray-600 dark:bg-gray-900 dark:text-gray-400">
               <tr><th className="px-3 py-2">{t("col.when")}</th><th className="px-3 py-2">{t("insights.query")}</th>
@@ -99,7 +99,7 @@ export default async function AdminInsights({ searchParams }: PageProps<"/admin/
         </div>
         <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[["insights.total", i.total], ["insights.saved", i.saved], ["insights.reminders", i.reminders], ["insights.users", i.users]].map(([k, v]) => (
-            <div key={k as string} className="rounded-xl border border-gray-200 p-3 dark:border-gray-800">
+            <div key={k as string} className="border border-zinc-900/20 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
               <dd className="text-2xl font-semibold tabular-nums">{Number(v).toLocaleString("en-IN")}</dd>
               <dt className="text-xs text-gray-600 dark:text-gray-400">{t(k as string)}</dt>
             </div>
@@ -109,7 +109,7 @@ export default async function AdminInsights({ searchParams }: PageProps<"/admin/
         <div>
           <h3 className="mb-2 font-medium">{t("insights.top")}</h3>
           {i.top.length === 0 ? <p className="text-sm text-gray-500">{t("noneYet")}</p> : (
-            <ol className="divide-y divide-gray-100 rounded-xl border border-gray-200 dark:divide-gray-800 dark:border-gray-800">
+            <ol className="divide-y divide-gray-100 border border-zinc-900/20 bg-white dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-900">
               {i.top.map((p, n) => (
                 <li key={p.id} className="flex items-center justify-between px-3 py-2 text-sm">
                   <span><span className="mr-2 tabular-nums text-gray-400">{n + 1}</span>

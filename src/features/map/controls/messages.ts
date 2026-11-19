@@ -13,8 +13,8 @@ export const messages = {
     resetNorth: "Reset north", fullscreen: "Full screen", exitFullscreen: "Exit full screen",
     // layers
     mapType: "Map type", overlays: "Layers",
-    "base.street": "Street", "base.felt": "Felt-style", "base.dark": "Dark", "base.3d": "3D",
-    "base.satellite": "Satellite", "base.terrain": "Terrain",
+    "base.street": "Street", "base.felt": "Felt-style", "base.dark": "Dark", "base.3d": "3D buildings",
+    "base.satellite": "Satellite", "base.terrain": "Terrain (hills)",
     "ov.crowd": "Crowd levels", "ov.alerts": "Alerts", "ov.saved": "Your markers and drawings", "ov.labels": "Labels",
     "ov.buildings": "Buildings", "ov.contours": "Terrain contours", "ov.traffic": "Traffic",
     needsKey: "Needs a MapTiler key",

@@ -2,6 +2,7 @@
 // "Go" panel: the route to a place or pin, drawn on the map by MapView. Shows
 // the time and distance by car or on foot, follows you along the way, hands off
 // to Google Maps for spoken turn-by-turn, and books an Uber to the spot.
+import { useState, type ReactNode } from 'react';
 import { Icon } from '@/components/icons/Icon';
 import { config, type Language } from '@/lib/config';
 import { translator } from '@/lib/i18n';
@@ -31,11 +32,54 @@ export function GoButtons({ dest, from, lang, onGo, tone = 'dark' }: {
               className='flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-2.5 py-2 text-sm font-semibold text-white transition hover:bg-blue-500 active:scale-[0.98]'>
         <Icon name='compass' size={15} />{t('go.directions')}
       </button>
-      <a href={config.routing.uberUrl(dest, from)} target='_blank' rel='noopener noreferrer' title={t('go.uberTitle')}
-         className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition active:scale-[0.98] ${ghost}`}>
-        <UberMark />{t('go.uber')}
-      </a>
+      <UberButton dest={dest} from={from} title={t('go.uberTitle')}
+                  className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold ${ghost}`}>
+        {t('go.uber')}
+      </UberButton>
     </div>
+  );
+}
+
+/**
+ * Opens Uber with the pickup (your location) and drop-off filled in. A little car
+ * drives across the button first. The tab opens straight away (so pop-up blockers
+ * allow it) and is pointed at Uber once your location is known.
+ */
+export function UberButton({ dest, from, className, title, children }: {
+  dest: GoDest; from?: { lat: number; lng: number } | null; className: string; title?: string; children: ReactNode;
+}) {
+  const [driving, setDriving] = useState(0);
+  function go() {
+    setDriving((n) => n + 1);
+    const tab = window.open('', '_blank');
+    const send = (p: { lat: number; lng: number } | null) => {
+      const url = config.routing.uberUrl(dest, p);
+      // Let the car finish its run before the page changes.
+      setTimeout(() => { if (tab && !tab.closed) tab.location.href = url; else window.location.href = url; }, 650);
+    };
+    if (from || !navigator.geolocation) { send(from ?? null); return; }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => send({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => send(null),
+      { enableHighAccuracy: false, timeout: 6000, maximumAge: 300000 },
+    );
+  }
+  return (
+    <button type='button' onClick={go} title={title}
+            className={`relative overflow-hidden transition active:scale-[0.97] ${className}`}>
+      <UberMark />{children}
+      {driving > 0 && (
+        <span key={driving} aria-hidden className='pointer-events-none absolute inset-y-0 flex items-center motion-safe:animate-[drive_700ms_cubic-bezier(0.5,0,0.2,1)_forwards] motion-reduce:hidden'>
+          <svg viewBox='0 0 48 20' className='h-5 w-12 drop-shadow'>
+            <path d='M4 13.5V11c0-1 .7-1.8 1.7-2l5.3-1 4.4-3.6c.6-.5 1.4-.8 2.2-.8h11.6c.9 0 1.7.4 2.3 1l3.5 3.6 6.4 1.1c1 .2 1.6 1 1.6 2v2.2c0 .6-.4 1-1 1H5c-.6 0-1-.4-1-1Z' fill='#f8fafc' stroke='#0f172a' strokeWidth='1.2' />
+            <path d='M15.5 7.6 18.5 5h5v2.6h-8Zm10 0V5h4.2l2.6 2.6h-6.8Z' fill='#93c5fd' />
+            <circle cx='13' cy='15' r='3' fill='#0f172a' /><circle cx='13' cy='15' r='1.2' fill='#cbd5e1' />
+            <circle cx='36' cy='15' r='3' fill='#0f172a' /><circle cx='36' cy='15' r='1.2' fill='#cbd5e1' />
+            <path d='M0 9h3M-1 12h3' stroke='#94a3b8' strokeWidth='1.2' strokeLinecap='round' />
+          </svg>
+        </span>
+      )}
+    </button>
   );
 }
 
@@ -107,10 +151,10 @@ export function GoPanel({ dest, lang, mode, onMode, status, distance, duration, 
           <Icon name='external' size={14} />{t('go.google')}
         </a>
       </div>
-      <a href={config.routing.uberUrl(dest, from)} target='_blank' rel='noopener noreferrer'
-         className='mt-2 flex items-center justify-center gap-2 rounded-lg bg-black px-3 py-2 font-semibold text-white ring-1 ring-white/20 transition hover:bg-zinc-900'>
-        <UberMark />{t('go.uberRide')}
-      </a>
+      <UberButton dest={dest} from={from}
+                  className='mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-black px-3 py-2 font-semibold text-white ring-1 ring-white/20 hover:bg-zinc-900'>
+        {t('go.uberRide')}
+      </UberButton>
     </section>
   );
 }
