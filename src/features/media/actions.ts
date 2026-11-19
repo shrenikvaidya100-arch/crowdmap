@@ -4,7 +4,7 @@
 // Files go straight from the browser to Storage with a one-time signed URL.
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import {
-  addCommentSchema, beginUploadSchema, editCaptionSchema, editCommentSchema, idSchema,
+  addCommentSchema, addPlaceCommentSchema, beginUploadSchema, editCaptionSchema, editCommentSchema, idSchema,
 } from "./validation";
 
 /** reason is a translation key under "result.*". */
@@ -92,6 +92,16 @@ export async function addComment(input: unknown): Promise<MediaResult> {
   const supabase = await signedInClient();
   if (!supabase) return { ok: false, reason: "signin" };
   const { data, error } = await supabase.rpc("add_comment", { p_media: parsed.data.mediaId, p_body: parsed.data.body });
+  return fromRpc(data, error);
+}
+
+/** A comment straight on a place, no photo or video needed. */
+export async function addPlaceComment(input: unknown): Promise<MediaResult> {
+  const parsed = addPlaceCommentSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, reason: parsed.error.issues[0]?.message ?? "invalid" };
+  const supabase = await signedInClient();
+  if (!supabase) return { ok: false, reason: "signin" };
+  const { data, error } = await supabase.rpc("add_place_comment", { p_place: parsed.data.placeId, p_body: parsed.data.body });
   return fromRpc(data, error);
 }
 

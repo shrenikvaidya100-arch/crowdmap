@@ -249,3 +249,23 @@ test("comments can be reported; the admin sees them in a queue and removes them 
   assert.equal((await db.query("select status from public.comments where id = $1", [c.id])).rows[0].status, "removed");
   assert.equal((await db.query("select count(*)::int n from public.audit_log where target_id = $1 and action = 'admin.comment_reports'", [c.id])).rows[0].n, 1);
 }));
+
+test("comment straight on a place (no upload): listed, in My activity and the city feed, reportable and removable", () => inTx(async () => {
+  const [author, reporter] = [await newUser(), await newUser()];
+  await actAs(author);
+  const r = (await db.query("select public.add_place_comment($1, 'Long queue at the counter right now') as r", [place.id])).rows[0].r;
+  assert.equal(r.ok, true, JSON.stringify(r));
+  assert.equal((await db.query("select count(*)::int n from public.my_comments() where id = $1", [r.id])).rows[0].n, 1);
+  await actAsAnon();
+  const list = (await db.query("select * from public.place_comments($1)", [place.id])).rows;
+  assert.ok(list.some((c) => c.id === r.id && c.author && !("user_id" in c)));
+  await actAs(reporter);
+  assert.equal((await db.query("select public.report_comment($1) as r", [r.id])).rows[0].r.ok, true);
+  await db.query("reset role");
+  const admin = (await db.query("select id from public.profiles where role = 'admin' and status = 'active' limit 1")).rows[0].id;
+  await actAs(admin);
+  assert.ok((await db.query("select * from public.admin_comment_report_queue()")).rows.some((q) => q.comment_id === r.id));
+  assert.equal((await db.query("select public.admin_resolve_comment_reports($1, 'remove') as r", [r.id])).rows[0].r.ok, true);
+  await db.query("reset role");
+  assert.equal((await db.query("select status from public.comments where id = $1", [r.id])).rows[0].status, "removed");
+}));

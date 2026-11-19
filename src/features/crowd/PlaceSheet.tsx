@@ -7,7 +7,7 @@ import { PlaceStatus, type Confirmations } from "@/features/places/PlaceStatus";
 import { Reminder } from "@/features/alerts/Reminder";
 import { PlanVisit } from "./plan/PlanVisit";
 import { PlaceCalendar } from "./calendar/CrowdCalendar";
-import { PlaceMedia } from "@/features/media/PlaceMedia";
+import { PlaceComments, PlaceMedia } from "@/features/media/PlaceMedia";
 import { PlaceActions } from "@/features/alerts/PlaceActions";
 import { useCallback, useEffect, useState } from "react";
 import { config, type Language } from "@/lib/config";
@@ -178,6 +178,7 @@ export function PlaceSheet({
 
           {/* Photos, videos, audio and comments (User 2's feature) */}
           <PlaceMedia key={placeId} placeId={placeId} lang={lang} />
+          <PlaceComments key={`c-${placeId}`} placeId={placeId} lang={lang} />
 
           {notice && (
             <p role={notice.ok ? "status" : "alert"}

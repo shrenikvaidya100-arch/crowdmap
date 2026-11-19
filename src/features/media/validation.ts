@@ -26,6 +26,7 @@ export const commentBodySchema = z.string().trim()
   .min(1, "commentEmpty").max(mediaConfig.commentMax, "commentTooLong");
 
 export const addCommentSchema = z.object({ mediaId: uuid, body: commentBodySchema });
+export const addPlaceCommentSchema = z.object({ placeId: uuid, body: commentBodySchema });
 export const editCommentSchema = z.object({ commentId: uuid, body: commentBodySchema });
 
 /** Base type without codec details, e.g. "video/webm;codecs=vp8" → "video/webm". */
