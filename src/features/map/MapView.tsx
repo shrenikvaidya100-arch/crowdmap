@@ -979,7 +979,13 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
       if (near) setActiveCity(near.id);
       if (!fly || !m) return;
       // First fix: jump there at once. A later, better fix only nudges the map.
-      if (!jumped) { jumped = true; m.jumpTo({ center: [lng, lat], zoom: Math.max(m.getZoom(), 16) }); }
+      // First fix: pull back, glide over, then dive in to you. A later, better fix only nudges the map.
+      if (!jumped) {
+        jumped = true;
+        const target = Math.max(m.getZoom(), 16);
+        m.flyTo({ center: [lng, lat], zoom: target, minZoom: Math.max(3, Math.min(m.getZoom(), target) - 4), curve: 1.6, duration: 2400, essential: true });
+      }
+      else if (m.isMoving()) m.once("moveend", () => m.easeTo({ center: [lng, lat], duration: 400 }));
       else m.easeTo({ center: [lng, lat], duration: 400 });
     };
     // Already know where you are: go there straight away, then refine with a fresh fix.
