@@ -1,18 +1,25 @@
 'use client';
-// The rotating Earth behind the home page hero (Three.js).
-// Night-lights texture (NASA, public domain), lit by a sun: a day side, a soft
-// fade into night and warm city lights on the night side.
+// The rotating Earth behind the home page hero (Three.js), drawn from real NASA
+// imagery: the Blue Marble day map, the night-lights map, an ocean-shine map, a
+// relief (normal) map and a cloud layer (textures from the three.js examples,
+// MIT; imagery NASA, public domain). A sun lights it, so there is a real day side
+// with glinting oceans and drifting clouds, and a night side where the cities glow.
+// It follows the site's day/night switch: in day mode the sun faces you and you
+// see the sunlit Earth; in night mode the sun swings behind and the city lights
+// come out. The change eases over about a second.
 // Rotates slowly all the time and spins with the scroll wheel or trackpad (and a
-// swipe on phones): down spins it forward, up spins it back, then it eases back
-// to the slow spin. The home page doesn't scroll, so this reads wheel and touch
-// moves directly rather than the page's scroll position. Pauses off screen and in hidden tabs, and
-// keeps a much gentler spin for people who prefer reduced motion.
+// swipe on phones), then eases back to the slow spin. Pauses off screen and in
+// hidden tabs, and keeps a much gentler spin for people who prefer reduced motion.
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { useTheme } from '@/lib/theme';
 
 const BASE_SPEED = 0.05; // radians per second
 const MAX_BOOST = 3; // extra radians per second at most while scrolling (either way)
 const EASE = 2.4; // how quickly the boost fades (per second)
+// Where the sun is, as seen from the camera, in each mode.
+const SUN_DAY = new THREE.Vector3(-0.55, 0.3, 0.78).normalize();
+const SUN_NIGHT = new THREE.Vector3(0.92, 0.28, -0.27).normalize();
 
 const ATMOSPHERE_VERTEX = `
   varying vec3 vNormal;
@@ -21,58 +28,85 @@ const ATMOSPHERE_VERTEX = `
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   }`;
 const ATMOSPHERE_FRAGMENT = `
+  uniform vec3 sun;
   varying vec3 vNormal;
   void main() {
-    float intensity = pow(0.72 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.4);
-    // Sky blue on the sunlit side, a warm dawn tint where the light fades.
-    vec3 sun = normalize(vec3(0.95, 0.3, -0.15));
-    float lit = smoothstep(-0.4, 0.6, dot(vNormal, sun));
-    vec3 tint = mix(vec3(0.3, 0.42, 0.75), vec3(0.45, 0.72, 1.0), lit);
-    gl_FragColor = vec4(tint, 1.0) * intensity * (0.35 + 0.75 * lit);
+    float intensity = pow(0.7 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.4);
+    float lit = smoothstep(-0.35, 0.55, dot(vNormal, sun));
+    vec3 tint = mix(vec3(0.25, 0.38, 0.75), vec3(0.4, 0.68, 1.0), lit);
+    gl_FragColor = vec4(tint, 1.0) * intensity * (0.3 + 0.85 * lit);
   }`;
 
-// Earth surface, lit like the real thing: a sunlit half in deep ocean blue and
-// muted land, a soft fade where day meets night, and on the night side the
-// city lights in warm sodium amber (brightest where people are). The texture is
-// the NASA night-lights map, so land shows faintly and cities glow.
 const EARTH_VERTEX = `
   varying vec2 vUv;
   varying vec3 vNormal;
+  varying vec3 vTangent;
+  varying vec3 vBitangent;
+  varying vec3 vView;
   void main() {
     vUv = uv;
-    vNormal = normalize(normalMatrix * normal);
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    vec3 n = normalize(normal);
+    // Tangent frame on the sphere (east and north), for the relief map.
+    vec3 t = normalize(cross(vec3(0.0, 1.0, 0.0), n) + vec3(1e-5, 0.0, 0.0));
+    vec3 b = normalize(cross(n, t));
+    vNormal = normalize(normalMatrix * n);
+    vTangent = normalize(normalMatrix * t);
+    vBitangent = normalize(normalMatrix * b);
+    vec4 mv = modelViewMatrix * vec4(position, 1.0);
+    vView = normalize(-mv.xyz);
+    gl_Position = projectionMatrix * mv;
   }`;
 const EARTH_FRAGMENT = `
-  uniform sampler2D map;
+  uniform sampler2D dayMap;
+  uniform sampler2D nightMap;
+  uniform sampler2D specMap;
+  uniform sampler2D normalMap;
+  uniform sampler2D cloudMap;
+  uniform vec3 sun;
+  uniform float cloudShift;
   varying vec2 vUv;
   varying vec3 vNormal;
+  varying vec3 vTangent;
+  varying vec3 vBitangent;
+  varying vec3 vView;
   void main() {
-    vec3 tex = texture2D(map, vUv).rgb;
-    float lum = dot(tex, vec3(0.299, 0.587, 0.114));
-    vec3 sun = normalize(vec3(0.95, 0.3, -0.15));
-    float ndl = dot(vNormal, sun);
-    float day = smoothstep(-0.12, 0.35, ndl);
-    // Day side: ocean blue, with land a little greener and lighter where the texture shows it.
-    float land = smoothstep(0.015, 0.09, lum);
-    vec3 ocean = vec3(0.02, 0.09, 0.2);
-    vec3 ground = vec3(0.13, 0.17, 0.11);
-    vec3 dayCol = mix(ocean, ground, land) * (0.25 + 0.75 * max(ndl, 0.0));
-    // Night side: deep navy plus warm city lights.
-    vec3 lights = pow(max(lum - 0.02, 0.0), 1.15) * vec3(1.0, 0.74, 0.42) * 3.6;
-    vec3 nightCol = vec3(0.008, 0.016, 0.035) + mix(vec3(0.0), vec3(0.03, 0.035, 0.03), smoothstep(0.015, 0.09, lum)) + lights;
+    vec3 nm = texture2D(normalMap, vUv).xyz * 2.0 - 1.0;
+    vec3 n = normalize(vNormal + (vTangent * nm.x + vBitangent * nm.y) * 0.35);
+    float ndl = dot(n, sun);
+    float day = smoothstep(-0.08, 0.22, dot(vNormal, sun));
+
+    vec3 dayCol = texture2D(dayMap, vUv).rgb;
+    dayCol *= 0.12 + 0.85 * max(ndl, 0.0);
+    // Sun glint on water (the specular map is white over the oceans).
+    float water = texture2D(specMap, vUv).r;
+    vec3 h = normalize(sun + vView);
+    dayCol += vec3(1.0, 0.95, 0.85) * water * pow(max(dot(n, h), 0.0), 70.0) * 0.32 * day;
+
+    // Night: warm city lights on a dark planet.
+    vec3 lights = texture2D(nightMap, vUv).rgb;
+    float lum = dot(lights, vec3(0.299, 0.587, 0.114));
+    vec3 nightCol = vec3(0.004, 0.008, 0.02) + pow(max(lum - 0.03, 0.0), 1.1) * vec3(1.0, 0.76, 0.45) * 2.8;
+
     vec3 c = mix(nightCol, dayCol, day);
-    // Faint lights still visible at dusk.
-    c += lights * 0.25 * (1.0 - smoothstep(0.1, 0.5, ndl));
-    // Thin atmosphere at the rim, blue on the lit side.
+
+    // Clouds, lit by the sun, drifting a little faster than the ground.
+    vec4 cl = texture2D(cloudMap, vec2(vUv.x + cloudShift, vUv.y));
+    float cloud = cl.a * dot(cl.rgb, vec3(0.333));
+    c = mix(c, vec3(0.95) * (0.05 + 0.85 * max(dot(vNormal, sun), 0.0)), cloud * 0.6);
+
+    // Thin blue limb, brighter on the day side.
     float rim = pow(1.0 - max(dot(vNormal, vec3(0.0, 0.0, 1.0)), 0.0), 3.0);
-    c += vec3(0.35, 0.6, 1.0) * rim * (0.08 + 0.32 * day);
+    c += vec3(0.35, 0.6, 1.0) * rim * (0.06 + 0.4 * day);
     gl_FragColor = vec4(c, 1.0);
     #include <colorspace_fragment>
   }`;
 
 export function Earth({ className }: { className?: string }) {
   const box = useRef<HTMLDivElement>(null);
+  const { resolved } = useTheme();
+  // The scene reads this every frame and eases the sun towards it.
+  const night = useRef(resolved === 'dark');
+  useEffect(() => { night.current = resolved === 'dark'; }, [resolved]);
 
   useEffect(() => {
     const el = box.current;
@@ -100,21 +134,35 @@ export function Earth({ className }: { className?: string }) {
     globe.rotation.z = 0.41; // Earth's axial tilt
     scene.add(globe);
 
-    const texture = new THREE.TextureLoader().load('/textures/earth-night.jpg');
-    texture.colorSpace = THREE.SRGBColorSpace;
-    // Sharpest filtering the device allows, so the city lights stay crisp at an angle.
-    texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-    texture.minFilter = THREE.LinearMipmapLinearFilter;
+    const loader = new THREE.TextureLoader();
+    const load = (url: string, color = true) => {
+      const tx = loader.load(url);
+      if (color) tx.colorSpace = THREE.SRGBColorSpace;
+      tx.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      tx.minFilter = THREE.LinearMipmapLinearFilter;
+      return tx;
+    };
+    const textures = [
+      load('/textures/earth-day.jpg'), load('/textures/earth-night.jpg'),
+      load('/textures/earth-specular.jpg', false), load('/textures/earth-normal.jpg', false), load('/textures/earth-clouds.png', false),
+    ];
+    const sunDir = (night.current ? SUN_NIGHT : SUN_DAY).clone();
+    const earthUniforms = {
+      dayMap: { value: textures[0] }, nightMap: { value: textures[1] }, specMap: { value: textures[2] },
+      normalMap: { value: textures[3] }, cloudMap: { value: textures[4] },
+      sun: { value: sunDir }, cloudShift: { value: 0 },
+    };
     const earth = new THREE.Mesh(
       new THREE.SphereGeometry(2, 128, 128),
-      new THREE.ShaderMaterial({ uniforms: { map: { value: texture } }, vertexShader: EARTH_VERTEX, fragmentShader: EARTH_FRAGMENT }),
+      new THREE.ShaderMaterial({ uniforms: earthUniforms, vertexShader: EARTH_VERTEX, fragmentShader: EARTH_FRAGMENT }),
     );
-    earth.rotation.y = -1.2; // start with South Asia in view
+    earth.rotation.y = -3.2; // start with India in view
     globe.add(earth);
 
     const atmosphere = new THREE.Mesh(
       new THREE.SphereGeometry(2.32, 64, 64),
       new THREE.ShaderMaterial({
+        uniforms: { sun: { value: sunDir } },
         vertexShader: ATMOSPHERE_VERTEX,
         fragmentShader: ATMOSPHERE_FRAGMENT,
         blending: THREE.AdditiveBlending,
@@ -192,6 +240,11 @@ export function Earth({ className }: { className?: string }) {
       if (!visible || document.hidden) return;
       boost *= Math.exp(-EASE * dt);
       earth.rotation.y += ((reduced ? BASE_SPEED * 0.4 : BASE_SPEED) + boost) * dt;
+      earthUniforms.cloudShift.value = (earthUniforms.cloudShift.value + dt * 0.0015) % 1;
+      // Day/night switch: swing the sun over about a second (at once with reduced motion).
+      const target = night.current ? SUN_NIGHT : SUN_DAY;
+      if (reduced) sunDir.copy(target);
+      else sunDir.lerp(target, 1 - Math.exp(-3 * dt)).normalize();
       renderer.render(scene, camera);
     };
     frame = requestAnimationFrame(tick);
@@ -204,7 +257,7 @@ export function Earth({ className }: { className?: string }) {
       window.removeEventListener('touchmove', onTouchMove);
       ro.disconnect();
       io.disconnect();
-      texture.dispose();
+      textures.forEach((tx) => tx.dispose());
       earth.geometry.dispose();
       (earth.material as THREE.Material).dispose();
       atmosphere.geometry.dispose();

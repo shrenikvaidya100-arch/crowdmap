@@ -14,9 +14,10 @@ export async function GET(request: NextRequest) {
   const place = request.nextUrl.searchParams.get("place");
   if (!idSchema.safeParse(place).success) return NextResponse.json({ error: "invalid place" }, { status: 400 });
   const supabase = await createClient();
-  const [{ data: rows, error }, { data: auth }] = await Promise.all([
+  const [{ data: rows, error }, { data: auth }, { data: locationRequired }] = await Promise.all([
     supabase.rpc("place_media", { p_place: place, p_limit: 30 }),
     supabase.auth.getUser(),
+    supabase.rpc("media_location_required"),
   ]);
   if (error) {
     console.error("place_media", error.message);
@@ -33,6 +34,8 @@ export async function GET(request: NextRequest) {
   }
   return NextResponse.json({
     signed_in: !!auth.user,
+    // Whether uploads must be made at the place right now (an admin switch).
+    location_required: locationRequired !== false,
     items: items.map(({ storage_path, ...r }) => ({ ...r, url: urls.get(storage_path) ?? null })),
   }, { headers: { "Cache-Control": "no-store" } });
 }

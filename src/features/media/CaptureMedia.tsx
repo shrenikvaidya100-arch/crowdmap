@@ -17,8 +17,10 @@ import { captionSchema } from "./validation";
 
 type Clip = { blob: Blob; url: string; seconds: number | null };
 
-export function CaptureMedia({ placeId, lang, onPosted, onCancel }: {
+export function CaptureMedia({ placeId, lang, onPosted, onCancel, locationRequired = true }: {
   placeId: string; lang: Language; onPosted: () => void; onCancel: () => void;
+  /** Off for now (an admin switch): post without being at the place. */
+  locationRequired?: boolean;
 }) {
   const t = translator(messages, lang);
   const [kind, setKind] = useState<MediaKind>("photo");
@@ -94,7 +96,10 @@ export function CaptureMedia({ placeId, lang, onPosted, onCancel }: {
     setBusy(true);
     setError(null);
     try {
-      const fix = await getGpsFix();
+      // With the location rule on, a GPS fix is needed; while it's off, use one if it
+      // comes quickly and post anyway if not.
+      const fix = locationRequired ? await getGpsFix()
+        : await Promise.race([getGpsFix().catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), 4000))]);
       const slot = await beginUpload({
         placeId, kind, mime: clip.blob.type, size: clip.blob.size, duration: clip.seconds, caption: cap.data, fix,
       });
@@ -125,7 +130,7 @@ export function CaptureMedia({ placeId, lang, onPosted, onCancel }: {
           </button>
         ))}
       </div>
-      <p className="text-xs text-gray-500">{t("mustBeHere")}</p>
+      <p className="text-xs text-gray-500">{t(locationRequired ? "mustBeHere" : "anywhere")}</p>
 
       {/* Live preview or the captured clip */}
       <div className="overflow-hidden rounded-lg bg-black">

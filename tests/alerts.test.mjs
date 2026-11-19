@@ -77,7 +77,7 @@ test("a watch fires once the place is quiet, with an inbox entry; expired watche
   assert.deepEqual((await one("select public.check_watches() r")).r, { fired: 0, expired: 0 }, "one-shot");
 
   await actAs(u);
-  const notes = (await db.query("select kind, place_id, data, push_status from public.notifications order by id")).rows;
+  const notes = (await db.query("select kind, place_id, data, push_status from public.notifications order by kind")).rows;
   assert.deepEqual(notes.map((n) => [n.kind, n.place_id, n.push_status]),
     [["place_quiet", places[1], "none"], ["watch_expired", places[2], "none"]]);
   assert.deepEqual([notes[0].data.level, notes[0].data.source], [1, "live"]);

@@ -93,7 +93,10 @@ test("upload: a slot at the place, hidden until the file arrives, then public wi
   assert.deepEqual(log.rows.map((r) => r.action), ["media.upload"]);
 }));
 
+const setLocationRule = (on) => db.query("update public.app_settings set value = $1 where key = 'media_require_location'", [on ? "true" : "false"]);
+
 test("upload: refused away from the place, with weak GPS, wrong types, long clips, spam captions, too many", () => inTx(async () => {
+  await setLocationRule(true); // rolled back with the test
   const a = await newUser();
   await actAs(a);
   assert.equal((await begin({ lng: place.lng + 0.01 })).reason, "not_at_place");
@@ -203,4 +206,22 @@ test("removed accounts: their uploads and comments disappear for everyone, and t
   await actAs(bot);
   await refused(() => begin(), /account removed/);
   await refused(() => comment(id, "again"), /account removed/);
+}));
+
+test("location rule switched off: uploads work without a location (or away from the place); on again, they're refused", () => inTx(async () => {
+  await setLocationRule(false);
+  const a = await newUser();
+  await actAs(a);
+  assert.equal((await begin({ lat: null, lng: null, accuracy: null })).ok, true, "no location needed while off");
+  assert.equal((await begin({ lng: place.lng + 0.05 })).ok, true, "far away is fine while off");
+  await db.query("reset role");
+  await setLocationRule(true);
+  await actAs(a);
+  assert.equal((await begin({ lat: null, lng: null, accuracy: null })).reason, "location_required");
+  assert.equal((await begin({ lng: place.lng + 0.05 })).reason, "not_at_place");
+  await db.query("reset role");
+  // Only admins can flip the switch.
+  await actAs(a);
+  await refused(() => db.query("select public.admin_set_media_location(true)"), /admins only/);
+  await db.query("reset role");
 }));

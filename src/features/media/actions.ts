@@ -37,7 +37,7 @@ export async function beginUpload(input: unknown): Promise<UploadSlot> {
   const { data, error } = await supabase.rpc("begin_media_upload", {
     p_place: v.placeId, p_kind: v.kind, p_mime: v.mime, p_size: v.size,
     p_duration: v.duration, p_caption: v.caption || null,
-    p_lat: v.fix.lat, p_lng: v.fix.lng, p_accuracy: v.fix.accuracy, p_spread: v.fix.spread,
+    p_lat: v.fix?.lat ?? null, p_lng: v.fix?.lng ?? null, p_accuracy: v.fix?.accuracy ?? null, p_spread: v.fix?.spread ?? 0,
   });
   const res = fromRpc(data, error);
   if (!res.ok) return res;
