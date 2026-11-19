@@ -942,7 +942,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
 
       {/* Right edge: zoom slider at the top, round buttons at the bottom (above the dock).
           Moves left of the place panel when it's open. */}
-      <div data-map-ui className={`pointer-events-none absolute bottom-[5.25rem] right-2.5 top-[13.5rem] z-10 flex flex-col items-end justify-between gap-2 print:hidden ${details ? "sm:right-[25.5rem]" : ""}`}>
+      <div data-map-ui className={`pointer-events-none absolute bottom-[5.25rem] right-2.5 top-[var(--legend-bottom,13.5rem)] z-10 flex flex-col items-end justify-between gap-2 print:hidden ${details ? "sm:right-[25.5rem]" : ""}`}>
         <div className={`pointer-events-auto flex flex-col items-end gap-2 ${details ? "hidden sm:flex" : ""}`}>
           <button type="button" onClick={() => setZoomOpen((o) => !o)} aria-expanded={zoomOpen} aria-label={tc("zoom")} title={tc("zoom")}
                   className={`${roundBtn} w-auto px-3 text-xs font-semibold tabular-nums`}>
@@ -1091,8 +1091,20 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
 
 function Legend({ lang, shown, places, live, sample }: { lang: Language; shown: number; places: number; live: number; sample: number }) {
   const t = translator(messages, lang);
+  // The zoom and location buttons start just below the legend, however tall it gets.
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    const parent = el?.parentElement;
+    if (!el || !parent) return;
+    const place = () => parent.style.setProperty("--legend-bottom", `${el.offsetTop + el.offsetHeight + 10}px`);
+    place();
+    const ro = new ResizeObserver(place);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   return (
-    <div data-map-ui className="absolute right-3 top-[8.75rem] z-10 max-w-[15rem] rounded-xl bg-neutral-950/90 px-3 py-2 text-xs text-neutral-200 shadow-lg ring-1 ring-white/10 backdrop-blur print:top-3">
+    <div ref={ref} data-map-ui className="absolute right-3 top-[8.75rem] z-10 max-w-[15rem] rounded-xl bg-neutral-950/90 px-3 py-2 text-xs text-neutral-200 shadow-lg ring-1 ring-white/10 backdrop-blur print:top-3">
       <div className="flex flex-wrap gap-x-3 gap-y-1">
         {config.crowd.levels.map((l) => (
           <span key={l.level} className="flex items-center gap-1.5">
