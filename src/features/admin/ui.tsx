@@ -9,9 +9,9 @@ export function FilterBar({ action, children, applyLabel, clearLabel }: {
   action: string; children: ReactNode; applyLabel: string; clearLabel: string;
 }) {
   return (
-    <form action={action} method="get" className="flex flex-wrap items-end gap-2 rounded-lg bg-gray-50 p-3 dark:bg-gray-900">
+    <form action={action} method="get" className="flex flex-wrap items-end gap-2 border border-zinc-900/20 bg-[#f3efe4] p-3 dark:border-zinc-800 dark:bg-zinc-900">
       {children}
-      <button className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white">{applyLabel}</button>
+      <button className="border border-zinc-900 bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-700">{applyLabel}</button>
       <Link href={action} className="px-2 py-1.5 text-sm text-gray-600 hover:underline dark:text-gray-400">{clearLabel}</Link>
     </form>
   );
@@ -36,9 +36,9 @@ export function Pager({ base, params, page, pages, label, prev, next }: {
   };
   return (
     <div className="flex items-center justify-between gap-2 text-sm">
-      {page > 1 ? <Link href={href(page - 1)} className="text-blue-600 hover:underline">{prev}</Link> : <span />}
+      {page > 1 ? <Link href={href(page - 1)} className="underline underline-offset-2 hover:no-underline">{prev}</Link> : <span />}
       <span className="text-gray-500">{label}</span>
-      {page < pages ? <Link href={href(page + 1)} className="text-blue-600 hover:underline">{next}</Link> : <span />}
+      {page < pages ? <Link href={href(page + 1)} className="underline underline-offset-2 hover:no-underline">{next}</Link> : <span />}
     </div>
   );
 }

@@ -9,6 +9,9 @@ import { isSupabaseConfigured, serverEnv } from "@/lib/env";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { loginSchema, signupSchema, toFieldErrors, type FieldErrors } from "@/lib/validation/auth";
 
+/** Bumped when the terms change; stored with each new account. */
+const TERMS_VERSION = "2026-11";
+
 export type AuthState = {
   message?: string; // translation key
   ok?: boolean;
@@ -86,6 +89,7 @@ export async function signup(_prev: AuthState, form: FormData): Promise<AuthStat
     email: form.get("email"),
     password: form.get("password"),
     confirmPassword: form.get("confirmPassword"),
+    acceptTerms: form.get("acceptTerms") ?? undefined,
   });
   if (!parsed.success) return { fields: toFieldErrors(parsed.error), values };
 
@@ -99,7 +103,7 @@ export async function signup(_prev: AuthState, form: FormData): Promise<AuthStat
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
-      data: { display_name: parsed.data.displayName },
+      data: { display_name: parsed.data.displayName, terms_accepted_at: new Date().toISOString(), terms_version: TERMS_VERSION },
       emailRedirectTo: `${origin}/auth/callback`,
     },
   });
@@ -114,6 +118,8 @@ export async function signup(_prev: AuthState, form: FormData): Promise<AuthStat
 
 export async function googleLogin(_prev: AuthState, form: FormData): Promise<AuthState> {
   if (!isSupabaseConfigured()) return { message: "auth.notConfigured" };
+  // Signing up with Google needs the same terms box ticked.
+  if (form.get("mode") === "signup" && form.get("acceptTerms") !== "on") return { message: "terms.required" };
   const { ip, origin } = await requestInfo();
   // The CAPTCHA is required for Google sign-in too.
   if (!(await verifyCaptcha(form.get("cf-turnstile-response") as string, ip))) {

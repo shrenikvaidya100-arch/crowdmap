@@ -56,7 +56,7 @@ export default async function AdminContent({ searchParams }: PageProps<"/admin/c
 
   return (
     <>
-      <section className="rounded-xl border border-amber-200 bg-amber-50/40 p-4 dark:border-amber-900 dark:bg-amber-950/20">
+      <section className="border border-amber-700/40 bg-amber-50/40 p-4 dark:border-amber-900 dark:bg-amber-950/20">
         <h2 className="mb-2 font-medium">{t("reports.title")}</h2>
         {reported.length === 0 ? <p className="text-sm text-gray-500">{t("reports.none")}</p> : (
           <ul className="divide-y divide-amber-100 dark:divide-amber-900/50">
@@ -79,7 +79,7 @@ export default async function AdminContent({ searchParams }: PageProps<"/admin/c
       <div className="flex gap-2">
         {TYPES.map((k) => (
           <Link key={k} href={`/admin/content?type=${k}`} aria-current={type === k ? "page" : undefined}
-                className={`rounded-full px-3 py-1 text-sm font-medium ${type === k ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"}`}>
+                className={`border px-3 py-1 text-sm font-medium ${type === k ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900" : "border-zinc-900/25 text-zinc-700 hover:border-zinc-900 dark:border-zinc-700 dark:text-zinc-300"}`}>
             {t(k)}
           </Link>
         ))}
@@ -164,7 +164,7 @@ async function MediaGrid({ rows, lang, t }: { rows: MediaRow[]; lang: Language; 
 
 function CommentList({ rows, lang, t }: { rows: CommentRow[]; lang: Language; t: T }) {
   return (
-    <ul className="divide-y divide-gray-100 rounded-xl border border-gray-200 dark:divide-gray-800 dark:border-gray-800">
+    <ul className="divide-y divide-gray-100 border border-zinc-900/20 bg-white dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-900">
       {rows.map((c) => (
         <li key={c.id} className={`flex flex-wrap items-start justify-between gap-3 p-3 ${c.status === "removed" ? "bg-red-50/50 dark:bg-red-950/30" : ""}`}>
           <div className="min-w-0 flex-1 space-y-1">

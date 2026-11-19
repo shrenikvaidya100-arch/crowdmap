@@ -41,6 +41,8 @@ export const signupSchema = z
     email: emailSchema,
     password: passwordSchema,
     confirmPassword: z.string(),
+    // The sign-up box: terms, photo/video responsibility and location use.
+    acceptTerms: z.literal("on", { message: "terms.required" }),
   })
   .refine((v) => v.password === v.confirmPassword, {
     path: ["confirmPassword"],

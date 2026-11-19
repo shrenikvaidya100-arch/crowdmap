@@ -26,7 +26,7 @@ import { useTheme } from "@/lib/theme";
 import { messages } from "./messages";
 import { useCityUpdates } from "./useCityUpdates";
 import { DEFAULT_OVERLAYS, styleUrl, type BasemapId, type OverlayId } from "./basemaps";
-import { applyOverlays, carryOver, DEFAULT_PREFS, paletteFilter, type MapPrefs } from "./mapLayers";
+import { applyOverlays, carryOver, DEFAULT_PREFS, OWN_LAYERS, paletteFilter, type MapPrefs } from "./mapLayers";
 import { MapDock, type DockKey } from "./controls/MapDock";
 import { CustomizePanel, LayersPanel, NewMarkerForm, PlacesPanel, ToolsPanel, type ToolMode } from "./controls/MapPanels";
 import { messages as controlMessages } from "./controls/messages";
@@ -40,6 +40,9 @@ import { GoButtons, GoPanel, type GoDest, type GoMode, type GoStatus } from "./G
 setWorkerUrl("/maplibre-gl-worker.js");
 
 const TILE_ORIGIN = new URL(config.map.styleUrl).origin;
+const OWN_LAYER_IDS = new Set(OWN_LAYERS);
+// Basemap label layers that name areas, roads or water rather than a place you can visit.
+const NOT_PLACE_LABELS = new Set(["place", "transportation_name", "water_name", "waterway", "boundary", "mountain_peak", "housenumber"]);
 
 export type MapCity = { id: string; name: string; name_hi: string | null; state?: string | null; lat: number; lng: number; default_zoom: number };
 /** Kept for the home page's props; places are now loaded per city from /api/crowd. */
@@ -162,6 +165,46 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
   const [pinPick, setPinPick] = useState<UserMarker | null>(null);
   const meMarker = useRef<Marker | null>(null);
 
+  // Every place currently on the map (the active city and nearby ones), for taps on labels.
+  const placesRef = useRef<CrowdPlace[]>([]);
+  /** The place a tap means: a dot within a finger's width, else the map label under it. */
+  function placeAtTap(m: MLMap, e: MapMouseEvent): string | null {
+    const pad = 10;
+    const box: [[number, number], [number, number]] = [[e.point.x - pad, e.point.y - pad], [e.point.x + pad, e.point.y + pad]];
+    const here = { lat: e.lngLat.lat, lng: e.lngLat.lng };
+    const close = placesRef.current.map((p) => ({ p, d: metres(here, p) })).filter((x) => x.d < 800).sort((a, b) => a.d - b.d);
+    // 1. A map label under the finger whose name matches one of our places ("Indian Institute of Management Indore").
+    // Labels of places and buildings only: not city or area names, roads or water.
+    const labels = m.queryRenderedFeatures(box).filter((f) => f.layer.type === "symbol" && !OWN_LAYER_IDS.has(f.layer.id)
+      && !NOT_PLACE_LABELS.has(f.sourceLayer ?? "") && typeof (f.properties?.["name:en"] ?? f.properties?.name) === "string");
+    const names = labels.flatMap((f) => [f.properties?.["name:en"], f.properties?.name])
+      .filter((n): n is string => typeof n === "string" && n.trim().length > 2).map((n) => n.toLowerCase().trim());
+    for (const label of names) {
+      const exact = close.find((x) => x.p.name.toLowerCase() === label);
+      if (exact) return exact.p.id;
+    }
+    for (const label of names) {
+      const part = close.find((x) => {
+        const n = x.p.name.toLowerCase();
+        return x.d < 400 && Math.min(n.length, label.length) >= 5 && (n.includes(label) || label.includes(n));
+      });
+      if (part) return part.p.id;
+    }
+    // 2. A near miss on one of our dots.
+    if (m.getLayer("places")) {
+      const best = m.queryRenderedFeatures(box, { layers: ["places"] }).map((f) => {
+        const [x, y] = (f.geometry as GeoJSON.Point).coordinates;
+        const pt = m.project([x, y]);
+        return { id: f.properties?.id as string, d: Math.hypot(pt.x - e.point.x, pt.y - e.point.y) };
+      }).sort((a, b) => a.d - b.d)[0];
+      if (best?.id) return best.id;
+    }
+    // 3. A label with no match by name: the place right by it, if there is one.
+    if (labels.length && close[0] && close[0].d < 60) return close[0].p.id;
+    return null;
+  }
+
+  // Create the map once.
   // Create the map once.
   useEffect(() => {
     if (!box.current) return;
@@ -177,6 +220,8 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
       attributionControl: { compact: true },
       // Double tap drops a pin instead of zooming.
       doubleClickZoom: false,
+      // Terrain looks across the hills, so allow a steeper tilt than the default 60°.
+      maxPitch: 75,
     });
     map.current = m;
     m.addControl(new ScaleControl({ maxWidth: 100, unit: "metric" }), "bottom-left");
@@ -205,6 +250,10 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
       if (mode === "line" || mode === "area") { setDrawPts((p) => [...p, pt]); return; }
       // Clicks on a place open the place; a tap on an empty spot closes everything.
       if (m.getLayer("places") && m.queryRenderedFeatures(e.point, { layers: ["places"] }).length) return;
+      // A near miss on a small dot, or a tap on the map's own label ("Indian Institute of
+      // Management Indore", a temple's name…) opens our place for it.
+      const hit = placeAtTap(m, e);
+      if (hit) { selectPlace(hit); return; }
       selectPlace(null); setPanel(null); setDockPanel(null); setNewMarker(null); setPinPick(null);
     });
     // Double tap or right click drops a pin right there (no form, no colour picker).
@@ -399,6 +448,8 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
   const nearbyVisible = useMemo(() => nearbyIds.flatMap((id) => (nearby[id] ? applyFilters(nearby[id], filters, me ?? centre) : [])),
     [nearbyIds, nearby, filters, me, centre]);
 
+  useEffect(() => { placesRef.current = [...visible, ...nearbyVisible]; }, [visible, nearbyVisible]);
+
   // Push the visible places and alerts into the map.
   useEffect(() => {
     const m = map.current;
@@ -460,16 +511,24 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
     const was = appliedBase.current;
     appliedBase.current = basemap;
     m.setStyle(styleUrl(basemap));
+    // Street, 3D and Terrain share one style, so the switch may not fire "style.load":
+    // apply the overlays (elevation, buildings) again once the map has settled.
+    m.once("idle", () => setStyleVersion((v) => v + 1));
     if (basemap === "3d") m.easeTo({ pitch: 60, bearing: -20, zoom: Math.max(m.getZoom(), 15.5), duration: 900 });
     else if (was === "3d" || basemap !== "terrain") { if (m.getPitch() > 0) m.easeTo({ pitch: 0, duration: 600 }); }
-    if (basemap === "terrain") m.easeTo({ pitch: 55, duration: 900 });
+    // Terrain: tilt and step back a little so hills and mountains stand up from the ground.
+    if (basemap === "terrain") m.easeTo({ pitch: 65, bearing: m.getBearing() || -15, zoom: Math.min(m.getZoom(), 13), duration: 1100 });
   }, [basemap, ready]);
 
   // Overlays, label and dot size, opacity: after every style load and on change.
   useEffect(() => {
     const m = map.current;
-    if (!m || !ready || !m.isStyleLoaded()) return;
-    applyOverlays(m, basemap, overlays, prefs);
+    if (!m || !ready) return;
+    // Don't wait for every tile (isStyleLoaded stays false while tiles download, so on
+    // a slow connection Terrain and the other overlays never came on). The style itself
+    // just has to be ready; if it isn't, try again when it is.
+    const run = () => { try { applyOverlays(m, basemap, overlays, prefs); return true; } catch { return false; } };
+    if (!run()) m.once("styledata", () => { if (!run()) m.once("idle", run); });
   }, [overlays, prefs, basemap, ready, styleVersion]);
 
   // Palette presets: Dark switches the map style; Sepia and High contrast recolour it.
@@ -902,9 +961,6 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
             <span aria-hidden style={{ transform: `rotate(${-bearing}deg)` }} className="transition-transform"><Icon name="compass" size={18} /></span>
           </button>
         )}
-        <button type="button" onClick={toggleFullscreen} className={`${roundBtn} hidden w-auto px-3 text-xs font-medium sm:grid`} aria-pressed={fullscreen}>
-          {fullscreen ? tc("exitFullscreen") : tc("fullscreen")}
-        </button>
         {locError && panel !== "filters" && <p className="max-w-56 rounded-md bg-neutral-900 px-2 py-1 text-xs text-neutral-100 shadow">{locError}</p>}
         <button type="button" onClick={toggleSharing} aria-pressed={sharing} title={t(sharing ? "shareOn" : "share")}
                 aria-label={t(sharing ? "shareOn" : "share")}
@@ -914,6 +970,9 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
         <button type="button" onClick={() => locate()} title={t("locate")}
                 className={roundBtn}>
           <Icon name="locate" size={18} /><span className="sr-only">{t("locate")}</span>
+        </button>
+        <button type="button" onClick={toggleFullscreen} className={`${roundBtn} hidden w-auto px-3 text-xs font-medium sm:grid`} aria-pressed={fullscreen}>
+          {fullscreen ? tc("exitFullscreen") : tc("fullscreen")}
         </button>
         </div>
       </div>

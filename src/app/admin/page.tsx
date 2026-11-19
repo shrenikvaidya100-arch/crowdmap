@@ -9,10 +9,14 @@ import { translator } from "@/lib/i18n";
 import { getLang } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 
-const STATS = [
-  "users", "users_new_24h", "users_removed", "admins", "reports_24h", "alerts_active", "media_visible",
-  "media_removed", "comments_visible", "comments_removed", "places_unconfirmed", "rejections_24h", "audit_entries",
-] as const;
+const GROUPS: [string, string[]][] = [
+  ["people", ["users", "users_new_24h", "users_removed", "admins"]],
+  ["today", ["reports_24h", "alerts_active", "rejections_24h", "places_unconfirmed"]],
+  ["content", ["media_visible", "media_removed", "comments_visible", "comments_removed"]],
+  ["record", ["audit_entries"]],
+];
+// Numbers that need a look when they're above zero.
+const WATCH = new Set(["rejections_24h", "places_unconfirmed"]);
 
 type LogRow = { id: number; at: string; actor_name: string | null; actor_role: string; action: string; target_type: string | null; details: { reason?: string } };
 type UserRow = { id: string; display_name: string; status: string; rejections: number; created_at: string };
@@ -36,20 +40,28 @@ export default async function AdminOverview() {
 
   return (
     <>
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        {STATS.map((k) => (
-          <div key={k} className="rounded-xl border border-gray-200 p-3 dark:border-gray-800">
-            <p className="text-2xl font-semibold tabular-nums">{(s[k] ?? 0).toLocaleString("en-IN")}</p>
-            <p className="text-xs text-gray-600 dark:text-gray-400">{t(`stat.${k}`)}</p>
+      {/* The numbers, grouped like a ledger: one ruled row per group. */}
+      <section className="border-y-2 border-zinc-900 dark:border-zinc-100">
+        {GROUPS.map(([group, keys]) => (
+          <div key={group} className="grid gap-x-6 border-b border-zinc-900/15 py-3 last:border-b-0 sm:grid-cols-[9rem_1fr] dark:border-zinc-800">
+            <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500 sm:pt-2">{t(`group.${group}`)}</p>
+            <dl className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-4">
+              {keys.map((k) => (
+                <div key={k}>
+                  <dd className={`font-mono text-2xl tabular-nums ${WATCH.has(k) && (s[k] ?? 0) > 0 ? "text-red-700 dark:text-red-400" : ""}`}>{(s[k] ?? 0).toLocaleString("en-IN")}</dd>
+                  <dt className="text-xs text-zinc-600 dark:text-zinc-400">{t(`stat.${k}`)}</dt>
+                </div>
+              ))}
+            </dl>
           </div>
         ))}
       </section>
 
-      <div className="grid gap-5 lg:grid-cols-2">
-        <section className="rounded-xl border border-gray-200 p-4 dark:border-gray-800">
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="font-medium">{t("recentAdmin")}</h2>
-            <Link href="/admin/log?role=admin" className="text-sm text-blue-600 hover:underline">{t("seeAll")}</Link>
+      <div className="grid gap-8 lg:grid-cols-2">
+        <section>
+          <div className="mb-2 flex items-baseline justify-between border-b border-zinc-900 pb-1 dark:border-zinc-100">
+            <h2 className="font-serif text-lg font-semibold">{t("recentAdmin")}</h2>
+            <Link href="/admin/log?role=admin" className="text-sm underline underline-offset-2 hover:no-underline">{t("seeAll")}</Link>
           </div>
           {recent.length === 0 ? <p className="text-sm text-gray-500">{t("noneYet")}</p> : (
             <ul className="divide-y divide-gray-100 text-sm dark:divide-gray-800">
@@ -65,10 +77,10 @@ export default async function AdminOverview() {
           )}
         </section>
 
-        <section className="rounded-xl border border-gray-200 p-4 dark:border-gray-800">
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="font-medium">{t("suspicious")}</h2>
-            <Link href="/admin/users?sort=rejections" className="text-sm text-blue-600 hover:underline">{t("seeAll")}</Link>
+        <section>
+          <div className="mb-2 flex items-baseline justify-between border-b border-zinc-900 pb-1 dark:border-zinc-100">
+            <h2 className="font-serif text-lg font-semibold">{t("suspicious")}</h2>
+            <Link href="/admin/users?sort=rejections" className="text-sm underline underline-offset-2 hover:no-underline">{t("seeAll")}</Link>
           </div>
           {flagged.length === 0 ? <p className="text-sm text-gray-500">{t("noneYet")}</p> : (
             <ul className="divide-y divide-gray-100 text-sm dark:divide-gray-800">
