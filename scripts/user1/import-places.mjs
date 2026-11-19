@@ -121,15 +121,22 @@ function dedupe(list) {
   return kept.map(({ key: _key, ...p }) => p);
 }
 
-async function main() {
+// A fresh connection for each step: the Overpass retries can wait minutes, and an
+// idle connection held that long gets dropped by the database (ECONNRESET).
+async function withDb(fn) {
   const db = new pg.Client({ connectionString: process.env.SUPABASE_DB_URL });
+  db.on("error", (e) => console.warn(`  database connection: ${e.message}`));
   await db.connect();
+  try { return await fn(db); } finally { await db.end().catch(() => {}); }
+}
+
+async function main() {
   const only = process.argv[2];
-  const { rows: cities } = await db.query(
+  const { rows: cities } = await withDb((db) => db.query(
     `select c.id, c.lat, c.lng from public.cities c
      where ($1::text is null or c.id = $1)
        and (not $2 or not exists (select 1 from public.places p where p.city_id = c.id))
-     order by c.sort_order`, [only === "--missing" ? null : only ?? null, only === "--missing"]);
+     order by c.sort_order`, [only === "--missing" ? null : only ?? null, only === "--missing"]));
 
   for (const city of cities) {
     console.log(`${city.id}: querying OpenStreetMap…`);
@@ -144,7 +151,7 @@ async function main() {
     const places = toPlaces(elements, city.id);
     // One round trip for the whole city (the database is far away; per-row inserts are slow).
     const rows = places.map(({ score: _score, ...p }) => p);
-    const r = await db.query(
+    const r = await withDb((db) => db.query(
       `insert into public.places (osm_type, osm_id, city_id, name, name_hi, category, lat, lng, radius_m, address)
        select osm_type, osm_id, city_id, name, name_hi, category, lat, lng, radius_m, address
        from jsonb_to_recordset($1::jsonb) as x(osm_type text, osm_id bigint, city_id text, name text, name_hi text,
@@ -154,17 +161,16 @@ async function main() {
          name = excluded.name, name_hi = excluded.name_hi, category = excluded.category,
          lat = excluded.lat, lng = excluded.lng, address = excluded.address
        returning (xmax = 0) as inserted`,
-      [JSON.stringify(rows)]);
+      [JSON.stringify(rows)]));
     const added = r.rows.filter((x) => x.inserted).length;
     const counts = places.reduce((m, p) => ({ ...m, [p.category]: (m[p.category] ?? 0) + 1 }), {});
     console.log(`  ${places.length} places (${added} new):`, counts);
     // Be polite to the free Overpass server between cities.
     await new Promise((r) => setTimeout(r, 5000));
   }
-  await db.query(
+  await withDb((db) => db.query(
     "select public.log_event_as(null, 'system', 'system.places_import', 'city', $1, $2)",
-    [only ?? "all", { source: "openstreetmap" }]);
-  await db.end();
+    [only ?? "all", { source: "openstreetmap" }]));
 }
 
 main().catch((err) => { console.error(err); process.exit(1); });
