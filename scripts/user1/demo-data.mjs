@@ -4,6 +4,7 @@
 //   node --env-file=.env.local scripts/user1/demo-data.mjs indore        # refresh Indore
 //   node --env-file=.env.local scripts/user1/demo-data.mjs all           # all cities
 //   node --env-file=.env.local scripts/user1/demo-data.mjs --clear       # remove all sample data
+//   node --env-file=.env.local scripts/user1/demo-data.mjs --place "D-303 Classroom" 4   # one place to a level (backup for a live demo)
 //
 // Sample reports count as "live" for 90 minutes, so run it shortly before a demo.
 import pg from "pg";
@@ -82,7 +83,17 @@ async function seed(city) {
 
 try {
   const arg = process.argv[2] ?? "indore";
-  if (arg === "--clear") {
+  if (arg === "--place") {
+    const name = process.argv[3];
+    const level = Math.min(5, Math.max(1, Number(process.argv[4] ?? 4)));
+    const { rows: [p] } = await db.query("select id, city_id from public.places where name = $1 and status <> 'removed' limit 1", [name]);
+    if (!p) throw new Error(`no place called ${name}`);
+    await db.query("delete from public.crowd_reports where is_sample and place_id = $1", [p.id]);
+    await db.query(`insert into public.crowd_reports (place_id, level, is_sample, created_at)
+                    select $1, $2, true, now() - (g * interval '2 minutes') from generate_series(1, 3) g`, [p.id, level]);
+    await db.query("select public.notify_city($1, $2, 'report')", [p.city_id, p.id]).catch(() => {});
+    console.log(`${name}: 3 sample reports at level ${level} (live for 90 minutes)`);
+  } else if (arg === "--clear") {
     console.log(`removed ${await clear(null)} sample rows`);
     await db.query("select public.log_event_as(null, 'system', 'system.demo_data_clear', null, null, '{}')");
   } else {
