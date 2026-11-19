@@ -17,6 +17,6 @@ export function HomeNav({ items, menuLabel }: { items: NavItem[]; menuLabel: str
 export function HeaderSpacer() {
   const path = usePathname();
   // These pages draw their own dark hero under the floating header.
-  if (['/', '/map', '/about', '/whats-new', '/getting-started', '/contact'].includes(path)) return null;
+  if (['/', '/map', '/community', '/about', '/whats-new', '/getting-started', '/contact'].includes(path)) return null;
   return <div aria-hidden className='h-16 shrink-0' />;
 }

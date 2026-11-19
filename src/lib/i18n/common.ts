@@ -34,6 +34,7 @@ export const common = {
     "cursor.explore": "Explore",
     "cursor.search": "Search",
     "nav.saved": "Saved",
+    "nav.community": "Community",
     "nav.notifications": "Notifications",
     "nav.language": "हिन्दी",
 
@@ -109,6 +110,7 @@ export const common = {
     "cursor.explore": "घूमें",
     "cursor.search": "खोजें",
     "nav.saved": "सहेजे गए",
+    "nav.community": "समुदाय",
     "nav.notifications": "सूचनाएँ",
     "nav.admin": "एडमिन",
     "nav.language": "English",

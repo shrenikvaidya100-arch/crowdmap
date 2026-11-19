@@ -28,7 +28,7 @@ export function InfoCard({ i = 0, label, children, className = "" }: { i?: numbe
 export async function InfoPage({ title, intro, children }: { title: string; intro: string; children: ReactNode }) {
   const tc = translator(common, await getLang());
   const links = [
-    { label: tc("nav.home"), href: "/" }, { label: tc("nav.map"), href: "/map" }, { label: tc("nav.about"), href: "/about" },
+    { label: tc("nav.home"), href: "/" }, { label: tc("nav.map"), href: "/map" }, { label: tc("nav.community"), href: "/community" }, { label: tc("nav.about"), href: "/about" },
     { label: tc("nav.whatsNew"), href: "/whats-new" }, { label: tc("nav.gettingStarted"), href: "/getting-started" },
     { label: tc("nav.contact"), href: "/contact" },
   ];

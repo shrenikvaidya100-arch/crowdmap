@@ -51,9 +51,17 @@ type CrowdPlace = {
 type Alert = { id: string; kind: string; place_id: string | null; lat: number; lng: number };
 type CrowdData = { city: string; places: CrowdPlace[]; alerts: Alert[] };
 type LatLng = { lat: number; lng: number };
+/** One bubble per city when zoomed out (from /api/crowd/overview). */
+type CityBubble = { id: string; name: string; name_hi: string | null; lat: number; lng: number; zoom: number; places: number; level: number | null; live: number };
 
 const LEVEL_COLOR = ["match", ["get", "level"],
   ...config.crowd.levels.flatMap((l) => [l.level, l.color]), config.crowd.noDataColor] as unknown as string;
+// City bubbles fade out (and each city's own dots fade in) between these zooms.
+const BUBBLE_FADE: [number, number] = [8, 9.5];
+// Bubble size grows with the number of places, and with the zoom.
+const BUBBLE_R = ["+", 7, ["*", 0.55, ["sqrt", ["get", "places"]]]];
+// Load the dots of up to this many other cities that are on screen when zoomed in.
+const MAX_NEARBY = 3;
 
 /** A place to open on load (from /?place=<id>). */
 export type LinkedPlace = { id: string; lat: number; lng: number; city_id: string };
@@ -82,7 +90,10 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
   function toggleSharing() {
     setSharing((on) => { savePresencePreference(!on); return !on; });
   }
-  const startCity = cities.find((c) => c.id === (initialPlace?.city_id ?? config.defaultCity)) ?? cities[0] ?? null;
+  // Start in the linked place's city, else the city nearest the requested spot, else the default.
+  const focusCity = initialFocus ? cities.reduce<MapCity | null>((b, c) =>
+    !b || (c.lat - initialFocus.lat) ** 2 + (c.lng - initialFocus.lng) ** 2 < (b.lat - initialFocus.lat) ** 2 + (b.lng - initialFocus.lng) ** 2 ? c : b, null) : null;
+  const startCity = cities.find((c) => c.id === (initialPlace?.city_id ?? focusCity?.id ?? config.defaultCity)) ?? cities[0] ?? null;
   const [ready, setReady] = useState(false);
   const [activeCity, setActiveCity] = useState<string | null>(startCity?.id ?? null);
   const [data, setData] = useState<CrowdData | null>(null);
@@ -188,10 +199,43 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
     // Scrolling the map shows the zoom control for a moment.
     m.on("wheel", () => flashZoom());
     m.on("load", () => {
+      // Every city as one crowd bubble when zoomed out: colour = typical crowd now,
+      // size = number of places, blue ring = live reports there.
+      m.addSource("cm-cities", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      m.addLayer({
+        id: "city-live", type: "circle", source: "cm-cities", maxzoom: BUBBLE_FADE[1], filter: [">", ["get", "live"], 0],
+        paint: {
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 3, ["+", 4, ["*", 0.55, BUBBLE_R]], 7, ["+", 8, BUBBLE_R]] as unknown as number,
+          "circle-color": "#3b82f6",
+          "circle-opacity": ["interpolate", ["linear"], ["zoom"], BUBBLE_FADE[0], 0.3, BUBBLE_FADE[1], 0],
+          "circle-blur": 0.4,
+        },
+      });
+      m.addLayer({
+        id: "city-bubbles", type: "circle", source: "cm-cities", maxzoom: BUBBLE_FADE[1],
+        paint: {
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 3, ["*", 0.55, BUBBLE_R], 7, BUBBLE_R] as unknown as number,
+          "circle-color": LEVEL_COLOR,
+          "circle-opacity": ["interpolate", ["linear"], ["zoom"], BUBBLE_FADE[0], 0.8, BUBBLE_FADE[1], 0],
+          "circle-stroke-color": ["case", [">", ["get", "live"], 0], "#3b82f6", "#ffffff"],
+          "circle-stroke-width": ["case", [">", ["get", "live"], 0], 2.5, 1.5],
+          "circle-stroke-opacity": ["interpolate", ["linear"], ["zoom"], BUBBLE_FADE[0], 0.9, BUBBLE_FADE[1], 0],
+        },
+      });
+      m.on("click", "city-bubbles", (e: MapLayerMouseEvent) => {
+        if (toolRef.current) return;
+        const p = e.features?.[0]?.properties;
+        if (!p || typeof p.id !== "string") return;
+        setActiveCity(p.id);
+        m.flyTo({ center: [Number(p.lng), Number(p.lat)], zoom: Number(p.zoom) || 12, essential: true });
+      });
+      m.on("mouseenter", "city-bubbles", () => { m.getCanvas().style.cursor = "pointer"; });
+      m.on("mouseleave", "city-bubbles", () => { m.getCanvas().style.cursor = ""; });
+
       m.addSource("places", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
       // Blue halo where CrowdMap users are right now (drawn under the dots).
       m.addLayer({
-        id: "presence",
+        id: "presence", minzoom: BUBBLE_FADE[0],
         type: "circle",
         source: "places",
         filter: [">", ["get", "here"], 0],
@@ -205,7 +249,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
         },
       });
       m.addLayer({
-        id: "places",
+        id: "places", minzoom: BUBBLE_FADE[0],
         type: "circle",
         source: "places",
         paint: {
@@ -270,9 +314,59 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
     if (selected && ids.has(selected)) setPlaceVersion((v) => v + 1);
   });
 
+  // Every city's bubble (zoomed out); refreshed with the crowd data.
+  const [overview, setOverview] = useState<CityBubble[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    const run = () => fetch("/api/crowd/overview").then((r) => (r.ok ? r.json() : null))
+      .then((j) => { if (!cancelled && j?.cities) setOverview(j.cities); }).catch(() => {});
+    void run();
+    const id = setInterval(run, crowdConfig.refreshMs * 5);
+    return () => { cancelled = true; clearInterval(id); };
+  }, []);
+  useEffect(() => {
+    const m = map.current;
+    if (!ready || !m) return;
+    (m.getSource("cm-cities") as GeoJSONSource | undefined)?.setData({
+      type: "FeatureCollection",
+      features: overview.map((c) => ({
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [c.lng, c.lat] },
+        properties: { id: c.id, level: c.level ?? 0, places: c.places, live: c.live, lat: c.lat, lng: c.lng, zoom: c.zoom },
+      })),
+    });
+  }, [overview, ready, styleVersion]);
+
+  // Zoomed in where two cities meet (Delhi, Noida, Gurugram…): the other cities on
+  // screen load their dots too, not just the active one.
+  const [nearby, setNearby] = useState<Record<string, CrowdPlace[]>>({});
+  const nearbyIds = useMemo(() => {
+    const m = map.current;
+    if (!ready || !m || zoom < BUBBLE_FADE[0] || !centre) return [];
+    const b = m.getBounds();
+    const pad = 0.25;
+    return cities
+      .filter((c) => c.id !== activeCity && c.lat > b.getSouth() - pad && c.lat < b.getNorth() + pad && c.lng > b.getWest() - pad && c.lng < b.getEast() + pad)
+      .sort((a, b2) => (a.lat - centre.lat) ** 2 + (a.lng - centre.lng) ** 2 - ((b2.lat - centre.lat) ** 2 + (b2.lng - centre.lng) ** 2))
+      .slice(0, MAX_NEARBY).map((c) => c.id);
+    // Recomputed when the map stops moving (centre) or crosses a whole zoom step.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, centre, Math.floor(zoom), activeCity, cities]);
+  useEffect(() => {
+    let cancelled = false;
+    for (const id of nearbyIds) {
+      if (nearby[id]) continue;
+      fetch(`/api/crowd?city=${encodeURIComponent(id)}`).then((r) => (r.ok ? r.json() : null))
+        .then((j) => { if (!cancelled && j?.places) setNearby((n) => ({ ...n, [id]: j.places })); }).catch(() => {});
+    }
+    return () => { cancelled = true; };
+  }, [nearbyIds, nearby]);
+
   // Places that pass the filters, sorted; distances from me, or else the map centre.
   const cityPlaces = useMemo(() => (data && data.city === activeCity ? data.places : []), [data, activeCity]);
   const visible = useMemo(() => applyFilters(cityPlaces, filters, me ?? centre), [cityPlaces, filters, me, centre]);
+  const nearbyVisible = useMemo(() => nearbyIds.flatMap((id) => (nearby[id] ? applyFilters(nearby[id], filters, me ?? centre) : [])),
+    [nearbyIds, nearby, filters, me, centre]);
 
   // Push the visible places and alerts into the map.
   useEffect(() => {
@@ -280,7 +374,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
     if (!ready || !m) return;
     (m.getSource("places") as GeoJSONSource | undefined)?.setData({
       type: "FeatureCollection",
-      features: visible.map((p) => ({
+      features: [...visible, ...nearbyVisible].map((p) => ({
         type: "Feature",
         geometry: { type: "Point", coordinates: [p.lng, p.lat] },
         properties: {
@@ -289,7 +383,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
         },
       })),
     });
-  }, [visible, ready, styleVersion]);
+  }, [visible, nearbyVisible, ready, styleVersion]);
 
   useEffect(() => {
     const m = map.current;
