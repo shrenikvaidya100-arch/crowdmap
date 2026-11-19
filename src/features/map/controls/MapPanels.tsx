@@ -69,7 +69,7 @@ export function LayersPanel({ lang, basemap, onBasemap, overlays, onOverlay, onC
         <div className='grid grid-cols-2 gap-1.5'>
           {BASEMAPS.map((b) => (
             <button key={b.id} type='button' aria-pressed={basemap === b.id} disabled={b.needsKey && !hasKey}
-                    onClick={() => onBasemap(b.id)} className={chip(basemap === b.id)}>
+                    onClick={() => onBasemap(b.id)} className={`${chip(basemap === b.id)} ${b.id === 'satellite' ? 'col-span-2' : ''}`}>
               {t(`base.${b.id}`)}
               {b.needsKey && !hasKey && <span className='block text-[11px] text-neutral-500'>{t('needsKey')}</span>}
             </button>

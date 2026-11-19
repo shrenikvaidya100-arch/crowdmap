@@ -99,40 +99,46 @@ export function ConfirmPrompt({ lang, me, onLocated, onConfirmed, hidden }: {
   }
 
   return (
-    <section data-map-ui role='dialog' aria-labelledby='confirm-title'
-             className='absolute left-2 right-2 top-[8.75rem] z-40 rounded-2xl bg-white p-4 text-sm text-zinc-800 shadow-2xl ring-1 ring-black/10 motion-safe:animate-[pop_200ms_ease-out] sm:left-3 sm:right-auto sm:w-[340px] dark:bg-zinc-900 dark:text-zinc-100 dark:ring-white/10 print:hidden'>
-      <div className='flex items-start gap-3'>
-        <span className='grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'>
-          <Icon name={categoryIcon(item.category)} size={18} />
-        </span>
-        <div className='min-w-0 flex-1'>
-          <p id='confirm-title' className='font-semibold'>{t('confirm.title', { place: name })}</p>
-          <p className='mt-0.5 text-xs text-zinc-500 dark:text-zinc-400'>{t('confirm.body', { level: said, n: mins, d: item.distance_m })}</p>
-        </div>
-        <button type='button' onClick={notThere} aria-label={t('close')} className='grid h-7 w-7 shrink-0 place-items-center rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800'>
-          <Icon name='close' size={14} />
+    // A notification that slides in from the top-left corner, like a phone push.
+    <section data-map-ui role='alertdialog' aria-labelledby='confirm-title' aria-describedby='confirm-body'
+             className='fixed left-3 top-3 z-[55] w-[calc(100%-1.5rem)] max-w-[360px] overflow-hidden rounded-2xl bg-white/95 text-sm text-zinc-800 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.35)] ring-1 ring-black/10 backdrop-blur-xl motion-safe:animate-[toastin_320ms_cubic-bezier(0.2,0.9,0.3,1.2)] dark:bg-zinc-900/95 dark:text-zinc-100 dark:ring-white/10 print:hidden'>
+      <div className='flex items-center gap-2 border-b border-zinc-100 px-3.5 py-2 text-[11px] font-medium text-zinc-500 dark:border-zinc-800'>
+        <span className='grid h-4 w-4 place-items-center rounded bg-blue-600 text-white'><Icon name='logo' size={11} /></span>
+        CrowdMap
+        <span className='text-zinc-400'>· {t('confirm.now')}</span>
+        <button type='button' onClick={notThere} aria-label={t('close')} className='ml-auto grid h-6 w-6 place-items-center rounded-full text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'>
+          <Icon name='close' size={13} />
         </button>
       </div>
-      <div className='mt-3 grid grid-cols-5 gap-1.5'>
+      <div className='flex items-start gap-3 px-3.5 pt-3'>
+        <span className='grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'>
+          <Icon name={categoryIcon(item.category)} size={17} />
+        </span>
+        <div className='min-w-0 flex-1'>
+          <p id='confirm-title' className='font-semibold leading-snug'>{t('confirm.title', { place: name })}</p>
+          <p id='confirm-body' className='mt-0.5 text-xs text-zinc-500 dark:text-zinc-400'>{t('confirm.body', { level: said, n: mins, d: item.distance_m })}</p>
+        </div>
+      </div>
+      <div className='grid grid-cols-5 gap-1 px-3.5 pt-3'>
         {config.crowd.levels.map((l) => (
-          <button key={l.level} type='button' disabled={busy} onClick={() => void answer(l.level)}
-                  className='flex flex-col items-center gap-1 rounded-lg border border-zinc-200 px-1 py-2 text-[11px] font-medium transition hover:-translate-y-0.5 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-800'>
-            <span className='h-4 w-4 rounded-full' style={{ background: l.color }} />
+          <button key={l.level} type='button' disabled={busy} onClick={() => void answer(l.level)} aria-label={tm(`level.${l.key}`)}
+                  className='flex flex-col items-center gap-1 rounded-lg py-1.5 text-[10px] font-medium text-zinc-600 transition-colors hover:text-zinc-900 disabled:opacity-50 dark:text-zinc-300 dark:hover:text-white'>
+            <span className='h-5 w-5 rounded-full ring-2 ring-white shadow-sm transition-transform hover:scale-110 dark:ring-zinc-900' style={{ background: l.color }} />
             {tm(`level.${l.key}`)}
           </button>
         ))}
       </div>
-      <div className='mt-2 flex items-center justify-between gap-2'>
-        <button type='button' onClick={notThere} className='text-xs text-zinc-500 underline-offset-2 hover:underline'>{t('confirm.notHere')}</button>
+      <div className='flex items-center justify-between gap-2 px-3.5 pb-3 pt-1'>
+        <button type='button' onClick={notThere} className='text-xs text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'>{t('confirm.notHere')}</button>
         {busy && <span className='text-xs text-zinc-500'>{t('confirm.checking')}</span>}
+        {note && !busy && (
+          <p role='status' className={`text-xs ${note.ok ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+            {note.key === 'result.signin'
+              ? <Link href='/login?next=/map' className='font-medium underline'>{t('confirm.signin')}</Link>
+              : t(note.key)}
+          </p>
+        )}
       </div>
-      {note && (
-        <p role='status' className={`mt-2 text-xs ${note.ok ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-          {note.key === 'result.signin'
-            ? <Link href='/login?next=/map' className='font-medium underline'>{t('confirm.signin')}</Link>
-            : t(note.key)}
-        </p>
-      )}
     </section>
   );
 }
