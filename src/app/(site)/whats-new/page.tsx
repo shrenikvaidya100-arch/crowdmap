@@ -8,7 +8,7 @@ const UPDATES: { date: string; title: string; body: string }[] = [
   { date: "19 November 2026", title: "All of India", body: "CrowdMap now covers more than fifty cities, every state capital among them. Pick a city from the list, or just move the map and it follows you. You can add a place anywhere in India." },
   { date: "18 November 2026", title: "Tell me when it's quiet", body: "Save places, and ask CrowdMap to notify you when a busy place calms down. Notifications reach your phone even when the site is closed." },
   { date: "18 November 2026", title: "Sign in with Google", body: "Join in one tap with your Google account, alongside email sign-in." },
-  { date: "18 November 2026", title: "Photos, videos and audio", body: "Share what a place looks like right now. Recordings are made live at the place, and anyone can comment." },
+  { date: "18 November 2026", title: "Photos, videos and audio", body: "Share what a place looks like: take a photo, video or voice note, or upload one, and anyone can comment." },
   { date: "18 November 2026", title: "A safer, faster map", body: "Automatic bot detection, an admin dashboard, and a map that loads twice as fast." },
   { date: "17 November 2026", title: "Plan your visit", body: "See the expected crowd for every hour of the week, the best time to go, the weather, and holidays that change the pattern." },
   { date: "17 November 2026", title: "Live presence", body: "See how many CrowdMap users are at a place right now, and watch the map update without refreshing." },

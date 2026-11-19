@@ -95,3 +95,13 @@ export async function resolveReports(mediaId: string, action: "keep" | "hide"): 
   if (res.ok) revalidatePath("/admin", "layout");
   return res;
 }
+
+/** Admin switch: whether photos, videos and voice notes must be posted from the place. */
+export async function setMediaLocationRequired(form: FormData): Promise<void> {
+  if (!(await unlocked())) return;
+  const required = form.get("required") === "true";
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_set_media_location", { p_required: required });
+  if (error) console.error("admin media location", error.message);
+  revalidatePath("/admin");
+}

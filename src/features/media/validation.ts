@@ -15,7 +15,8 @@ export const beginUploadSchema = z.object({
   size: z.number().int().min(1).max(mediaConfig.maxBytes, "tooLarge"),
   duration: z.number().min(0).max(mediaConfig.maxSeconds + 1, "tooLong").nullable(),
   caption: captionSchema,
-  fix: gpsFixSchema,
+  // Optional while the location rule is switched off (the database decides).
+  fix: gpsFixSchema.nullable(),
 }).refine((v) => MEDIA_MIMES[v.kind].includes(v.mime), { message: "badType", path: ["mime"] })
   .refine((v) => v.kind === "photo" || v.duration !== null, { message: "tooLong", path: ["duration"] });
 

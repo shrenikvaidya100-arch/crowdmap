@@ -26,9 +26,9 @@ export default function AboutPage() {
         <InfoCard i={2} label="03 · Trust" className="h-full">
           <h2>Keeping it honest</h2>
           <p>
-            Every report needs a real location check, accounts that behave like bots are removed automatically, and
-            every action is written to a log that nobody can edit, admins included. Photos and clips must be recorded
-            live at the place.
+            Every crowd report needs a real location check and a second person to agree before it shows as live,
+            accounts that behave like bots are removed automatically, and every action is written to a log that
+            nobody can edit, admins included. Photos and clips can be reported and are reviewed by admins.
           </p>
         </InfoCard>
         <InfoCard i={3} label="04 · Us" className="h-full">

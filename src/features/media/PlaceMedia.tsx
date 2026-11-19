@@ -50,6 +50,7 @@ export function PlaceMedia({ placeId, lang }: { placeId: string; lang: Language 
   const { ago, stamp } = useAgo(t);
   const [items, setItems] = useState<Item[] | null>(null);
   const [signedIn, setSignedIn] = useState(false);
+  const [locationRequired, setLocationRequired] = useState(true);
   const [capturing, setCapturing] = useState(false);
   const [notice, setNotice] = useState<{ ok: boolean; key: string } | null>(null);
   const [loadError, setLoadError] = useState(false);
@@ -62,7 +63,7 @@ export function PlaceMedia({ placeId, lang }: { placeId: string; lang: Language 
     let cancelled = false;
     fetch(`/api/media?place=${placeId}`, { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
-      .then((d) => { if (!cancelled) { setItems(d.items); setSignedIn(d.signed_in); stamp(); setLoadError(false); } })
+      .then((d) => { if (!cancelled) { setItems(d.items); setSignedIn(d.signed_in); setLocationRequired(d.location_required !== false); stamp(); setLoadError(false); } })
       .catch(() => { if (!cancelled) setLoadError(true); });
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -84,7 +85,7 @@ export function PlaceMedia({ placeId, lang }: { placeId: string; lang: Language 
         {!signedIn ? (
           items && <Link href="/login?next=/map" className="inline-block text-sm text-blue-600 hover:underline">{t("signIn")}</Link>
         ) : capturing ? (
-          <CaptureMedia placeId={placeId} lang={lang} onCancel={() => setCapturing(false)}
+          <CaptureMedia placeId={placeId} lang={lang} locationRequired={locationRequired} onCancel={() => setCapturing(false)}
                         onPosted={() => { setCapturing(false); setNotice({ ok: true, key: "result.posted" }); load(); }} />
         ) : (
           <button type="button" onClick={() => { setNotice(null); setCapturing(true); }}

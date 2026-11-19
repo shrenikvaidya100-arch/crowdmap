@@ -4,6 +4,7 @@
 import Link from "next/link";
 import { GlowCard } from "@/components/watermelon-ui/glow-card";
 import { Icon, type IconName } from "@/components/icons/Icon";
+import { setMediaLocationRequired } from "@/features/admin/actions";
 import { AdminCharts, type DashData } from "@/features/admin/AdminCharts";
 import { formatWhen } from "@/features/admin/format";
 import { requireAdminPage } from "@/features/admin/guard";
@@ -39,13 +40,15 @@ export default async function AdminOverview({ searchParams }: PageProps<"/admin"
   const lang = await getLang();
   const t = translator(messages, lang);
   const supabase = await createClient();
-  const [stats, dash, adminLog, systemLog, suspicious] = await Promise.all([
+  const [stats, dash, adminLog, systemLog, suspicious, mediaLoc] = await Promise.all([
     supabase.rpc("admin_stats"),
     supabase.rpc("admin_dashboard", { p_days: Number(range) }),
     supabase.rpc("admin_audit_log", { p_role: "admin", p_limit: 8 }),
     supabase.rpc("admin_audit_log", { p_role: "system", p_action: "system.", p_limit: 8 }),
     supabase.rpc("admin_users", { p_sort: "rejections", p_limit: 5 }),
+    supabase.rpc("media_location_required"),
   ]);
+  const locationRequired = mediaLoc.data !== false;
   for (const r of [stats, dash, adminLog, systemLog, suspicious]) if (r.error) console.error("admin overview", r.error.message);
   const s = (stats.data ?? {}) as Record<string, number>;
   const d = (dash.data ?? { days: [], levels: null, cities: [], quorum: { confirmed: 0, waiting: 0 } }) as DashData;
@@ -75,6 +78,18 @@ export default async function AdminOverview({ searchParams }: PageProps<"/admin"
           </GlowCard>
         ))}
       </section>
+
+      {/* Switch: must photos, videos and voice notes be posted from the place? */}
+      <form action={setMediaLocationRequired} className={`${card} flex flex-wrap items-center justify-between gap-3`}>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold">{t("mediaLoc.title")}</p>
+          <p className="text-xs text-zinc-500">{t(locationRequired ? "mediaLoc.on" : "mediaLoc.off")}</p>
+        </div>
+        <input type="hidden" name="required" value={locationRequired ? "false" : "true"} />
+        <button className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold shadow-sm transition ${locationRequired ? "bg-emerald-600 text-white hover:bg-emerald-500" : "bg-amber-500 text-white hover:bg-amber-400"}`}>
+          <span className="h-2 w-2 rounded-full bg-white" />{t(locationRequired ? "mediaLoc.turnOff" : "mediaLoc.turnOn")}
+        </button>
+      </form>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-semibold">{t("chart.heading")}</h2>
