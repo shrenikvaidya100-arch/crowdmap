@@ -8,7 +8,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { Language } from "@/lib/config";
 import { translator } from "@/lib/i18n";
 import {
-  addComment, deleteComment, deleteMedia, editCaption, editComment, reportComment, reportMedia, type MediaResult,
+  addComment, addPlaceComment, deleteComment, deleteMedia, editCaption, editComment, reportComment, reportMedia, type MediaResult,
 } from "./actions";
 import { CaptureMedia } from "./CaptureMedia";
 import { MEDIA_ICON, mediaConfig, type MediaKind } from "./config";
@@ -321,5 +321,85 @@ function ReportForm({ mediaId, t, onDone }: { mediaId: string; t: T; onDone: () 
       </div>
       {result && !result.ok && <p role="alert" className="text-amber-700">{t(result.key)}</p>}
     </form>
+  );
+}
+
+/** Comments straight on a place: no photo or video needed. */
+export function PlaceComments({ placeId, lang }: { placeId: string; lang: Language }) {
+  const t = translator(messages, lang);
+  const { ago, stamp } = useAgo(t);
+  const [items, setItems] = useState<Comment[] | null>(null);
+  const [signedIn, setSignedIn] = useState(false);
+  const [body, setBody] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState<{ ok: boolean; key: string } | null>(null);
+  const [version, setVersion] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/places/${placeId}/comments`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+      .then((d) => { if (!cancelled) { setItems(d.items); setSignedIn(d.signed_in); stamp(); } })
+      .catch(() => { if (!cancelled) setItems([]); });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [placeId, version]);
+
+  async function act(run: () => Promise<MediaResult>, okKey: string) {
+    setBusy(true); setNotice(null);
+    const res = await run();
+    setBusy(false);
+    setNotice({ ok: res.ok, key: res.ok ? okKey : `result.${res.reason ?? "error"}` });
+    if (res.ok) setVersion((v) => v + 1);
+    return res.ok;
+  }
+  async function post(e: React.FormEvent) {
+    e.preventDefault();
+    const parsed = commentBodySchema.safeParse(body);
+    if (!parsed.success) { setNotice({ ok: false, key: `result.${parsed.error.issues[0].message}` }); return; }
+    if (await act(() => addPlaceComment({ placeId, body: parsed.data }), "place.posted")) setBody("");
+  }
+
+  return (
+    <section aria-labelledby={`pc-${placeId}`}>
+      <h3 id={`pc-${placeId}`} className="text-sm font-medium">{t("place.title")}{items?.length ? ` (${items.length})` : ""}</h3>
+      {signedIn ? (
+        <form onSubmit={post} className="mt-2 flex gap-2">
+          <input value={body} onChange={(e) => setBody(e.target.value)} maxLength={mediaConfig.commentMax} placeholder={t("place.placeholder")}
+                 aria-label={t("place.placeholder")}
+                 className="min-w-0 flex-1 rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-700" />
+          <button type="submit" disabled={busy || !body.trim()} className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50">{t("send")}</button>
+        </form>
+      ) : items && (
+        <Link href="/login?next=/map" className="mt-2 inline-block text-sm text-blue-600 hover:underline">{t("place.signIn")}</Link>
+      )}
+      <Notice t={t} notice={notice} />
+      {items && items.length === 0 && <p className="mt-2 text-sm text-gray-500">{t("place.none")}</p>}
+      {items && items.length > 0 && (
+        <ul className="mt-2 space-y-2">
+          {items.map((c) => (
+            <li key={c.id} className="rounded-lg bg-gray-50 px-3 py-2 text-sm dark:bg-gray-800/60">
+              <p className="whitespace-pre-wrap break-words">{c.body}</p>
+              <p className="mt-0.5 flex flex-wrap gap-x-2 text-[11px] text-gray-500">
+                <span>{t("by", { name: c.author, ago: ago(c.created_at) })}</span>
+                {c.edited_at && <span>· {t("edited")}</span>}
+                {c.mine && (
+                  <button type="button" className="text-red-600 hover:underline"
+                          onClick={() => { if (confirm(t("confirmDeleteComment"))) void act(() => deleteComment(c.id), "result.deleted"); }}>
+                    {t("delete")}
+                  </button>
+                )}
+                {!c.mine && signedIn && (
+                  <button type="button" className="hover:text-red-600 hover:underline"
+                          onClick={() => { if (confirm(t("confirmReportComment"))) void act(() => reportComment(c.id), "result.commentReported"); }}>
+                    {t("reportComment")}
+                  </button>
+                )}
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
