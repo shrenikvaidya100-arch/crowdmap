@@ -47,6 +47,16 @@ async function logAnonymous(action: string, details: Record<string, unknown>) {
   if (error) console.error("audit log failed", error.message);
 }
 
+type Account = { id: string; confirmed: boolean; providers: string[] } | null;
+
+/** Server-only: does this email have an account, is it confirmed, and how does it sign in? */
+async function accountFor(email: string): Promise<Account> {
+  if (!serverEnv().supabaseSecretKey) return null;
+  const { data } = await createServiceClient().rpc("auth_account_for_email", { p_email: email });
+  const row = Array.isArray(data) ? data[0] : null;
+  return row ? { id: row.id, confirmed: row.confirmed, providers: row.providers ?? [] } : null;
+}
+
 export async function login(_prev: AuthState, form: FormData): Promise<AuthState> {
   const values = { email: String(form.get("email") ?? "") };
   if (!isSupabaseConfigured()) return { message: "auth.notConfigured", values };
@@ -60,7 +70,20 @@ export async function login(_prev: AuthState, form: FormData): Promise<AuthState
   }
 
   const supabase = await createClient();
-  const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
+  let { data, error } = await supabase.auth.signInWithPassword(parsed.data);
+  if (error && error.status !== 429) {
+    const acct = await accountFor(parsed.data.email);
+    if (acct && !acct.providers.includes("email") && acct.providers.includes("google")) {
+      // Made with Google, so it has no password.
+      return { message: "auth.useGoogle", values };
+    }
+    if (acct && !acct.confirmed && acct.providers.includes("email")) {
+      // Accounts stuck waiting for a confirmation email (the mail quota is tiny):
+      // confirm them, then try again; the retry still checks the password.
+      await createServiceClient().auth.admin.updateUserById(acct.id, { email_confirm: true });
+      ({ data, error } = await supabase.auth.signInWithPassword(parsed.data));
+    }
+  }
   if (error || !data.user) {
     await logAnonymous("auth.login_failed", { email_hash: hashEmail(parsed.data.email), ip });
     const limited = error?.status === 429;
@@ -99,11 +122,30 @@ export async function signup(_prev: AuthState, form: FormData): Promise<AuthStat
   }
 
   const supabase = await createClient();
+  const meta = { display_name: parsed.data.displayName, terms_accepted_at: new Date().toISOString(), terms_version: TERMS_VERSION };
+
+  // Create the account already confirmed, so nobody waits on a confirmation email
+  // (Supabase's built-in mailer only sends a few an hour) and there's no cap on sign-ups.
+  if (serverEnv().supabaseSecretKey) {
+    const existing = await accountFor(parsed.data.email);
+    if (existing) return { message: existing.providers.includes("email") ? "auth.emailTaken" : "auth.useGoogle", values };
+    const { error: createErr } = await createServiceClient().auth.admin.createUser({
+      email: parsed.data.email, password: parsed.data.password, email_confirm: true, user_metadata: meta,
+    });
+    if (createErr) {
+      console.error("signup failed", createErr.status, createErr.message);
+      return { message: createErr.status === 422 ? "auth.emailTaken" : "auth.signupFailed", values };
+    }
+    const { error: inErr } = await supabase.auth.signInWithPassword({ email: parsed.data.email, password: parsed.data.password });
+    if (inErr) return { ok: true, message: "auth.badCredentials", values: {} };
+    redirect("/welcome?next=%2Fmap");
+  }
+
   const { data, error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
-      data: { display_name: parsed.data.displayName, terms_accepted_at: new Date().toISOString(), terms_version: TERMS_VERSION },
+      data: meta,
       emailRedirectTo: `${origin}/auth/callback`,
     },
   });
