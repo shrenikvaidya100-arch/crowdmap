@@ -17,6 +17,7 @@ import { deleteMyPlace } from "@/features/places/actions";
 import { deleteComment, deleteMedia } from "@/features/media/actions";
 import { MEDIA_ICON, type MediaKind } from "@/features/media/config";
 import { messages } from "./messages";
+import { askConfirm } from "@/components/ConfirmDialog";
 
 type PlaceRef = { id: string; name: string; name_hi: string | null; city_id: string } | null;
 export type ReportRow = { id: string; level: number; created_at: string; place: PlaceRef };
@@ -92,7 +93,7 @@ export function ActivityTabs({
   const placeName = (p: PlaceRef) => (p ? (lang === "hi" && p.name_hi) || p.name : "—");
 
   async function run(id: string, fn: () => Promise<{ ok: boolean; reason?: string }>, confirmKey?: string) {
-    if (confirmKey && !window.confirm(t(confirmKey))) return;
+    if (confirmKey && !(await askConfirm(t(confirmKey)))) return;
     setBusy(id);
     setNotice(null);
     const r = await fn();

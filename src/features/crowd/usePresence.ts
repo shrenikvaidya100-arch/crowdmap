@@ -54,7 +54,7 @@ export function usePresence(enabled: boolean, onPosition?: (p: { lat: number; ln
         onPos.current?.({ lat: pos.coords.latitude, lng: pos.coords.longitude });
         if (!sentOnce) { sentOnce = true; void beat(); }
       },
-      (err) => setStatus({ state: "error", reason: err.code === err.PERMISSION_DENIED ? "gps.denied" : "gps.timeout" }),
+      (err) => setStatus({ state: "error", reason: err.code === err.PERMISSION_DENIED ? "gps.denied" : err.code === err.POSITION_UNAVAILABLE ? "gps.off" : "gps.timeout" }),
       { enableHighAccuracy: true, maximumAge: 30_000, timeout: 20_000 },
     );
     const timer = setInterval(() => void beat(), PRESENCE_INTERVAL_MS);

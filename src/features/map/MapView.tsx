@@ -80,6 +80,12 @@ function metres(a: LatLng, b: LatLng) {
 /** A place to open on load (from /?place=<id>). */
 export type LinkedPlace = { id: string; lat: number; lng: number; city_id: string };
 
+/** True the first time it's asked in this browser tab, so a popup doesn't nag on every page. */
+function oncePerVisit(key: string) {
+  try { if (sessionStorage.getItem(key)) return false; sessionStorage.setItem(key, "1"); } catch { /* private mode */ }
+  return true;
+}
+
 export function MapView({ lang, cities, initialPlace = null, initialFocus = null, openDetails = false, signedIn = false }: {
   lang: Language; cities: MapCity[]; places?: MapPlace[]; initialPlace?: LinkedPlace | null;
   /** Open the linked place's full panel (report buttons) straight away, e.g. from a "please confirm" notification. */
@@ -109,16 +115,39 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
   // Signed-in people share by default: silently if location is already allowed, otherwise
   // after our popup ("Not now" turns it off on this device).
   useEffect(() => {
-    if (!signedIn || !loadPresencePreference()) return;
+    // Everyone (signed in or not) shares passively by default; reporting still needs sign-in.
+    if (!loadPresencePreference()) return;
     void (async () => {
       const perm = await locationPermission();
       if (perm === "granted") setSharing(true);
       else if (perm !== "denied") setLocAsk({ reason: "share", blocked: false, run: () => setSharing(true), onNo: () => savePresencePreference(false) });
+      // Location blocked for this site: say how to switch it on (once per visit), with "Try again".
+      else if (oncePerVisit("cm-loc-blocked")) setLocAsk({ reason: "share", blocked: true, run: () => setSharing(true) });
     })();
-  }, [signedIn]);
+  }, []);
+  // Location switched off while the map is open (site permission, or the phone's location
+  // services): stop sharing and show the popup explaining how to turn it back on.
+  useEffect(() => {
+    if (presence.state !== "error" || (presence.reason !== "gps.denied" && presence.reason !== "gps.off")) return;
+    const off = presence.reason === "gps.off";
+    queueMicrotask(() => {
+      setSharing(false);
+      if (oncePerVisit(`cm-loc-${presence.reason}`)) setLocAsk({ reason: "share", blocked: true, off, run: () => setSharing(true) });
+    });
+  }, [presence]);
+  useEffect(() => {
+    // The browser's own setting changed (e.g. turned off in site settings): react straight away.
+    let status: PermissionStatus | null = null;
+    const onChange = () => {
+      if (status?.state === "denied") { setSharing(false); setLocAsk({ reason: "share", blocked: true, run: () => setSharing(true) }); }
+      else if (status?.state === "granted" && loadPresencePreference()) setSharing(true);
+    };
+    navigator.permissions?.query({ name: "geolocation" as PermissionName }).then((s) => { status = s; s.addEventListener("change", onChange); }).catch(() => {});
+    return () => status?.removeEventListener("change", onChange);
+  }, []);
   // Location: our own popup first (why, Allow / Not now), then the browser's prompt.
   const [mobileMenu, setMobileMenu] = useState(false);
-  const [locAsk, setLocAsk] = useState<{ reason: LocationReason; blocked: boolean; run: () => void; onNo?: () => void } | null>(null);
+  const [locAsk, setLocAsk] = useState<{ reason: LocationReason; blocked: boolean; off?: boolean; run: () => void; onNo?: () => void } | null>(null);
   async function withLocation(reason: LocationReason, run: () => void, onNo?: () => void) {
     const perm = await locationPermission();
     if (perm === "granted") run();
@@ -963,6 +992,8 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
     setPinPick({ id: `search:${p.lat},${p.lng}`, name: p.name, color: "#2563eb", lat: p.lat, lng: p.lng, at: Date.now() });
   }
 
+  const searchCities = useMemo(() => cities.map((c) => ({ id: c.id, name: c.name, name_hi: c.name_hi, state: c.state ?? null })), [cities]);
+  const pickCity = useCallback((id: string) => { const c = cities.find((x) => x.id === id); if (c) flyTo(c); }, [cities]);
   const cityNames = Object.fromEntries(cities.map((c) => [c.id, lang === "hi" && c.name_hi ? c.name_hi : c.name]));
   const activeFilters = countActive(filters);
   const liveCount = cityPlaces.filter((p) => p.source === "live" && !p.sample).length;
@@ -991,6 +1022,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
       <div className="absolute inset-x-0 top-16 z-30 space-y-2 px-3">
         <div className="flex items-center gap-2">
           <SearchBox lang={lang} city={activeCity} cityNames={cityNames} onPick={(h: SearchHit) => openPlace(h)}
+                     cities={searchCities} onPickCity={pickCity}
                      onPickPoint={pickPoint} center={centre} pins={markers} popular={popular} />
           {/* Phones: one menu button opens a popup with these. */}
           <button type="button" onClick={() => { closeOthers(); setPanel(null); setMobileMenu(true); }} aria-label={t("menu.open")} aria-haspopup="dialog"
@@ -1212,7 +1244,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
         </div>
       )}
       {locAsk && (
-        <LocationAsk lang={lang} reason={locAsk.reason} blocked={locAsk.blocked}
+        <LocationAsk lang={lang} reason={locAsk.reason} blocked={locAsk.blocked} off={locAsk.off} signedIn={signedIn}
                      onAllow={() => { const r = locAsk.run; setLocAsk(null); r(); }}
                      onClose={() => { const n = locAsk.onNo; setLocAsk(null); n?.(); }} />
       )}

@@ -3,7 +3,7 @@ import type { Messages } from "@/lib/i18n";
 export const messages = {
   en: {
     placeholder: "Search places, streets, shops… or just start typing",
-    "sec.places": "CrowdMap places", "sec.pins": "Your pins", "sec.points": "On the map",
+    "sec.cities": "Cities", "sec.places": "CrowdMap places", "sec.pins": "Your pins", "sec.points": "On the map",
     "sec.recent": "Recent searches", "sec.popular": "Busy right now", "pin": "Pin",
     "clearRecent": "Clear",
     label: "Search places",
@@ -47,7 +47,7 @@ export const messages = {
   },
   hi: {
     placeholder: "जगह, सड़क, दुकान खोजें… या बस टाइप करें",
-    "sec.places": "CrowdMap की जगहें", "sec.pins": "आपके पिन", "sec.points": "नक्शे पर",
+    "sec.cities": "शहर", "sec.places": "CrowdMap की जगहें", "sec.pins": "आपके पिन", "sec.points": "नक्शे पर",
     "sec.recent": "हाल की खोजें", "sec.popular": "अभी भीड़ वाली जगहें", "pin": "पिन",
     "clearRecent": "साफ़ करें",
     label: "जगह खोजें",

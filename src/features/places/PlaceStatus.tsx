@@ -8,6 +8,7 @@ import { getGpsFix, GpsError } from "@/features/crowd/gps";
 import { confirmPlace, deleteMyPlace, editMyPlace, type PlaceResult } from "./actions";
 import { messages } from "./messages";
 import { PlaceForm, type PlaceFields } from "./PlaceForm";
+import { askConfirm } from "@/components/ConfirmDialog";
 
 export type PlaceStatusInfo = {
   id: string; name: string; name_hi: string | null; category: string;
@@ -74,7 +75,7 @@ export function PlaceStatus({
             <div className="mt-2 flex gap-3">
               <button type="button" className="text-blue-600 hover:underline" onClick={() => setEditing(true)}>{t("edit")}</button>
               <button type="button" className="text-red-600 hover:underline" disabled={busy}
-                      onClick={() => { if (confirm(t("confirmDelete"))) void run(() => deleteMyPlace(place.id), () => "result.deleted", onDeleted); }}>
+                      onClick={async () => { if (await askConfirm(t("confirmDelete"))) void run(() => deleteMyPlace(place.id), () => "result.deleted", onDeleted); }}>
                 {t("delete")}
               </button>
             </div>

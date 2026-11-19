@@ -29,7 +29,7 @@ export function NotificationBell({ label }: { label: string }) {
   }, [path]);
   return (
     <Link href="/saved" aria-label={count ? `${label} (${count})` : label}
-          className="relative rounded-md px-2.5 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-800">
+          className="relative grid h-9 w-9 place-items-center rounded-full text-sm transition-shadow duration-300 hover:shadow-[0_0_0_2px_rgba(59,130,246,0.55),0_0_18px_4px_rgba(59,130,246,0.55)] focus-visible:shadow-[0_0_0_2px_rgba(59,130,246,0.7)] focus-visible:outline-none">
       <Icon name="bell" size={20} />
       {count > 0 && (
         <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">

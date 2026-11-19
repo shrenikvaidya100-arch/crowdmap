@@ -16,7 +16,13 @@ import type { SearchHit } from '@/features/search/SearchBox';
 import { config, type Language } from '@/lib/config';
 
 type WorldHit = { id: string; name: string; detail: string; lat: number; lng: number; zoom: number };
-type Result = { kind: 'place'; hit: SearchHit } | { kind: 'world'; hit: WorldHit };
+type City = { id: string; name: string; name_hi: string | null; state: string | null; lat: number; lng: number };
+type Result = { kind: 'city'; hit: City } | { kind: 'place'; hit: SearchHit } | { kind: 'world'; hit: WorldHit };
+
+// The city list is fetched once (edge-cached) and matched locally, so cities show instantly.
+let cityList: Promise<City[]> | null = null;
+const loadCities = (): Promise<City[]> => (cityList ??= fetch('/api/cities').then((r) => (r.ok ? (r.json() as Promise<City[]>) : [])).catch(() => { cityList = null; return [] as City[]; }));
+const placeCache = new Map<string, SearchHit[]>();
 
 const cache = new Map<string, WorldHit[]>();
 let lastNominatim = 0;
@@ -66,28 +72,35 @@ export function GlowSearch({ lang, labels }: {
     const ctrl = new AbortController();
     queueMicrotask(() => setBusy(true));
     const timer = setTimeout(async () => {
-      try {
-        const [ours, world] = await Promise.all([
-          fetch(`/api/search?q=${encodeURIComponent(query)}`, { signal: ctrl.signal })
-            .then((r) => (r.ok ? (r.json() as Promise<SearchHit[]>) : [])).catch(() => [] as SearchHit[]),
-          searchWorld(query, lang, ctrl.signal).catch(() => [] as WorldHit[]),
-        ]);
-        if (ctrl.signal.aborted) return;
-        setResults([
-          ...ours.slice(0, 5).map((hit) => ({ kind: 'place' as const, hit })),
-          ...world.map((hit) => ({ kind: 'world' as const, hit })),
-        ]);
-        setActive(0);
-      } finally {
-        if (!ctrl.signal.aborted) setBusy(false);
-      }
-    }, 500);
+      const needle = query.toLowerCase();
+      let cities: Result[] = [], ours: Result[] = [], world: Result[] = [];
+      const show = (final = false) => {
+        const all = [...cities, ...ours, ...world];
+        if (!ctrl.signal.aborted && (all.length || final)) setResults(all);
+      };
+      // Each source shows as soon as it answers; the slow outside lookup never holds up ours.
+      const c = loadCities().then((list) => {
+        cities = list.filter((x) => [x.name, x.name_hi, x.id].some((n) => n?.toLowerCase().startsWith(needle)))
+          .slice(0, 3).map((hit) => ({ kind: 'city' as const, hit }));
+        show();
+      });
+      const cached = placeCache.get(needle);
+      const o = (cached ? Promise.resolve(cached) : fetch(`/api/search?q=${encodeURIComponent(query)}`, { signal: ctrl.signal })
+        .then((r) => (r.ok ? (r.json() as Promise<SearchHit[]>) : [])))
+        .then((hits) => { placeCache.set(needle, hits); ours = hits.slice(0, 5).map((hit) => ({ kind: 'place' as const, hit })); setActive(0); show(); })
+        .catch(() => {});
+      await Promise.all([c, o]);
+      world = (await searchWorld(query, lang, ctrl.signal).catch(() => [] as WorldHit[])).map((hit) => ({ kind: 'world' as const, hit }));
+      show(true);
+      if (!ctrl.signal.aborted) setBusy(false);
+    }, 150);
     return () => { ctrl.abort(); clearTimeout(timer); };
   }, [q, lang]);
 
   function open(r: Result) {
     logSearch(q, results?.length ?? 0);
-    if (r.kind === 'place') router.push(`/map?place=${r.hit.id}`);
+    if (r.kind === 'city') router.push(`/map?lat=${r.hit.lat.toFixed(5)}&lng=${r.hit.lng.toFixed(5)}&z=11`);
+    else if (r.kind === 'place') router.push(`/map?place=${r.hit.id}`);
     else router.push(`/map?lat=${r.hit.lat.toFixed(5)}&lng=${r.hit.lng.toFixed(5)}&z=${r.hit.zoom}`);
   }
 
@@ -101,6 +114,7 @@ export function GlowSearch({ lang, labels }: {
 
   const name = (h: SearchHit) => (lang === 'hi' && h.name_hi) || h.name;
   const firstWorld = results?.findIndex((r) => r.kind === 'world') ?? -1;
+  const firstOurs = results?.findIndex((r) => r.kind === 'place') ?? -1;
 
   return (
     <div className='relative w-full max-w-[540px]'>
@@ -135,7 +149,7 @@ export function GlowSearch({ lang, labels }: {
               <ul id={listId} role='listbox' aria-label={labels.search} className='max-h-80 overflow-y-auto'>
                 {results.map((r, i) => (
                   <li key={`${r.kind}-${r.hit.id}`}>
-                    {(i === 0 && r.kind === 'place') && <p className='px-3 pb-1 text-[11px] uppercase tracking-wider text-zinc-500'>{labels.ours}</p>}
+                    {i === firstOurs && <p className='px-3 pb-1 text-[11px] uppercase tracking-wider text-zinc-500'>{labels.ours}</p>}
                     {i === firstWorld && <p className='px-3 pb-1 pt-2 text-[11px] uppercase tracking-wider text-zinc-500'>{labels.world}</p>}
                     <button
                       id={`${listId}-${i}`}
@@ -146,7 +160,15 @@ export function GlowSearch({ lang, labels }: {
                       onClick={() => open(r)}
                       className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm ${i === active ? 'bg-zinc-800' : ''}`}
                     >
-                      {r.kind === 'place' ? (
+                      {r.kind === 'city' ? (
+                        <>
+                          <Icon name='map' size={18} className='shrink-0 text-blue-400' />
+                          <span className='min-w-0 flex-1'>
+                            <span className='block truncate'>{(lang === 'hi' && r.hit.name_hi) || r.hit.name}</span>
+                            {r.hit.state && <span className='block truncate text-xs text-zinc-500'>{r.hit.state}</span>}
+                          </span>
+                        </>
+                      ) : r.kind === 'place' ? (
                         <>
                           <Icon name={categoryIcon(r.hit.category)} size={18} className='shrink-0 text-zinc-400' />
                           <span className='min-w-0 flex-1 truncate'>{name(r.hit)}</span>

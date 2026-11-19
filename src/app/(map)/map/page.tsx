@@ -43,11 +43,17 @@ export default async function MapPage({ searchParams }: PageProps<"/map">) {
     getLang(), loadCities(), loadLinkedPlace(typeof sp.place === "string" ? sp.place : undefined), getViewer(),
   ]);
   const t = translator(common, lang);
+  // Same choice MapView makes for the city it opens on.
+  const startCity = linked?.city_id ?? (focus
+    ? cities.reduce<MapCity | null>((b, c) => (!b || Math.hypot(c.lat - focus.lat, c.lng - focus.lng) < Math.hypot(b.lat - focus.lat, b.lng - focus.lng) ? c : b), null)?.id
+    : null) ?? config.defaultCity;
   return (
     <main className="relative flex flex-1 flex-col">
       {/* Start fetching the map's style and worker before its code runs. */}
       <link rel="preload" href="/maplibre-gl-worker.js" as="script" />
       <link rel="preload" href={config.map.styleUrl} as="fetch" crossOrigin="anonymous" />
+      {/* And the first city's crowd data (Indore, with the IIM campus, by default). */}
+      <link rel="preload" href={`/api/crowd?city=${encodeURIComponent(startCity)}`} as="fetch" crossOrigin="anonymous" />
       {!isSupabaseConfigured() && (
         <div className="absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-md bg-amber-100 px-3 py-2 text-sm text-amber-900 shadow">
           <strong>{t("setup.title")}:</strong> {t("setup.body")}

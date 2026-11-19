@@ -96,6 +96,10 @@ textarea,
   from { transform: translateY(100%); }
   to { transform: none; }
 }
+@keyframes bubble {
+  from { opacity: 0; transform: translateY(-10px) scale(0.85); }
+  to { opacity: 1; transform: none; }
+}
 @keyframes pop {
   from { opacity: 0; transform: translateY(-4px) scale(0.98); }
   to { opacity: 1; transform: none; }

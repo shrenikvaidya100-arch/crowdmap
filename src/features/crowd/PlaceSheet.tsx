@@ -20,6 +20,7 @@ import {
 import { categoryIcon, QUICK_KINDS, quickIcon } from "./config";
 import { getGpsFix, GpsError } from "./gps";
 import { messages } from "./messages";
+import { askConfirm } from "@/components/ConfirmDialog";
 
 type Details = {
   place: {
@@ -205,7 +206,7 @@ export function PlaceSheet({
                       <button type="button" className="text-blue-600 hover:underline" onClick={() => setEditing(true)}>{t("change")}</button>
                     )}
                     <button type="button" className="text-red-600 hover:underline" disabled={!!busy}
-                            onClick={() => { if (confirm(t("confirmDelete"))) void simple(() => deleteCrowdReport(data.my_report!.id), "result.deleted"); }}>
+                            onClick={async () => { if (await askConfirm(t("confirmDelete"))) void simple(() => deleteCrowdReport(data.my_report!.id), "result.deleted"); }}>
                       {t("delete")}
                     </button>
                   </div>
