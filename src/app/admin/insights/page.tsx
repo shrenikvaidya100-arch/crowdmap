@@ -12,7 +12,9 @@ import { translator } from "@/lib/i18n";
 import { getLang } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 
-const RANGES = { "30": 30, "90": 90, "365": 365 } as const;
+// "month" = this calendar month so far (India time), one tower per day.
+const dayOfMonth = () => Number(new Intl.DateTimeFormat("en-IN", { day: "numeric", timeZone: "Asia/Kolkata" }).format(new Date()));
+const RANGES = { month: 0, "30": 30, "90": 90, "365": 365 } as const;
 type Range = keyof typeof RANGES;
 const PER_PAGE = 50;
 
@@ -23,9 +25,9 @@ type Interests = { daily: Day[]; total: number; saved: number; reminders: number
 export default async function AdminInsights({ searchParams }: PageProps<"/admin/insights">) {
   await requireAdminPage();
   const sp = await searchParams;
-  const range = pick(param(sp, "range"), Object.keys(RANGES) as Range[], "90");
+  const range = pick(param(sp, "range"), Object.keys(RANGES) as Range[], "month");
   const page = pageNumber(param(sp, "page"));
-  const days = RANGES[range];
+  const days = range === "month" ? dayOfMonth() : RANGES[range];
   const [lang, supabase] = await Promise.all([getLang(), createClient()]);
   const t = translator(messages, lang);
   const [searches, recent, interests] = await Promise.all([

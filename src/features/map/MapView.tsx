@@ -971,21 +971,34 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
 
   function locate(fly = true) {
     setLocError("");
+    const m = map.current;
+    let jumped = false;
     const show = (lat: number, lng: number) => {
       setMe({ lat, lng });
       const near = nearestCity(lat, lng);
       if (near) setActiveCity(near.id);
-      if (fly) map.current?.flyTo({ center: [lng, lat], zoom: 16, essential: true });
+      if (!fly || !m) return;
+      // First fix: jump there at once. A later, better fix only nudges the map.
+      if (!jumped) { jumped = true; m.jumpTo({ center: [lng, lat], zoom: Math.max(m.getZoom(), 16) }); }
+      else m.easeTo({ center: [lng, lat], duration: 400 });
     };
-    // Sharing location already tracks you: use that position straight away.
-    if (sharing && me) { show(me.lat, me.lng); return; }
-    if (!navigator.geolocation) { setLocError(t("locate.unsupported")); return; }
-    // A recent or rough position is fine (and doesn't fight the sharing GPS watch).
-    navigator.geolocation.getCurrentPosition(
-      (pos) => show(pos.coords.latitude, pos.coords.longitude),
-      () => { if (me) show(me.lat, me.lng); else setLocError(t("locate.denied")); },
-      { enableHighAccuracy: false, maximumAge: 60_000, timeout: 15_000 },
-    );
+    // Already know where you are: go there straight away, then refine with a fresh fix.
+    if (me) show(me.lat, me.lng);
+    if (sharing && me) return;
+    if (!navigator.geolocation) { if (!me) setLocError(t("locate.unsupported")); return; }
+    const ok = (pos: GeolocationPosition) => show(pos.coords.latitude, pos.coords.longitude);
+    // Precise fix first; indoors that can fail, so fall back to a rough (Wi-Fi) one.
+    navigator.geolocation.getCurrentPosition(ok, (err) => {
+      if (err.code === err.PERMISSION_DENIED) { if (!me) setLocError(t("locate.denied")); return; }
+      navigator.geolocation.getCurrentPosition(ok, () => { if (!me) setLocError(t("locate.denied")); },
+        { enableHighAccuracy: false, maximumAge: 300_000, timeout: 10_000 });
+    }, { enableHighAccuracy: true, maximumAge: 30_000, timeout: 8_000 });
+  }
+  /** My location: straight to the browser (it asks once by itself); our popup only when it's blocked. */
+  async function locateMe() {
+    const perm = await locationPermission();
+    if (perm === "denied") setLocAsk({ reason: "locate", blocked: true, run: () => locate() });
+    else locate();
   }
 
   /** Directions to a place or pin: closes the card, draws the route from where you are. */
@@ -1202,7 +1215,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
                 className={sharing ? "grid h-10 w-10 place-items-center rounded-full bg-blue-600 text-white shadow-lg ring-4 ring-blue-400/40" : roundBtn}>
           <Icon name="live" size={18} />
         </button>
-        <button type="button" onClick={() => void withLocation("locate", () => locate())} title={t("locate")}
+        <button type="button" onClick={() => void locateMe()} title={t("locate")}
                 className={roundBtn}>
           <Icon name="locate" size={18} /><span className="sr-only">{t("locate")}</span>
         </button>
@@ -1355,7 +1368,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
                 ["list", ts("list"), () => setPanel("list")],
                 ["plus", tp("addButton"), () => setAdding(true)],
                 ["live", t(sharing ? "shareOn" : "share"), () => toggleSharing()],
-                ["locate", t("locate"), () => void withLocation("locate", () => locate())],
+                ["locate", t("locate"), () => void locateMe()],
                 ["layers", tc("dock.layers"), () => setDockPanel("layers")],
               ] as const).map(([icon, label, run]) => (
                 <button key={icon} type="button" onClick={() => { setMobileMenu(false); run(); }}

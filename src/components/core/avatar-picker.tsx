@@ -500,6 +500,8 @@ export interface AvatarPickerProps {
   description?: string;
   submitLabel?: string;
   className?: string;
+  /** A ready-made picture chosen outside the picker: shown on the coin instead of the drawn face. */
+  image?: string | null;
 }
 
 const SLOT_COUNT = 5;
@@ -619,6 +621,7 @@ function useLivingEyes(
 interface CoinProps {
   layoutId: string;
   seed: string;
+  image?: string | null;
   angle: MotionValue<number>;
   spinning: boolean;
   label: string;
@@ -639,6 +642,7 @@ interface CoinProps {
 function Coin({
   layoutId,
   seed,
+  image,
   angle,
   spinning,
   label,
@@ -682,6 +686,19 @@ function Coin({
             morph={!spinning}
             seed={seed}
           />
+          {image && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <motion.img
+              alt=""
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              className="absolute inset-0 h-full w-full bg-white object-cover"
+              draggable={false}
+              initial={{ opacity: 0, scale: 0.6, y: 40 }}
+              key={image}
+              src={image}
+              transition={FLY}
+            />
+          )}
           <motion.div
             aria-hidden="true"
             className="absolute inset-0 bg-black"
@@ -869,6 +886,7 @@ export default function AvatarPicker({
   description = "Made from your name. Spin it or pick one.",
   submitLabel = "Continue",
   className,
+  image = null,
 }: AvatarPickerProps) {
   const uid = useId();
   const reduceMotion = useReducedMotion();
@@ -1049,6 +1067,7 @@ export default function AvatarPicker({
                 key={selected}
                 label={`Selected avatar: ${createFace(seed).description}`}
                 layoutId={`face-${selected}`}
+                image={image}
                 look={look}
                 seed={seed}
                 spinning={spinner.spinning}

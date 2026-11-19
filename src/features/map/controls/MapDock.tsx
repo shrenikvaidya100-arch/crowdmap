@@ -17,7 +17,7 @@ export function MapDock({ items, active, onPick, label, shift = false }: {
   shift?: boolean;
 }) {
   return (
-    <nav aria-label={label} className={`pointer-events-none absolute inset-x-0 bottom-3 z-30 flex justify-center print:hidden ${shift ? 'sm:right-[25rem]' : ''}`}>
+    <nav data-no-hover aria-label={label} className={`pointer-events-none absolute inset-x-0 bottom-3 z-30 flex justify-center print:hidden ${shift ? 'sm:right-[25rem]' : ''}`}>
       <div className='pointer-events-auto max-w-full'>
         <Dock className='items-end gap-2 bg-neutral-950/90 px-2 pb-2 ring-1 ring-white/10 backdrop-blur' magnification={64} panelHeight={56} distance={110}>
           {items.map((it) => (

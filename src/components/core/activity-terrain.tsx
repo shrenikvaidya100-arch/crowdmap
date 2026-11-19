@@ -154,7 +154,8 @@ function buildCells(data: number[], endDate: string) {
       row: slot % DAYS,
       count,
       level: count === 0 ? 0 : Math.ceil(norm * 4),
-      height: 0.06 + norm ** 0.85 * MAX_HEIGHT,
+      // Square-root scale: quiet days still stand up next to a busy one.
+      height: count === 0 ? 0.06 : 0.35 + Math.sqrt(norm) * (MAX_HEIGHT - 0.35),
       date: new Date(start.getTime() + index * 86_400_000),
     };
   });

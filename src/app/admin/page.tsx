@@ -6,6 +6,7 @@ import { GlowCard } from "@/components/watermelon-ui/glow-card";
 import { Icon, type IconName } from "@/components/icons/Icon";
 import { setMediaLocationRequired } from "@/features/admin/actions";
 import { AdminCharts, type DashData } from "@/features/admin/AdminCharts";
+import { TwoPersonPanel, type TwoPersonRow } from "@/features/admin/TwoPersonPanel";
 import { formatWhen } from "@/features/admin/format";
 import { requireAdminPage } from "@/features/admin/guard";
 import { messages } from "@/features/admin/messages";
@@ -40,13 +41,14 @@ export default async function AdminOverview({ searchParams }: PageProps<"/admin"
   const lang = await getLang();
   const t = translator(messages, lang);
   const supabase = await createClient();
-  const [stats, dash, adminLog, systemLog, suspicious, mediaLoc] = await Promise.all([
+  const [stats, dash, adminLog, systemLog, suspicious, mediaLoc, twoPerson] = await Promise.all([
     supabase.rpc("admin_stats"),
     supabase.rpc("admin_dashboard", { p_days: Number(range) }),
     supabase.rpc("admin_audit_log", { p_role: "admin", p_limit: 8 }),
     supabase.rpc("admin_audit_log", { p_role: "system", p_action: "system.", p_limit: 8 }),
     supabase.rpc("admin_users", { p_sort: "rejections", p_limit: 5 }),
     supabase.rpc("media_location_required"),
+    supabase.rpc("admin_two_person", { p_hours: 3 }),
   ]);
   const locationRequired = mediaLoc.data !== false;
   for (const r of [stats, dash, adminLog, systemLog, suspicious]) if (r.error) console.error("admin overview", r.error.message);
@@ -103,6 +105,7 @@ export default async function AdminOverview({ searchParams }: PageProps<"/admin"
         </nav>
       </div>
       <AdminCharts data={d} labels={chartLabels} />
+      <TwoPersonPanel rows={(twoPerson.data ?? []) as TwoPersonRow[]} />
 
       <div className="grid gap-5 lg:grid-cols-3">
         <section className={`${card} lg:col-span-1`}>
