@@ -7,7 +7,7 @@ import {
 } from "./validation";
 
 /** reason is a translation key under "result.*". */
-export type ActionResult = { ok: boolean; reason?: string };
+export type ActionResult = { ok: boolean; reason?: string; movedTo?: string };
 
 async function signedInClient() {
   const supabase = await createClient();
@@ -35,7 +35,10 @@ export async function submitCrowdReport(input: unknown): Promise<ActionResult> {
     p_place: placeId, p_level: level, p_lat: fix.lat, p_lng: fix.lng,
     p_accuracy: fix.accuracy, p_spread: fix.spread,
   });
-  return fromRpc(data, error);
+  const res = fromRpc(data, error);
+  // Not at the picked place: the report counted for the nearest place instead.
+  const d = data as { moved?: boolean; place_name?: string } | null;
+  return res.ok && d?.moved ? { ...res, movedTo: d.place_name } : res;
 }
 
 export async function updateCrowdReport(input: unknown): Promise<ActionResult> {

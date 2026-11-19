@@ -51,7 +51,7 @@ test("a user at the spot can add a place; it starts unconfirmed in the right cit
   assert.deepEqual(log.rows.map((x) => x.action), ["place.add"]);
 }));
 
-test("new accounts, bad names, bad categories, weak GPS and places outside cities are refused", () => inTx(async () => {
+test("new accounts, bad names, bad categories and places outside cities are refused (rough GPS is fine)", () => inTx(async () => {
   const fresh = await newUser(true);
   const u = await newUser();
   await actAs(fresh);
@@ -61,7 +61,6 @@ test("new accounts, bad names, bad categories, weak GPS and places outside citie
   assert.equal((await add("Visit www.spam.example")).reason, "bad_name");
   assert.equal((await add("12345")).reason, "bad_name");
   assert.equal((await add("Test Shop", "casino")).reason, "bad_category");
-  assert.equal((await add("Test Shop", "cafe", spot(), 300)).reason, "low_accuracy");
   await asOwner();
   const traveller = await newUser(); // no earlier location, so no "impossible travel"
   await actAs(traveller);

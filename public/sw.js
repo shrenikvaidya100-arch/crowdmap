@@ -7,6 +7,11 @@ self.addEventListener("push", (event) => {
     icon: "/icons/192",
     badge: "/icons/192",
     tag: data.tag,
+    // Make a sound and buzz every time, even if an older one with the same tag is still showing.
+    renotify: true,
+    silent: false,
+    vibrate: [120, 60, 120],
+    requireInteraction: false,
     data: { url: data.url || "/" },
   }));
 });

@@ -47,10 +47,9 @@ test("a heartbeat at a place counts the user there, and shows on the map", () =>
   assert.equal(d.crowd.here, 1);
 }));
 
-test("weak GPS is refused and repeat heartbeats within 30 s are ignored", () => inTx(async () => {
+test("any GPS fix counts (even rough) and repeat heartbeats within 30 s are ignored", () => inTx(async () => {
   await actAs(await newUser());
-  assert.equal((await beat(temple, 500)).reason, "low_accuracy");
-  assert.equal((await beat(temple)).ok, true);
+  assert.equal((await beat(temple, 500)).ok, true, "a rough fix still counts");
   assert.equal((await beat(cafe)).throttled, true);
 }));
 

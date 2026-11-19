@@ -6,8 +6,8 @@ export const crowdConfig = {
   gps: {
     samples: 3,             // readings taken before reporting
     sampleWindowMs: 6000,   // how long to collect them
-    maxAccuracyM: 75,       // reject fixes worse than this (DB enforces)
-    maxSpreadM: 100,        // readings must agree within this (DB enforces)
+    maxAccuracyM: Infinity, // any fix counts (owner's choice); rough fixes just widen the match
+    maxSpreadM: Infinity,
   },
   reportCooldownMin: 10,    // one crowd report per place per 10 min (DB enforces)
   reportEditableMin: 15,    // a report can be corrected for 15 min (DB enforces)
