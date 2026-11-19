@@ -20,11 +20,17 @@ export type SearchHit = {
 /** A point that isn't a CrowdMap place: a map feature or one of your pins. */
 export type SearchPoint = { name: string; lat: number; lng: number; where?: string; kind?: string };
 type Pin = { id: string; name: string; lat: number; lng: number; color: string };
+export type SearchCity = { id: string; name: string; name_hi: string | null; state?: string | null };
 type Item =
+  | { type: "city"; key: string; city: SearchCity }
   | { type: "place"; key: string; hit: SearchHit }
   | { type: "pin"; key: string; pin: Pin }
   | { type: "point"; key: string; point: SearchPoint }
   | { type: "recent"; key: string; q: string };
+
+// Answers already fetched in this visit: retyping or backspacing shows them at once.
+const placeCache = new Map<string, SearchHit[]>();
+const pointCache = new Map<string, SearchPoint[]>();
 
 const levelColor = (l: number) => config.crowd.levels.find((x) => x.level === l)?.color ?? config.crowd.noDataColor;
 const RECENT = "crowdmap-recent-searches";
@@ -46,10 +52,10 @@ const pointIcon = (kind?: string): IconName => {
   if (/shop|mall|market|supermarket/.test(k)) return "market";
   return "pin";
 };
-type Section = "sec.recent" | "sec.pins" | "sec.points" | "sec.places" | "sec.popular";
+type Section = "sec.cities" | "sec.recent" | "sec.pins" | "sec.points" | "sec.places" | "sec.popular";
 
 export function SearchBox({
-  lang, city, cityNames, onPick, onPickPoint, center = null, pins = [], popular = [], captureTyping = true,
+  lang, city, cityNames, onPick, onPickPoint, onPickCity, cities = [], center = null, pins = [], popular = [], captureTyping = true,
 }: {
   lang: Language;
   city: string | null;
@@ -57,6 +63,9 @@ export function SearchBox({
   onPick: (hit: SearchHit) => void;
   /** A map point or a pin was picked (not a CrowdMap place). */
   onPickPoint?: (p: SearchPoint) => void;
+  /** Cities to match as you type (instant, no network); picking one flies there. */
+  cities?: SearchCity[];
+  onPickCity?: (id: string) => void;
   /** Map centre: nearer map points come first. */
   center?: { lat: number; lng: number } | null;
   pins?: Pin[];
@@ -93,17 +102,33 @@ export function SearchBox({
       const params = new URLSearchParams({ q: trimmed });
       if (city) params.set("city", city);
       const geo = new URLSearchParams({ q: trimmed, lang, lat: String(c?.lat ?? 22.72), lng: String(c?.lng ?? 75.86) });
-      const [placesRes, pointsRes] = await Promise.allSettled([
-        fetch(`/api/search?${params}`, { signal: ctrl.signal }).then((r) => (r.ok ? r.json() : Promise.reject(r.status))),
-        fetch(`/api/geo?${geo}`, { signal: ctrl.signal }).then((r) => (r.ok ? r.json() : { points: [] })),
-      ]);
-      if (ctrl.signal.aborted) return;
-      if (placesRes.status === "rejected" && pointsRes.status === "rejected") { setStatus("error"); return; }
-      setHits(placesRes.status === "fulfilled" ? placesRes.value : []);
-      setPoints(pointsRes.status === "fulfilled" ? pointsRes.value.points ?? [] : []);
-      setActive(-1);
-      setStatus("done");
-    }, 180);
+      // CrowdMap places first (fast, our own database); map points join the list when they
+      // arrive, so a slow outside service never holds up the results.
+      const pKey = params.toString(), gKey = `${trimmed.toLowerCase()}|${lang}`;
+      const cachedPoints = pointCache.get(gKey);
+      setPoints(cachedPoints ?? []);
+      if (!cachedPoints) {
+        void fetch(`/api/geo?${geo}`, { signal: ctrl.signal })
+          .then((r) => (r.ok ? r.json() : { points: [] }))
+          .then((j) => { pointCache.set(gKey, j.points ?? []); if (!ctrl.signal.aborted) setPoints(j.points ?? []); })
+          .catch(() => {});
+      }
+      try {
+        let placesNow = placeCache.get(pKey);
+        if (!placesNow) {
+          const r = await fetch(`/api/search?${params}`, { signal: ctrl.signal });
+          if (!r.ok) throw new Error(String(r.status));
+          placesNow = (await r.json()) as SearchHit[];
+          placeCache.set(pKey, placesNow);
+        }
+        if (ctrl.signal.aborted) return;
+        setHits(placesNow);
+        setActive(-1);
+        setStatus("done");
+      } catch (err) {
+        if ((err as Error).name !== "AbortError") setStatus("error");
+      }
+    }, 120);
     return () => { clearTimeout(timer); ctrl.abort(); };
   }, [trimmed, searchable, city, lang]);
 
@@ -142,12 +167,17 @@ export function SearchBox({
     }
     const needle = trimmed.toLowerCase();
     const placeNames = new Set(hits.map((h) => h.name.toLowerCase()));
+    const cityHits = onPickCity
+      ? cities.filter((c) => [c.name, c.name_hi, c.id].some((n) => n?.toLowerCase().startsWith(needle)) || c.name.toLowerCase().includes(` ${needle}`))
+          .slice(0, 3)
+      : [];
     return [
+      ...cityHits.map((c): Item => ({ type: "city", key: `c-${c.id}`, city: c })),
       ...hits.map((h): Item => ({ type: "place", key: `p-${h.id}`, hit: h })),
       ...pins.filter((p) => p.name.toLowerCase().includes(needle)).slice(0, 3).map((p): Item => ({ type: "pin", key: `m-${p.id}`, pin: p })),
       ...points.filter((p) => !placeNames.has(p.name.toLowerCase())).map((p, i): Item => ({ type: "point", key: `g-${i}-${p.name}`, point: p })),
     ];
-  }, [searchable, trimmed, recent, popular, hits, pins, points]);
+  }, [searchable, trimmed, recent, popular, hits, pins, points, cities, onPickCity]);
 
   // The input, looked up by id (pick runs from option events).
   const inputEl = () => document.getElementById(`${listId}-input`) as HTMLInputElement | null;
@@ -156,7 +186,10 @@ export function SearchBox({
     logSearch(q, hits.length, city);
     if (trimmed) { saveRecent(trimmed); setRecent(readRecent()); }
     setOpen(false);
-    if (item.type === "place") {
+    if (item.type === "city") {
+      setQ(lang === "hi" && item.city.name_hi ? item.city.name_hi : item.city.name);
+      onPickCity?.(item.city.id);
+    } else if (item.type === "place") {
       setQ(lang === "hi" && item.hit.name_hi ? item.hit.name_hi : item.hit.name);
       onPick(item.hit);
     } else if (item.type === "pin") {
@@ -180,7 +213,7 @@ export function SearchBox({
 
   const showList = open && (tooLong || items.length > 0 || (searchable && status !== "idle"));
   const sectionOf = (it: Item): Section =>
-    it.type === "recent" ? "sec.recent" : it.type === "pin" ? "sec.pins" : it.type === "point" ? "sec.points" : searchable ? "sec.places" : "sec.popular";
+    it.type === "city" ? "sec.cities" : it.type === "recent" ? "sec.recent" : it.type === "pin" ? "sec.pins" : it.type === "point" ? "sec.points" : searchable ? "sec.places" : "sec.popular";
 
   return (
     <div ref={box} className="relative w-full sm:w-96">
@@ -229,6 +262,15 @@ export function SearchBox({
                 <div id={`${listId}-${i}`} role="option" aria-selected={i === active}
                      onPointerDown={(e) => { e.preventDefault(); pick(it); }} onMouseEnter={() => setActive(i)}
                      className={`flex cursor-crosshair items-center gap-3 px-4 py-2 text-sm ${i === active ? "bg-blue-50 dark:bg-gray-800" : ""}`}>
+                  {it.type === "city" && (
+                    <>
+                      <Icon name="map" size={20} className="shrink-0 text-blue-600" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate font-medium">{lang === "hi" && it.city.name_hi ? it.city.name_hi : it.city.name}</span>
+                        {it.city.state && <span className="block truncate text-xs text-gray-500">{it.city.state}</span>}
+                      </span>
+                    </>
+                  )}
                   {it.type === "place" && (
                     <>
                       <Icon name={categoryIcon(it.hit.category)} size={20} className="shrink-0 text-gray-500" />

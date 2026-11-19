@@ -117,3 +117,17 @@ test("positions are private: others and visitors cannot read them; hourly counts
   const h = await db.query("select peak from public.presence_hourly where place_id = $1", [temple.id]);
   assert.equal(h.rows[0].peak, 1);
 }));
+
+test("guests (not signed in) are counted too: 3 guest phones in D-303 make it Moderate; guests can't report", () => inTx(async () => {
+  const room = (await db.query("select id from public.places where name = 'D-303 Classroom'")).rows[0];
+  await db.query("set local role anon");
+  for (let i = 0; i < 3; i++) {
+    const r = (await db.query("select public.heartbeat_anon(gen_random_uuid(), 22.627649, 75.791533, 25) as r")).rows[0].r;
+    assert.equal(r.ok, true, JSON.stringify(r));
+  }
+  assert.equal(Math.round((await db.query("select * from public.live_level($1)", [room.id])).rows[0].level), 3);
+  await db.query("savepoint s");
+  await assert.rejects(db.query("select public.submit_crowd_report($1, 4, 22.627649, 75.791533, 10, 0)", [room.id]), /permission denied|not signed in/);
+  await db.query("rollback to savepoint s");
+  await db.query("reset role");
+}));

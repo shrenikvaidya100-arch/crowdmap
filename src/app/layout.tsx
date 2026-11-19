@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import { Header } from "@/components/Header";
 import { NavProgress } from "@/components/LoadingBar";
+import { ConfirmHost } from "@/components/ConfirmDialog";
 import { SiteCursor } from "@/features/site/SiteCursor";
 import { getLang } from "@/lib/i18n/server";
 import { getViewer } from "@/lib/session";
@@ -34,6 +35,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         {children}
         <SiteCursor />
         <NavProgress />
+        <ConfirmHost />
       </body>
     </html>
   );

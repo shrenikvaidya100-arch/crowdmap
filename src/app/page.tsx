@@ -3,6 +3,7 @@ import { setLanguage } from "@/app/lang-actions";
 import { redirect } from "next/navigation";
 import { Earth } from "@/features/site/Earth";
 import { GlowSearch } from "@/features/site/GlowSearch";
+import { WarmUp } from "@/features/site/WarmUp";
 import { messages } from "@/features/site/messages";
 import { translator } from "@/lib/i18n";
 import { common } from "@/lib/i18n/common";
@@ -37,6 +38,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
           level: { 1: t("level.1"), 2: t("level.2"), 3: t("level.3"), 4: t("level.4"), 5: t("level.5") },
         }} />
       </div>
+      <WarmUp />
       <form action={setLanguage} className="absolute bottom-4 right-4">
         <input type="hidden" name="lang" value={lang === "en" ? "hi" : "en"} />
         <button type="submit" className="rounded-full bg-black/50 px-3 py-1 text-xs text-zinc-300 ring-1 ring-white/15 backdrop-blur hover:text-white">

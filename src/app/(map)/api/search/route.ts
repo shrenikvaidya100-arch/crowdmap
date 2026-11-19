@@ -20,5 +20,7 @@ export async function GET(request: NextRequest) {
     console.error("search_places", error.message);
     return NextResponse.json({ error: "unavailable" }, { status: 502 });
   }
-  return NextResponse.json(data, { headers: { "Cache-Control": "public, max-age=30" } });
+  // Same answer for everyone: Vercel's edge keeps it 5 minutes (refreshing in the background
+  // for an hour), so popular searches return instantly.
+  return NextResponse.json(data, { headers: { "Cache-Control": "public, max-age=60, s-maxage=300, stale-while-revalidate=3600" } });
 }

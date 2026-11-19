@@ -112,14 +112,16 @@ export function Earth({ className }: { className?: string }) {
     const el = box.current;
     if (!el) return;
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const lite = window.matchMedia('(pointer: coarse), (max-width: 768px)').matches;
 
     let renderer: THREE.WebGLRenderer;
     try {
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'low-power' });
+      // Phones get a lighter globe (lower resolution, no antialiasing, 30 fps) so the page stays smooth.
+      renderer = new THREE.WebGLRenderer({ antialias: !lite, alpha: true, powerPreference: 'low-power' });
     } catch {
       return; // No WebGL: the page still works, just without the globe.
     }
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, lite ? 1.25 : 2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     // The drawing buffer is scaled by the pixel ratio; the element itself fills its box.
     renderer.domElement.style.cssText = 'display:block;width:100%;height:100%';
@@ -153,14 +155,14 @@ export function Earth({ className }: { className?: string }) {
       sun: { value: sunDir }, cloudShift: { value: 0 },
     };
     const earth = new THREE.Mesh(
-      new THREE.SphereGeometry(2, 128, 128),
+      new THREE.SphereGeometry(2, lite ? 72 : 128, lite ? 72 : 128),
       new THREE.ShaderMaterial({ uniforms: earthUniforms, vertexShader: EARTH_VERTEX, fragmentShader: EARTH_FRAGMENT }),
     );
     earth.rotation.y = -3.2; // start with India in view
     globe.add(earth);
 
     const atmosphere = new THREE.Mesh(
-      new THREE.SphereGeometry(2.32, 64, 64),
+      new THREE.SphereGeometry(2.32, lite ? 40 : 64, lite ? 40 : 64),
       new THREE.ShaderMaterial({
         uniforms: { sun: { value: sunDir } },
         vertexShader: ATMOSPHERE_VERTEX,
@@ -235,6 +237,7 @@ export function Earth({ className }: { className?: string }) {
     let last = performance.now();
     const tick = (now: number) => {
       frame = requestAnimationFrame(tick);
+      if (lite && now - last < 31) return;
       const dt = Math.min((now - last) / 1000, 0.1);
       last = now;
       if (!visible || document.hidden) return;

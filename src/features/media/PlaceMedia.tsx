@@ -14,6 +14,7 @@ import { CaptureMedia } from "./CaptureMedia";
 import { MEDIA_ICON, mediaConfig, type MediaKind } from "./config";
 import { messages } from "./messages";
 import { captionSchema, commentBodySchema } from "./validation";
+import { askConfirm } from "@/components/ConfirmDialog";
 
 type Item = {
   id: string; kind: MediaKind; mime: string; caption: string | null; duration_s: number | null; url: string | null;
@@ -161,7 +162,7 @@ function MediaCard({ item: m, t, ago, signedIn, run, refresh }: {
             <>
               <button type="button" onClick={() => setEditing(true)} className="text-blue-600 hover:underline">{t("edit")}</button>
               <button type="button" className="text-red-600 hover:underline"
-                      onClick={() => { if (confirm(t("confirmDeleteMedia"))) void run(() => deleteMedia(m.id), "result.deleted"); }}>
+                      onClick={async () => { if (await askConfirm(t("confirmDeleteMedia"))) void run(() => deleteMedia(m.id), "result.deleted"); }}>
                 {t("delete")}
               </button>
             </>
@@ -244,14 +245,14 @@ function Comments({ mediaId, t, ago, signedIn, refresh }: {
                     <>
                       <button type="button" className="text-blue-600 hover:underline" onClick={() => { setEditId(c.id); setEditBody(c.body); }}>{t("edit")}</button>
                       <button type="button" className="text-red-600 hover:underline"
-                              onClick={() => { if (confirm(t("confirmDeleteComment"))) void act(() => deleteComment(c.id), "result.deleted"); }}>
+                              onClick={async () => { if (await askConfirm(t("confirmDeleteComment"))) void act(() => deleteComment(c.id), "result.deleted"); }}>
                         {t("delete")}
                       </button>
                     </>
                   )}
                   {!c.mine && signedIn && (
                     <button type="button" className="text-gray-500 hover:text-red-600 hover:underline"
-                            onClick={() => { if (confirm(t("confirmReportComment"))) void act(() => reportComment(c.id), "result.commentReported"); }}>
+                            onClick={async () => { if (await askConfirm(t("confirmReportComment"), { danger: false })) void act(() => reportComment(c.id), "result.commentReported"); }}>
                       {t("reportComment")}
                     </button>
                   )}
@@ -385,13 +386,13 @@ export function PlaceComments({ placeId, lang }: { placeId: string; lang: Langua
                 {c.edited_at && <span>· {t("edited")}</span>}
                 {c.mine && (
                   <button type="button" className="text-red-600 hover:underline"
-                          onClick={() => { if (confirm(t("confirmDeleteComment"))) void act(() => deleteComment(c.id), "result.deleted"); }}>
+                          onClick={async () => { if (await askConfirm(t("confirmDeleteComment"))) void act(() => deleteComment(c.id), "result.deleted"); }}>
                     {t("delete")}
                   </button>
                 )}
                 {!c.mine && signedIn && (
                   <button type="button" className="hover:text-red-600 hover:underline"
-                          onClick={() => { if (confirm(t("confirmReportComment"))) void act(() => reportComment(c.id), "result.commentReported"); }}>
+                          onClick={async () => { if (await askConfirm(t("confirmReportComment"), { danger: false })) void act(() => reportComment(c.id), "result.commentReported"); }}>
                     {t("reportComment")}
                   </button>
                 )}
