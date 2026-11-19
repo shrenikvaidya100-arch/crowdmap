@@ -242,3 +242,20 @@ test("the first report asks people at the place to confirm (notification), not t
   await asOwner();
   assert.equal((await db.query("select count(*)::int n from public.notifications where place_id = $1 and kind = 'confirm_crowd'", [indore.id])).rows[0].n, 1);
 }));
+
+test("people sharing location in the same room raise its level by themselves (3 per step)", () => inTx(async () => {
+  const room = (await db.query("select id from public.places where name = 'D-303 Classroom'")).rows[0];
+  assert.ok(room, "D-303 exists");
+  const people = [];
+  for (let i = 0; i < 6; i++) people.push(await newUser());
+  const here = async () => (await db.query("select * from public.live_level($1)", [room.id])).rows[0];
+  for (const [i, u] of people.slice(0, 3).entries()) {
+    await db.query("insert into public.presence (user_id, lat, lng, accuracy_m, place_id, city_id) values ($1, 22.627649, 75.791533, 10, $2, 'indore')", [u, room.id]);
+    if (i < 2) assert.ok(!(await here()) || (await here()).level < 3);
+  }
+  assert.equal(Math.round((await here()).level), 3, "3 people: Moderate");
+  for (const u of people.slice(3)) {
+    await db.query("insert into public.presence (user_id, lat, lng, accuracy_m, place_id, city_id) values ($1, 22.627649, 75.791533, 10, $2, 'indore')", [u, room.id]);
+  }
+  assert.equal(Math.round((await here()).level), 4, "6 people: Busy");
+}));

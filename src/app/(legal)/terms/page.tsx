@@ -46,7 +46,7 @@ export default function TermsPage() {
           confirm you are really at the place.</li>
         <li>Locations and reports, without your name, are also used to improve the maps: crowd patterns,
           forecasts, and places that are missing or in the wrong spot.</li>
-        <li>Sharing your live location on the map is optional and can be turned off any time.</li>
+        <li>When you are signed in, the map shares your live location while it is open, so busy places show up as busy. Tap Stop to turn it off; it stays off on that device.</li>
       </ul>
 
       <h2>Accepting these terms</h2>

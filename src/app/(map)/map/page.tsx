@@ -5,6 +5,7 @@ import { isSupabaseConfigured } from "@/lib/env";
 import { translator } from "@/lib/i18n";
 import { common } from "@/lib/i18n/common";
 import { getLang } from "@/lib/i18n/server";
+import { getViewer } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 
 // Places and crowd levels are loaded per city by the map itself (/api/crowd).
@@ -38,8 +39,8 @@ export const metadata = { title: "Map · CrowdMap" };
 export default async function MapPage({ searchParams }: PageProps<"/map">) {
   const sp = await searchParams;
   const focus = parseFocus(sp);
-  const [lang, cities, linked] = await Promise.all([
-    getLang(), loadCities(), loadLinkedPlace(typeof sp.place === "string" ? sp.place : undefined),
+  const [lang, cities, linked, viewer] = await Promise.all([
+    getLang(), loadCities(), loadLinkedPlace(typeof sp.place === "string" ? sp.place : undefined), getViewer(),
   ]);
   const t = translator(common, lang);
   return (
@@ -53,7 +54,7 @@ export default async function MapPage({ searchParams }: PageProps<"/map">) {
         </div>
       )}
       <MapView key={linked?.id ?? (focus ? `${focus.lat},${focus.lng}` : "map")} lang={lang} cities={cities}
-               initialPlace={linked} initialFocus={focus} openDetails={sp.confirm === "1" && !!linked} />
+               initialPlace={linked} initialFocus={focus} openDetails={sp.confirm === "1" && !!linked} signedIn={!!viewer} />
     </main>
   );
 }
