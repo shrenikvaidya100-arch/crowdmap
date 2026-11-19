@@ -159,3 +159,29 @@ test("alert authors are private: others can see the alert, not who posted it", (
   assert.equal((await db.query("select * from public.my_quick_reports()")).rowCount, 1);
   await asOwner();
 }));
+
+test("crowd_overview gives every city one bubble (anyone can read it)", () => inTx(async () => {
+  await db.query("set local role anon");
+  const list = (await db.query("select public.crowd_overview() as o")).rows[0].o;
+  await asOwner();
+  const cities = (await db.query("select count(*)::int as n from public.cities")).rows[0].n;
+  assert.equal(list.length, cities);
+  const indoreRow = list.find((c) => c.id === "indore");
+  assert.ok(indoreRow.places > 50 && indoreRow.level >= 1 && indoreRow.level <= 5, JSON.stringify(indoreRow));
+  for (const c of list) assert.ok(c.places === 0 ? c.level === null : c.level >= 1 && c.level <= 5, c.id);
+}));
+
+test("community: city_media and city_posts are public and hide user ids", () => inTx(async () => {
+  const u = await newUser();
+  await db.query("insert into public.quick_reports (user_id, kind, place_id, city_id, lat, lng, expires_at) values ($1, 'long_queue', $2, 'indore', $3, $4, now() + interval '1 hour')",
+    [u, indore.id, indore.lat, indore.lng]);
+  await db.query("set local role anon");
+  const posts = (await db.query("select public.city_posts('indore', 20) as p")).rows[0].p;
+  const media = (await db.query("select * from public.city_media('indore', 24)")).rows;
+  await asOwner();
+  const mine = posts.find((p) => p.type === "alert" && p.place_id === indore.id && p.kind === "long_queue");
+  assert.ok(mine, "the new alert is in the feed");
+  assert.ok(!JSON.stringify(posts).includes(u), "no user id in posts");
+  assert.ok(media.every((m) => !("user_id" in m)));
+  assert.equal((await db.query("select public.city_posts('delhi', 20) as p")).rows[0].p.some((p) => p.id === mine.id), false);
+}));

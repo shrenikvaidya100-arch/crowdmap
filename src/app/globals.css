@@ -49,6 +49,12 @@ textarea,
 }
 
 /* Small popovers (city picker) and the info pages' entrance animations. */
+/* Header buttons: a little wiggle and lift on hover. */
+@keyframes nudge {
+  0%, 100% { transform: rotate(0) translateY(0); }
+  30% { transform: rotate(-12deg) translateY(-2px); }
+  60% { transform: rotate(8deg) translateY(-1px); }
+}
 @keyframes pop {
   from { opacity: 0; transform: translateY(-4px) scale(0.98); }
   to { opacity: 1; transform: none; }

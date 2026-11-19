@@ -6,8 +6,8 @@ import type { Map as MLMap, StyleSpecification } from "maplibre-gl";
 import { contoursSourceUrl, MAPTILER_ATTRIBUTION, mapTilerKey, terrainSourceUrl, type BasemapId, type OverlayId } from "./basemaps";
 
 /** Our own sources and layers; carried over when the basemap changes. */
-export const OWN_SOURCES = ["places", "cm-shapes", "cm-measure"];
-export const OWN_LAYERS = ["presence", "places", "cm-shapes-fill", "cm-shapes-line", "cm-shapes-point", "cm-measure-line", "cm-measure-point"];
+export const OWN_SOURCES = ["cm-cities", "places", "cm-shapes", "cm-measure"];
+export const OWN_LAYERS = ["city-live", "city-bubbles", "presence", "places", "cm-shapes-fill", "cm-shapes-line", "cm-shapes-point", "cm-measure-line", "cm-measure-point"];
 
 export type MapPrefs = {
   palette: "light" | "dark" | "sepia" | "contrast";
@@ -61,7 +61,7 @@ export function applyOverlays(m: MLMap, basemap: BasemapId, overlays: Record<Ove
   }
 
   // Crowd dots and halos.
-  for (const id of ["places", "presence"]) {
+  for (const id of ["places", "presence", "city-live", "city-bubbles"]) {
     if (!m.getLayer(id)) continue;
     m.setLayoutProperty(id, "visibility", overlays.crowd ? "visible" : "none");
   }
