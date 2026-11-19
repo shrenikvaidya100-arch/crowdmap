@@ -120,7 +120,7 @@ export function PlaceSheet({
       aria-label={name || t("loading")}
       className="absolute inset-x-0 bottom-0 z-30 max-h-[70%] overflow-y-auto rounded-t-2xl bg-white shadow-2xl sm:bottom-3 sm:top-[4.75rem] sm:left-auto sm:right-3 sm:max-h-none sm:w-96 sm:rounded-2xl dark:bg-gray-900"
     >
-      <div className="sticky top-0 flex items-start gap-3 border-b border-gray-100 bg-white/95 px-4 py-3 backdrop-blur dark:border-gray-800 dark:bg-gray-900/95">
+      <div className="sticky top-0 z-20 flex items-start gap-3 border-b border-gray-100 bg-white px-4 py-3 dark:border-gray-800 dark:bg-gray-900">
         <Icon name={categoryIcon(data?.place.category)} size={26} className="mt-0.5 shrink-0 text-gray-500" />
         <div className="min-w-0 flex-1">
           <h2 className="truncate text-lg font-semibold">{name || t("loading")}</h2>
@@ -156,14 +156,6 @@ export function PlaceSheet({
                   ? `${t("liveHint", { n: data.crowd.reports })}${data.crowd.last_report_at ? ` · ${t("updated", { ago: ago(data.crowd.last_report_at) })}` : ""}`
                   : t("estimatedHint")}
               </p>
-              {data.pending && (
-                <p className="mt-1.5 rounded-md bg-amber-50 px-2 py-1.5 text-xs text-amber-900 ring-1 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-200 dark:ring-amber-500/30"
-                   title={t("pending.why")}>
-                  {data.pending.mine
-                    ? t("pending.mine", { level: t(`level.${data.pending.level}`) })
-                    : t("pending.one", { level: t(`level.${data.pending.level}`), ago: ago(data.pending.at) })}
-                </p>
-              )}
               {data.crowd.here > 0 && (
                 <p className="mt-0.5 inline-flex items-center gap-1 text-xs font-medium text-blue-600"><Icon name="phone" size={14} /> {t(data.crowd.here === 1 ? "hereOne" : "hereMany", { n: data.crowd.here })}</p>
               )}

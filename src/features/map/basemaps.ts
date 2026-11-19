@@ -12,9 +12,9 @@ export type OverlayId = "crowd" | "alerts" | "saved" | "labels" | "buildings" | 
 export const BASEMAPS: { id: BasemapId; needsKey: boolean }[] = [
   { id: "street", needsKey: false },
   { id: "felt", needsKey: false },
+  { id: "satellite", needsKey: false },
   { id: "3d", needsKey: false },
   { id: "terrain", needsKey: false },
-  { id: "satellite", needsKey: false },
 ];
 
 export const OVERLAYS: { id: OverlayId; needsKey?: boolean; unavailable?: boolean }[] = [
@@ -24,7 +24,6 @@ export const OVERLAYS: { id: OverlayId; needsKey?: boolean; unavailable?: boolea
   { id: "labels" },
   { id: "buildings" },
   { id: "contours", needsKey: true },
-  { id: "traffic", unavailable: true },
 ];
 
 export const DEFAULT_OVERLAYS: Record<OverlayId, boolean> = {
