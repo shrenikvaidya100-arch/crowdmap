@@ -38,6 +38,9 @@ import { LoadingBar } from "@/components/LoadingBar";
 import { PlaceCard } from "./PlaceCard";
 import { LocationAsk, locationPermission, type LocationReason } from "./LocationAsk";
 import { GoButtons, GoPanel, type GoDest, type GoMode, type GoStatus } from "./GoPanel";
+import { AdminAlertDelete, AdminPlaceClear } from "@/features/admin/AdminMapTools";
+import { NotifyAsk } from "@/features/alerts/NotifyAsk";
+import { pushStatus } from "@/features/alerts/push";
 
 // Worker file is copied into public/ by scripts/copy-map-worker.mjs.
 setWorkerUrl("/maplibre-gl-worker.js");
@@ -86,7 +89,7 @@ function oncePerVisit(key: string) {
   return true;
 }
 
-export function MapView({ lang, cities, initialPlace = null, initialFocus = null, openDetails = false, signedIn = false }: {
+export function MapView({ lang, cities, initialPlace = null, initialFocus = null, openDetails = false, signedIn = false, isAdmin = false, signInKey = null }: {
   lang: Language; cities: MapCity[]; places?: MapPlace[]; initialPlace?: LinkedPlace | null;
   /** Open the linked place's full panel (report buttons) straight away, e.g. from a "please confirm" notification. */
   openDetails?: boolean;
@@ -94,6 +97,10 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
   signedIn?: boolean;
   /** Centre here on load (from the home page search). */
   initialFocus?: { lat: number; lng: number; zoom: number } | null;
+  /** Admins get delete controls for crowd inputs on the map. */
+  isAdmin?: boolean;
+  /** Changes with every sign-in: the map checks for a location once per sign-in. */
+  signInKey?: string | null;
 }) {
   const t = translator(messages, lang);
   const ts = translator(searchMessages, lang);
@@ -157,6 +164,44 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
     if (sharing) { savePresencePreference(false); setSharing(false); return; }
     void withLocation("share", () => { savePresencePreference(true); setSharing(true); });
   }
+  // Signed in with notifications off on this device: ask once per visit (after the
+  // location popup, which offers them too). Blocked: say how to allow them.
+  const [notifyAsk, setNotifyAsk] = useState<"off" | "denied" | null>(null);
+  const notifyChecked = useRef(false);
+  useEffect(() => {
+    if (!signedIn || locAsk || notifyChecked.current) return;
+    const timer = setTimeout(() => {
+      notifyChecked.current = true;
+      void pushStatus().then((st) => {
+        if ((st === "off" || st === "denied") && oncePerVisit("cm-notify-ask")) setNotifyAsk(st);
+      }).catch(() => {});
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, [signedIn, locAsk]);
+
+  // Every sign-in: if no location has come through after a few seconds, show the
+  // location popup (asking, or explaining how to switch it on).
+  const meSeen = useRef(false);
+  const locAskOpen = useRef(false);
+  useEffect(() => { locAskOpen.current = !!locAsk; }, [locAsk]);
+  useEffect(() => {
+    if (!signInKey) return;
+    const key = `cm-loc-check:${signInKey}`;
+    try { if (localStorage.getItem(key)) return; } catch { /* private mode */ }
+    const timer = setTimeout(() => {
+      if (meSeen.current) return;
+      try { localStorage.setItem(key, "1"); } catch { /* ignore */ }
+      if (locAskOpen.current) return;
+      void locationPermission().then((perm) => {
+        const run = () => { savePresencePreference(true); setSharing(true); };
+        if (perm === "denied") setLocAsk({ reason: "share", blocked: true, run });
+        else if (perm === "granted") setLocAsk({ reason: "share", blocked: true, off: true, run });
+        else setLocAsk({ reason: "share", blocked: false, run, onNo: () => savePresencePreference(false) });
+      });
+    }, 8000);
+    return () => clearTimeout(timer);
+  }, [signInKey]);
+
   // Start in the linked place's city, else the city nearest the requested spot, else the default.
   const focusCity = initialFocus ? cities.reduce<MapCity | null>((b, c) =>
     !b || (c.lat - initialFocus.lat) ** 2 + (c.lng - initialFocus.lng) ** 2 < (b.lat - initialFocus.lat) ** 2 + (b.lng - initialFocus.lng) ** 2 ? c : b, null) : null;
@@ -182,6 +227,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [me, setMe] = useState<LatLng | null>(null);
   useEffect(() => { setMeRef.current = setMe; }, []);
+  useEffect(() => { if (me) meSeen.current = true; }, [me]);
   const [centre, setCentre] = useState<LatLng | null>(startCity ? { lat: startCity.lat, lng: startCity.lng } : null);
   const [locError, setLocError] = useState("");
 
@@ -222,6 +268,12 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
   const [following, setFollowing] = useState(false);
   /** A dropped pin the viewer tapped (shows Directions / Uber for it). */
   const [pinPick, setPinPick] = useState<UserMarker | null>(null);
+  /** An alert pin an admin tapped (shows Delete). */
+  const [alertPick, setAlertPick] = useState<Alert | null>(null);
+  /** Bumped after an admin clears a place, so its card reloads. */
+  const [cardVersion, setCardVersion] = useState(0);
+  /** Where Directions were opened from, to go back there when they're closed. */
+  const goReturn = useRef<{ placeId: string | null; pin: UserMarker | null } | null>(null);
   const meMarker = useRef<Marker | null>(null);
 
   // Every place currently on the map (the active city and nearby ones), for taps on labels.
@@ -289,6 +341,15 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
     map.current = m;
     m.addControl(new ScaleControl({ maxWidth: 100, unit: "metric" }), "bottom-left");
     m.addControl(new AttributionControl({ compact: true }), "bottom-left");
+    // The © credits stay folded into the (i) button until it's clicked (MapLibre opens them at first).
+    const foldCredits = () => {
+      const el = m.getContainer().querySelector(".maplibregl-ctrl-attrib");
+      el?.classList.remove("maplibregl-compact-show");
+      el?.removeAttribute("open");
+    };
+    m.once("load", foldCredits);
+    m.on("resize", foldCredits);
+    m.on("style.load", () => setTimeout(foldCredits, 0));
     m.on("moveend", () => {
       const c = m.getCenter();
       setCentre({ lat: c.lat, lng: c.lng });
@@ -320,7 +381,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
       // Management Indore", a temple's name…) opens our place for it.
       const hit = placeAtTap(m, e);
       if (hit) { selectPlace(hit); return; }
-      selectPlace(null); setPanel(null); setDockPanel(null); setNewMarker(null); setPinPick(null);
+      selectPlace(null); setPanel(null); setDockPanel(null); setNewMarker(null); setPinPick(null); setAlertPick(null);
     });
     // Double tap or right click drops a pin right there (no form, no colour picker).
     const pin = (e: MapMouseEvent) => {
@@ -462,6 +523,41 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
     return () => { cancelled = true; clearInterval(id); };
   }, [activeCity, loadCity]);
 
+  // A place getting busier (Moderate or more, live): a banner on the map and, when
+  // notifications are allowed, a system notification too.
+  const lastLevels = useRef<{ city: string; levels: Map<string, number> } | null>(null);
+  const [rise, setRise] = useState<{ id: string; text: string; sub: string } | null>(null);
+  const riseTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => {
+    if (!data) return;
+    const now = new Map(data.places.filter((p) => p.source === "live").map((p) => [p.id, p.level]));
+    const before = lastLevels.current?.city === data.city ? lastLevels.current.levels : null;
+    lastLevels.current = { city: data.city, levels: now };
+    if (!before) return;
+    const up = data.places
+      .filter((p) => p.source === "live" && p.level >= 3 && p.level > (before.get(p.id) ?? 0))
+      .sort((a, b) => b.level - a.level)[0];
+    if (!up) return;
+    const lvl = config.crowd.levels.find((l) => l.level === Math.round(up.level))?.key ?? "moderate";
+    const place = lang === "hi" && up.name_hi ? up.name_hi : up.name;
+    const text = t("rise.title", { place, level: t(`level.${lvl}`) });
+    const sub = up.here ? t("rise.people", { n: up.here }) : t("rise.reports");
+    queueMicrotask(() => setRise({ id: up.id, text, sub }));
+    clearTimeout(riseTimer.current);
+    riseTimer.current = setTimeout(() => setRise(null), 9000);
+    try {
+      if ("Notification" in window && Notification.permission === "granted") {
+        void navigator.serviceWorker?.getRegistration("/").then((reg) => {
+          const opts = { body: sub, tag: `rise-${up.id}`, icon: "/icons/192", data: { url: `/map?place=${up.id}` } };
+          if (reg) return reg.showNotification(text, opts);
+          new Notification(text, opts);
+        }).catch(() => {});
+      }
+    } catch { /* notifications unavailable */ }
+    // t changes with the language only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]);
+
   // Instant updates: reload the city when anything changes, and the open panel if it's affected.
   const [cityNudge, setCityNudge] = useState(0);
   useCityUpdates(activeCity, (ids) => {
@@ -553,9 +649,15 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
       el.innerHTML = iconSvg(quickIcon(a.kind), 16);
       el.className = "grid h-7 w-7 place-items-center rounded-full bg-white text-base shadow-md ring-2 ring-amber-400";
       el.setAttribute("aria-label", a.kind.replace("_", " "));
-      if (a.place_id) el.addEventListener("click", (ev) => { if (toolRef.current) return; ev.stopPropagation(); selectPlace(a.place_id); });
+      el.addEventListener("click", (ev) => {
+        if (toolRef.current) return;
+        ev.stopPropagation();
+        if (isAdmin) { selectPlace(null); setPinPick(null); setAlertPick(a); }
+        else if (a.place_id) selectPlace(a.place_id);
+      });
       return new Marker({ element: el, offset: [12, -12] }).setLngLat([a.lng, a.lat]).addTo(m);
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, ready]);
 
   // ---- Map type, layers and style --------------------------------------------
@@ -852,7 +954,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
   }
 
   /** One window at a time: closes the dock panel, the place card and Add place. */
-  function closeOthers() { setDockPanel(null); setSelected(null); setDetails(false); setAdding(false); setNewMarker(null); setPinPick(null); setGo(null); setFollowing(false); }
+  function closeOthers() { setDockPanel(null); setSelected(null); setDetails(false); setAdding(false); setNewMarker(null); setPinPick(null); setAlertPick(null); setGo(null); setFollowing(false); }
 
   function closeAdding() {
     setAdding(false);
@@ -888,6 +990,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
 
   /** Directions to a place or pin: closes the card, draws the route from where you are. */
   function startGo(dest: GoDest) {
+    goReturn.current = { placeId: selectedRef.current, pin: pinPick };
     setSelected(null); setDetails(false); setDockPanel(null); setPanel(null); setPinPick(null); setFollowing(false);
     setGoMode(me && metres(me, dest) <= config.routing.walkUpToM ? "walk" : "drive");
     setGo(dest);
@@ -898,7 +1001,14 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
     else void withLocation("route", () => startGo(dest), () => startGo(dest));
   }
   function stopGo() {
+    const dest = go;
+    const back = goReturn.current;
+    goReturn.current = null;
     setGo(null); setFollowing(false); setGoRoute(null);
+    // Back to the spot the directions were for, with its card open again.
+    if (dest) map.current?.flyTo({ center: [dest.lng, dest.lat], zoom: Math.max(map.current.getZoom(), 16), essential: true });
+    if (back?.placeId) { setDetails(false); setSelected(back.placeId); }
+    else if (back?.pin) setPinPick(back.pin);
   }
 
   // Find the route whenever the destination, the mode or a retry changes.
@@ -1198,6 +1308,23 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
                      onGo={() => goTo({ lat: pinPick.lat, lng: pinPick.lng, name: pinPick.name || tc("unnamed") })} />
         </section>
       )}
+      {alertPick && !go && !selected && (
+        <section data-map-ui aria-label={t("alert.title", { kind: alertPick.kind.replace(/_/g, " ") })}
+                 className="absolute inset-x-2 bottom-[4.75rem] z-40 space-y-2.5 rounded-2xl bg-neutral-950/95 p-4 text-sm text-neutral-200 shadow-2xl ring-1 ring-white/10 backdrop-blur motion-safe:animate-[pop_180ms_ease-out] print:hidden sm:inset-x-0 sm:mx-auto sm:w-[340px]">
+          <div className="flex items-center gap-3">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white text-neutral-900 ring-2 ring-amber-400"><Icon name={quickIcon(alertPick.kind)} size={16} /></span>
+            <p className="min-w-0 flex-1 truncate font-semibold capitalize text-white">{t("alert.title", { kind: alertPick.kind.replace(/_/g, " ") })}</p>
+            <button type="button" onClick={() => setAlertPick(null)} aria-label={t("close")} title={t("close")}
+                    className="grid h-8 w-8 place-items-center rounded-full text-neutral-400 hover:bg-neutral-800 hover:text-white"><Icon name="close" size={16} /></button>
+          </div>
+          {alertPick.place_id && (
+            <button type="button" onClick={() => { const id = alertPick.place_id; setAlertPick(null); selectPlace(id); }}
+                    className="w-full rounded-lg bg-blue-600 px-3 py-2 font-semibold text-white hover:bg-blue-500">{t("alert.open")}</button>
+          )}
+          <AdminAlertDelete key={alertPick.id} alertId={alertPick.id} lang={lang}
+                            onDone={() => { if (activeCity) void loadCity(activeCity, true); setTimeout(() => setAlertPick(null), 1500); }} />
+        </section>
+      )}
       {go && !selected && (
         <GoPanel dest={go} lang={lang} mode={goMode} onMode={(md) => { setFollowing(false); setGoMode(md); }} status={goStatus}
                  distance={goRoute?.distance ?? null} duration={goRoute?.duration ?? null}
@@ -1208,8 +1335,12 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
       {selected && !details && (
         <div data-map-ui className="pointer-events-none absolute inset-x-0 top-[6.5rem] bottom-[4.5rem] z-30 flex items-center justify-center print:hidden sm:top-24">
           <div className="pointer-events-auto">
-            <PlaceCard placeId={selected} lang={lang} me={me} onGo={goTo}
-                       onClose={() => setSelected(null)} onMore={() => setDetails(true)} />
+            <PlaceCard key={`${selected}-${cardVersion}`} placeId={selected} lang={lang} me={me} onGo={goTo}
+                       onClose={() => setSelected(null)} onMore={() => setDetails(true)}
+                       extra={isAdmin ? (name) => (
+                         <AdminPlaceClear placeId={selected} placeName={name} lang={lang}
+                                          onDone={() => { if (activeCity) void loadCity(activeCity, true); setTimeout(() => setCardVersion((v) => v + 1), 2500); }} />
+                       ) : undefined} />
           </div>
         </div>
       )}
@@ -1243,6 +1374,20 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
           </section>
         </div>
       )}
+      {rise && (
+        <div role="status" aria-live="assertive"
+             className="absolute left-1/2 top-[7.5rem] z-50 flex w-[min(92%,24rem)] -translate-x-1/2 items-center gap-3 rounded-2xl bg-neutral-950/95 px-4 py-3 text-sm text-neutral-100 shadow-2xl ring-1 ring-amber-400/50 backdrop-blur motion-safe:animate-[pop_200ms_ease-out] print:hidden">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-amber-500 text-neutral-950"><Icon name="users" size={18} /></span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate font-semibold">{rise.text}</span>
+            <span className="block text-xs text-neutral-400">{rise.sub}</span>
+          </span>
+          <button type="button" onClick={() => { const id = rise.id; setRise(null); const p = cityPlaces.find((x) => x.id === id); if (p) openPlace(p); }}
+                  className="rounded-full bg-amber-500 px-3 py-1 text-xs font-semibold text-neutral-950 hover:bg-amber-400">{t("rise.open")}</button>
+          <button type="button" onClick={() => setRise(null)} aria-label={t("close")} className="text-neutral-400 hover:text-white"><Icon name="close" size={14} /></button>
+        </div>
+      )}
+      {notifyAsk && !locAsk && <NotifyAsk lang={lang} blocked={notifyAsk === "denied"} onClose={() => setNotifyAsk(null)} />}
       {locAsk && (
         <LocationAsk lang={lang} reason={locAsk.reason} blocked={locAsk.blocked} off={locAsk.off} signedIn={signedIn}
                      onAllow={() => { const r = locAsk.run; setLocAsk(null); r(); }}

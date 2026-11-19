@@ -58,6 +58,16 @@ export async function markAllRead(): Promise<void> {
   if (error) console.error("mark read", error.message);
 }
 
+/** Deletes all of my notifications (the Clear button on the Saved page). */
+export async function clearNotifications(): Promise<AlertResult> {
+  const supabase = await signedIn();
+  if (!supabase) return { ok: false, reason: "signin" };
+  const { error } = await supabase.rpc("clear_my_notifications");
+  if (error) { console.error("clear notifications", error.message); return { ok: false, reason: "error" }; }
+  revalidatePath("/saved");
+  return { ok: true };
+}
+
 export async function savePushSubscription(input: unknown): Promise<AlertResult> {
   const parsed = pushSubscriptionSchema.safeParse(input);
   if (!parsed.success) return { ok: false, reason: "invalid" };

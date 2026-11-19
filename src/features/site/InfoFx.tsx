@@ -18,7 +18,7 @@ export function Spotlight({ children, className = '' }: { children: ReactNode; c
   };
   return (
     <div ref={ref} onPointerMove={move}
-         className={`group relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-950/70 transition-[border-color,transform] duration-300 hover:-translate-y-0.5 hover:border-white/20 motion-reduce:hover:translate-y-0 ${className}`}>
+         className={`group relative overflow-hidden rounded-2xl border border-black/10 dark:border-white/10 bg-white/80 shadow-sm dark:bg-zinc-950/70 dark:shadow-none transition-[border-color,transform] duration-300 hover:-translate-y-0.5 hover:border-black/20 dark:hover:border-white/20 motion-reduce:hover:translate-y-0 ${className}`}>
       <div aria-hidden className='pointer-events-none absolute -inset-px opacity-0 transition-opacity duration-300 group-hover:opacity-100'
            style={{ background: 'radial-gradient(420px circle at var(--x, 50%) var(--y, 0%), rgba(8,148,255,0.16), transparent 60%)' }} />
       <div className='relative'>{children}</div>
@@ -33,7 +33,7 @@ export function ScrollLine({ children, className = '' }: { children: ReactNode; 
   const scaleY = useSpring(scrollYProgress, { stiffness: 120, damping: 30, mass: 0.4 });
   return (
     <div ref={ref} className={`relative ${className}`}>
-      <div aria-hidden className='absolute bottom-0 left-[15px] top-0 w-px bg-white/10' />
+      <div aria-hidden className='absolute bottom-0 left-[15px] top-0 w-px bg-black/10 dark:bg-white/10' />
       <motion.div aria-hidden style={{ scaleY }}
                   className='absolute bottom-0 left-[15px] top-0 w-px origin-top bg-gradient-to-b from-[#0894FF] via-[#5ad1ff] to-[#21c55d]' />
       {children}
@@ -62,7 +62,7 @@ export function HeroBackdrop() {
           <span className='relative block rounded-full' style={{ width: d.size, height: d.size, background: d.color, boxShadow: `0 0 12px ${d.color}` }} />
         </span>
       ))}
-      <div className='absolute inset-x-0 bottom-0 h-32 bg-gradient-to-b from-transparent to-black' />
+      <div className='absolute inset-x-0 bottom-0 h-32 bg-gradient-to-b from-transparent to-white dark:to-black' />
     </div>
   );
 }

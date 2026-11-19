@@ -4,7 +4,7 @@
 // the current crowd level. Back: address, opening hours, best time today, today's
 // pattern as plain text, the reminder, and More details (the full place panel).
 // Tapping or dragging the card turns it; buttons never do.
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import CardFlip from '@/components/core/card-flip';
 import { Icon } from '@/components/icons/Icon';
 import { Reminder } from '@/features/alerts/Reminder';
@@ -26,8 +26,10 @@ const levelColor = (l: number) => config.crowd.levels.find((x) => x.level === l)
 // Hours shown in "today's pattern".
 const PATTERN_HOURS = [6, 9, 12, 15, 18, 21];
 
-export function PlaceCard({ placeId, lang, onMore, onClose, onGo, me, restoreFocus }: {
+export function PlaceCard({ placeId, lang, onMore, onClose, onGo, me, restoreFocus, extra }: {
   placeId: string; lang: Language; onMore: () => void; onClose: () => void;
+  /** Shown under the card (admin controls). */
+  extra?: (name: string) => ReactNode;
   /** Directions to this place (drawn on the map). */
   onGo: (dest: GoDest) => void;
   /** The viewer's position, if known (Uber pickup). */
@@ -182,6 +184,7 @@ export function PlaceCard({ placeId, lang, onMore, onClose, onGo, me, restoreFoc
                   className='w-[220px] sm:w-[260px]'
                   faceClassName='border-zinc-800 bg-zinc-950 text-zinc-100' />
       )}
+      {data && extra?.(name)}
     </div>
   );
 }

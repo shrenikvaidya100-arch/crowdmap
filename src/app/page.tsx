@@ -21,7 +21,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   const tc = translator(common, lang);
 
   return (
-    <main className="relative isolate flex min-h-[100svh] flex-1 flex-col items-center overflow-hidden bg-black px-4 pt-[18vh] text-center text-zinc-100">
+    <main className="relative isolate flex min-h-[100svh] flex-1 flex-col items-center overflow-hidden bg-gradient-to-b from-sky-100 via-sky-50 to-white px-4 dark:from-black dark:via-black dark:to-black pt-[18vh] text-center text-zinc-100">
       {/* Just the globe and the search. */}
       <Earth className="absolute inset-x-0 -bottom-[22vh] -z-10 h-[125vh] sm:-bottom-[52vh] sm:h-[150vh]" />
       {welcome && (
@@ -29,8 +29,8 @@ export default async function Home({ searchParams }: PageProps<"/">) {
           {lang === "hi" ? `CrowdMap में आपका स्वागत है, ${welcome}।` : `Welcome to CrowdMap, ${welcome}.`}
         </p>
       )}
-      <h1 className="text-5xl font-semibold tracking-tight text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.65)] motion-safe:animate-[rise_700ms_ease-out_both] sm:text-7xl">CrowdMap</h1>
-      <p className="mt-4 max-w-xl text-lg text-zinc-100 [text-shadow:0_1px_10px_rgba(0,0,0,0.85)] motion-safe:animate-[rise_700ms_120ms_ease-out_both] sm:text-xl">{t("tagline")}</p>
+      <h1 className="text-5xl font-semibold tracking-tight text-zinc-900 dark:text-white dark:[text-shadow:0_2px_18px_rgba(0,0,0,0.65)] motion-safe:animate-[rise_700ms_ease-out_both] sm:text-7xl">CrowdMap</h1>
+      <p className="mt-4 max-w-xl text-lg text-zinc-700 dark:text-zinc-100 dark:[text-shadow:0_1px_10px_rgba(0,0,0,0.85)] motion-safe:animate-[rise_700ms_120ms_ease-out_both] sm:text-xl">{t("tagline")}</p>
       <div className="relative z-10 mt-10 flex w-full flex-col items-center motion-safe:animate-[rise_700ms_240ms_ease-out_both]">
         <GlowSearch lang={lang} labels={{
           placeholder: t("searchPlaceholder"), search: t("search"), cursor: tc("cursor.search"), ours: t("ours"), world: t("world"),

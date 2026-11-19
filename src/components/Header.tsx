@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Icon } from "@/components/icons/Icon";
 import { NotificationBell } from "@/features/alerts/NotificationBell";
 import { AccountMenu } from "@/features/site/AccountMenu";
-import { HeaderSpacer, HomeNav } from "@/features/site/HeaderParts";
+import { HeaderSpacer, HomeNav, MapShortcut } from "@/features/site/HeaderParts";
 import { ThemeToggle } from "@/features/site/ThemeToggle";
 import type { Language } from "@/lib/config";
 import { translator } from "@/lib/i18n";
@@ -32,6 +32,7 @@ export function Header({ lang, viewer }: { lang: Language; viewer: Viewer }) {
           <span aria-hidden className="grid h-7 w-7 place-items-center rounded-full bg-blue-600 text-white"><Icon name="logo" size={17} /></span>
           <span className="hidden sm:inline">CrowdMap</span>
         </Link>
+        <MapShortcut label={t("nav.map")} className={bubble} />
         <div className="mx-auto"><HomeNav items={items} menuLabel={t("nav.menu")} /></div>
         <div className="flex items-center gap-2">
           <div className={`${bubble} p-1.5`}>

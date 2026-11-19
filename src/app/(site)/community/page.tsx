@@ -31,13 +31,13 @@ export default async function CommunityPage({ searchParams }: PageProps<"/commun
     { label: tc("nav.gettingStarted"), href: "/getting-started" }, { label: tc("nav.contact"), href: "/contact" },
   ];
   return (
-    <main className="flex flex-1 flex-col bg-black text-zinc-300">
+    <main className="flex flex-1 flex-col bg-white dark:bg-black text-zinc-700 dark:text-zinc-300">
       <section className="relative isolate overflow-x-clip px-4 pb-20 pt-28 sm:pt-36">
         {/* The glow and pulsing dots stay behind the title, not the whole page. */}
         <div aria-hidden className="absolute inset-x-0 top-0 -z-10 h-[44rem]"><HeroBackdrop /></div>
         <CommunityExplorer cities={cities} lang={lang} initialCity={initialCity} />
         <div className="mx-auto mt-10 max-w-5xl text-center">
-          <Link href="/map" className="group inline-flex items-center gap-2 rounded-full border border-white/15 px-5 py-2.5 text-sm font-medium text-zinc-100 transition hover:bg-white/5">
+          <Link href="/map" className="group inline-flex items-center gap-2 rounded-full border border-black/15 dark:border-white/15 px-5 py-2.5 text-sm font-medium text-zinc-900 dark:text-zinc-100 transition hover:bg-black/5 dark:hover:bg-white/5">
             {tc("nav.map")} <span aria-hidden className="transition-transform group-hover:translate-x-1">→</span>
           </Link>
         </div>

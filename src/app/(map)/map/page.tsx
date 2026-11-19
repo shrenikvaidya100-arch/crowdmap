@@ -60,7 +60,8 @@ export default async function MapPage({ searchParams }: PageProps<"/map">) {
         </div>
       )}
       <MapView key={linked?.id ?? (focus ? `${focus.lat},${focus.lng}` : "map")} lang={lang} cities={cities}
-               initialPlace={linked} initialFocus={focus} openDetails={sp.confirm === "1" && !!linked} signedIn={!!viewer} />
+               initialPlace={linked} initialFocus={focus} openDetails={sp.confirm === "1" && !!linked} signedIn={!!viewer}
+               isAdmin={viewer?.role === "admin"} signInKey={viewer ? `${viewer.id}:${viewer.signedInAt ?? ""}` : null} />
     </main>
   );
 }

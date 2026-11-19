@@ -10,6 +10,8 @@ export type Viewer = {
   email: string;
   /** Seed for the generated face; null until the welcome step is done. */
   avatarSeed: string | null;
+  /** When this sign-in happened (the map checks location once per sign-in). */
+  signedInAt: string | null;
 } | null;
 
 /** The signed-in user's profile, or null. Cached per request. */
@@ -24,5 +26,6 @@ export const getViewer = cache(async (): Promise<Viewer> => {
   return {
     id: data.user.id, displayName: profile.display_name, role: profile.role,
     email: data.user.email ?? "", avatarSeed: profile.avatar_seed ?? null,
+    signedInAt: data.user.last_sign_in_at ?? null,
   };
 });
