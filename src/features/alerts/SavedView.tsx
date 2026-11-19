@@ -3,10 +3,11 @@ import { Icon } from "@/components/icons/Icon";
 // The Saved page: notifications inbox, active quiet-time alerts, saved places.
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
+import { askConfirm } from "@/components/ConfirmDialog";
 import { config, type Language } from "@/lib/config";
 import { translator } from "@/lib/i18n";
-import { cancelWatch, markAllRead, toggleSaved } from "./actions";
+import { cancelWatch, clearNotifications, markAllRead, toggleSaved } from "./actions";
 import { messages } from "./messages";
 import { notificationText, type NotificationData } from "./text";
 import { Reminder } from "./Reminder";
@@ -40,11 +41,34 @@ export function SavedView({ lang, notes, watches, saved }: { lang: Language; not
     router.refresh();
   }
 
+  const [refreshing, startRefresh] = useTransition();
+  function refresh() {
+    startRefresh(() => router.refresh());
+    window.dispatchEvent(new Event("crowdmap:notifications-read"));
+  }
+  async function clearAll() {
+    if (!(await askConfirm(t("clearConfirm"), { confirmLabel: t("clearAll"), cancelLabel: t("cancel") }))) return;
+    await run("clear", () => clearNotifications());
+    window.dispatchEvent(new Event("crowdmap:notifications-read"));
+  }
+
   const card = "rounded-lg border border-gray-200 dark:border-gray-800";
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <section className="lg:row-span-2">
-        <h2 className="mb-2 flex items-center gap-2 font-medium"><Icon name="bell" size={18} /> {t("inbox")}</h2>
+        <div className="mb-2 flex items-center gap-2">
+          <h2 className="flex flex-1 items-center gap-2 font-medium"><Icon name="bell" size={18} /> {t("inbox")}</h2>
+          <button type="button" onClick={refresh} disabled={refreshing}
+                  className="flex items-center gap-1.5 rounded-full border border-gray-300 px-3 py-1 text-xs font-medium hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:hover:bg-gray-800">
+            <Icon name="refresh" size={13} /> {refreshing ? t("refreshing") : t("refresh")}
+          </button>
+          {notes.length > 0 && (
+            <button type="button" onClick={clearAll} disabled={busy === "clear"}
+                    className="flex items-center gap-1.5 rounded-full border border-red-300 px-3 py-1 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 dark:border-red-900 dark:hover:bg-red-950/40">
+              <Icon name="trash" size={13} /> {t("clearAll")}
+            </button>
+          )}
+        </div>
         {notes.length === 0 ? <p className="text-sm text-gray-500">{t("noNotifications")}</p> : (
           <ul className={`${card} divide-y divide-gray-100 dark:divide-gray-800`}>
             {notes.map((n) => {

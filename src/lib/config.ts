@@ -5,6 +5,8 @@ export const config = {
   languages: ["en", "hi"] as const,
   defaultLanguage: "en" as const,
   defaultCity: "indore",
+  // The public address (Contact page QR code). NEXT_PUBLIC_SITE_URL overrides it.
+  siteUrl: process.env.NEXT_PUBLIC_SITE_URL || "https://crowdmap-kappa.vercel.app",
 
   map: {
     // OpenFreeMap: free OpenStreetMap vector tiles, no key, no usage limits.

@@ -55,6 +55,8 @@ export const ICONS = {
   bookmark: '<path d="M6.5 3.5h11a1 1 0 0 1 1 1v16l-6.5-4.2-6.5 4.2v-16a1 1 0 0 1 1-1Z"/>',
   star_filled: '<path d="m12 3.2 2.7 5.5 6 .9-4.4 4.2 1 6-5.3-2.8-5.3 2.8 1-6-4.4-4.2 6-.9L12 3.2Z" fill="currentColor"/>',
   close: '<path d="M6 6l12 12"/><path d="M18 6 6 18"/>',
+  refresh: '<path d="M20 11a8 8 0 0 0-14.9-3.5"/><path d="M4 4.5v3.5h3.5"/><path d="M4 13a8 8 0 0 0 14.9 3.5"/><path d="M20 19.5V16h-3.5"/>',
+  trash: '<path d="M4 7h16"/><path d="M9.5 7V4.5h5V7"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v5.5"/><path d="M14 11v5.5"/>',
   check: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
   locate: '<circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="2" fill="currentColor"/><path d="M12 2v3.5"/><path d="M12 18.5V22"/><path d="M2 12h3.5"/><path d="M18.5 12H22"/>',
   external: '<path d="M14 4h6v6"/><path d="M20 4 11 13"/><path d="M18 14.5V19a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h4.5"/>',

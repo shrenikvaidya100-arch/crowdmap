@@ -116,3 +116,29 @@ export async function resolveCommentReports(commentId: string, action: "keep" | 
   if (res.ok) revalidatePath("/admin", "layout");
   return res;
 }
+
+const UUID_RE = /^[0-9a-f-]{36}$/i;
+
+/** From the map: clear a place's recent reports, alerts and people counted there. */
+export async function clearPlaceInputs(placeId: unknown): Promise<AdminResult & { reports?: number; alerts?: number; people?: number }> {
+  if (typeof placeId !== "string" || !UUID_RE.test(placeId)) return { ok: false, reason: "invalid" };
+  if (!(await unlocked())) return { ok: false, reason: "locked" };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("admin_clear_place_inputs", { p_place: placeId });
+  const res = fromRpc(data, error);
+  if (!res.ok) return res;
+  const d = data as { reports: number; alerts: number; people: number };
+  revalidatePath("/admin", "layout");
+  return { ok: true, reports: d.reports, alerts: d.alerts, people: d.people };
+}
+
+/** From the map: delete one alert pin. */
+export async function deleteAlert(alertId: unknown): Promise<AdminResult> {
+  if (typeof alertId !== "string" || !UUID_RE.test(alertId)) return { ok: false, reason: "invalid" };
+  if (!(await unlocked())) return { ok: false, reason: "locked" };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("admin_delete_alert", { p_alert: alertId });
+  const res = fromRpc(data, error);
+  if (res.ok) revalidatePath("/admin", "layout");
+  return res;
+}

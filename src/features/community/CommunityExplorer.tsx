@@ -131,7 +131,7 @@ export function CommunityExplorer({ cities, lang, initialCity }: { cities: Commu
   const levelChip = (l: number, live: boolean) => {
     const lv = levelOf(l);
     return (
-      <span className='inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white/5 px-2 py-0.5 text-xs text-zinc-200 ring-1 ring-white/10'>
+      <span className='inline-flex shrink-0 items-center gap-1.5 rounded-full bg-black/5 dark:bg-white/5 px-2 py-0.5 text-xs text-zinc-800 dark:text-zinc-200 ring-1 ring-black/10 dark:ring-white/10'>
         <span className='h-2 w-2 rounded-full' style={{ background: lv.color, opacity: live ? 1 : 0.65 }} />
         {tm(`level.${lv.key}`)}
         <span className='hidden text-zinc-500 min-[400px]:inline'>· {live ? t('ov.liveTag') : t('ov.estimate')}</span>
@@ -145,29 +145,29 @@ export function CommunityExplorer({ cities, lang, initialCity }: { cities: Commu
     <>
       {/* Title and location */}
       <div className='mx-auto max-w-5xl'>
-        <p className='mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-zinc-400 backdrop-blur'>
+        <p className='mb-5 inline-flex items-center gap-2 rounded-full border border-black/10 dark:border-white/10 bg-black/[0.03] dark:bg-white/[0.03] px-3 py-1 text-xs text-zinc-600 dark:text-zinc-400 backdrop-blur'>
           <span className='relative flex h-2 w-2'><span className='absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75' /><span className='relative inline-flex h-2 w-2 rounded-full bg-emerald-400' /></span>
           {fromYou ? t('near') : t('cityView', { city: cityName })}
         </p>
-        <h1 key={cityId} className='text-balance text-5xl font-semibold tracking-tight text-white motion-safe:animate-[rise_700ms_ease-out_both] sm:text-7xl'>
+        <h1 key={cityId} className='text-balance text-5xl font-semibold tracking-tight text-zinc-900 dark:text-white motion-safe:animate-[rise_700ms_ease-out_both] sm:text-7xl'>
           {t('title', { city: cityName })}
         </h1>
-        <p className='mt-5 max-w-2xl text-lg text-zinc-400'>{t('intro')}</p>
+        <p className='mt-5 max-w-2xl text-lg text-zinc-600 dark:text-zinc-400'>{t('intro')}</p>
         <div className='mt-7 flex flex-wrap items-center gap-2'>
           <CityPicker cities={cities} active={cityId} lang={lang} onPick={setCityId}
                       labels={{ pick: t('pick'), search: t('search'), none: t('none') }} />
           <button type='button' onClick={locate} disabled={loc === 'finding'}
-                  className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium ring-1 transition ${loc === 'on' ? 'bg-emerald-500/15 text-emerald-300 ring-emerald-400/40' : 'bg-white/5 text-zinc-100 ring-white/15 hover:bg-white/10'}`}>
+                  className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium ring-1 transition ${loc === 'on' ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 ring-emerald-400/40' : 'bg-black/5 dark:bg-white/5 text-zinc-900 dark:text-zinc-100 ring-black/15 dark:ring-white/15 hover:bg-black/10 dark:hover:bg-white/10'}`}>
             <Icon name='locate' size={15} />{loc === 'finding' ? t('locating') : t('useLocation')}
           </button>
         </div>
-        {loc === 'denied' && <p className='mt-3 text-sm text-amber-300/90'>{t('locDenied')}</p>}
+        {loc === 'denied' && <p className='mt-3 text-sm text-amber-700 dark:text-amber-300/90'>{t('locDenied')}</p>}
       </div>
 
       <div className='mx-auto mt-14 max-w-5xl space-y-5'>
-        {failed && <p className='rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-200 ring-1 ring-red-500/30'>{t('error')}</p>}
+        {failed && <p className='rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-700 dark:text-red-200 ring-1 ring-red-500/30'>{t('error')}</p>}
         {!places && !failed && (
-          <p role='status' className='flex items-center gap-2 text-sm text-zinc-400'>
+          <p role='status' className='flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400'>
             <span aria-hidden className='h-3 w-3 animate-spin rounded-full border-2 border-blue-500 border-t-transparent' />{t('loading', { city: cityName })}
           </p>
         )}
@@ -178,16 +178,16 @@ export function CommunityExplorer({ cities, lang, initialCity }: { cities: Commu
             <Reveal className='min-w-0 lg:col-span-3'>
               <Spotlight className='h-full p-6 sm:p-7'>
                 {label(t('quiet.label'))}
-                {!best ? <p className='text-zinc-400'>{t('quiet.none')}</p> : (
+                {!best ? <p className='text-zinc-600 dark:text-zinc-400'>{t('quiet.none')}</p> : (
                   <>
                     <div className='flex items-start gap-4'>
-                      <span className='grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/30'>
+                      <span className='grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-400/30'>
                         <Icon name={categoryIcon(best.category)} size={22} />
                       </span>
                       <div className='min-w-0'>
-                        <p className='truncate text-2xl font-semibold text-white'>{name(best)}</p>
-                        <p className='mt-0.5 text-sm text-zinc-400'>{tp(`cat.${best.category}`)}</p>
-                        <div className='mt-3 flex flex-wrap items-center gap-2 text-sm text-zinc-300'>
+                        <p className='truncate text-2xl font-semibold text-zinc-900 dark:text-white'>{name(best)}</p>
+                        <p className='mt-0.5 text-sm text-zinc-600 dark:text-zinc-400'>{tp(`cat.${best.category}`)}</p>
+                        <div className='mt-3 flex flex-wrap items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300'>
                           {levelChip(best.level, best.source === 'live')}
                           <span>{t('quiet.away', { d: fmtDist(best.d) })} {fromYou ? t('quiet.fromYou') : t('quiet.fromCentre')}</span>
                           {best.d < 3000 && <span className='text-zinc-500'>· {t('quiet.walk', { m: walkMin(best.d) })}</span>}
@@ -201,14 +201,14 @@ export function CommunityExplorer({ cities, lang, initialCity }: { cities: Commu
                     {quiet.length > 1 && (
                       <div className='mt-6'>
                         <p className='mb-2 text-xs font-medium uppercase tracking-wider text-zinc-500'>{t('quiet.more')}</p>
-                        <ul className='divide-y divide-white/5 rounded-xl ring-1 ring-white/10'>
+                        <ul className='divide-y divide-black/5 dark:divide-white/5 rounded-xl ring-1 ring-black/10 dark:ring-white/10'>
                           {quiet.slice(1).map((p) => (
                             <li key={p.id}>
-                              <Link href={`/map?place=${p.id}`} className='flex items-center gap-3 px-3 py-2.5 text-sm transition hover:bg-white/5'>
+                              <Link href={`/map?place=${p.id}`} className='flex items-center gap-3 px-3 py-2.5 text-sm transition hover:bg-black/5 dark:hover:bg-white/5'>
                                 <span className='h-2.5 w-2.5 shrink-0 rounded-full' style={{ background: levelOf(p.level).color }} />
-                                <span className='min-w-0 flex-1 truncate text-zinc-100'>{name(p)}</span>
+                                <span className='min-w-0 flex-1 truncate text-zinc-900 dark:text-zinc-100'>{name(p)}</span>
                                 <span className='hidden shrink-0 text-xs text-zinc-500 sm:inline'>{tp(`cat.${p.category}`)}</span>
-                                <span className='w-16 shrink-0 text-right text-xs tabular-nums text-zinc-400'>{fmtDist(p.d)}</span>
+                                <span className='w-16 shrink-0 text-right text-xs tabular-nums text-zinc-600 dark:text-zinc-400'>{fmtDist(p.d)}</span>
                               </Link>
                             </li>
                           ))}
@@ -232,20 +232,20 @@ export function CommunityExplorer({ cities, lang, initialCity }: { cities: Commu
                       { k: t('ov.quiet'), v: `${overview.quietPct}%` },
                       { k: t('ov.busiest'), v: overview.busiest ? tp(`cat.${overview.busiest.category}`) : '-' },
                     ].map((s) => (
-                      <div key={s.k} className='rounded-xl bg-white/[0.03] p-3 ring-1 ring-white/10'>
-                        <p className='truncate text-lg font-semibold text-white'>{s.v}</p>
+                      <div key={s.k} className='rounded-xl bg-black/[0.03] dark:bg-white/[0.03] p-3 ring-1 ring-black/10 dark:ring-white/10'>
+                        <p className='truncate text-lg font-semibold text-zinc-900 dark:text-white'>{s.v}</p>
                         <p className='text-xs text-zinc-500'>{s.k}</p>
                       </div>
                     ))}
                   </div>
                   <p className='mb-2 mt-5 text-xs font-medium uppercase tracking-wider text-zinc-500'>{t('ov.mix')}</p>
-                  <div className='flex h-3 overflow-hidden rounded-full ring-1 ring-white/10' role='img'
+                  <div className='flex h-3 overflow-hidden rounded-full ring-1 ring-black/10 dark:ring-white/10' role='img'
                        aria-label={config.crowd.levels.map((l, i) => `${tm(`level.${l.key}`)} ${overview.counts[i]}`).join(', ')}>
                     {config.crowd.levels.map((l, i) => overview.counts[i] > 0 && (
                       <span key={l.key} className='h-full transition-[width] duration-700' style={{ width: `${(overview.counts[i] / overview.total) * 100}%`, background: l.color }} />
                     ))}
                   </div>
-                  <div className='mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-zinc-400'>
+                  <div className='mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-zinc-600 dark:text-zinc-400'>
                     {config.crowd.levels.map((l, i) => (
                       <span key={l.key} className='flex items-center gap-1'><span className='h-2 w-2 rounded-full' style={{ background: l.color }} />{tm(`level.${l.key}`)} {overview.counts[i]}</span>
                     ))}
@@ -255,7 +255,7 @@ export function CommunityExplorer({ cities, lang, initialCity }: { cities: Commu
                       <p className='mb-2 mt-5 text-xs font-medium uppercase tracking-wider text-zinc-500'>{t('ov.calm')}</p>
                       <div className='flex flex-wrap gap-1.5'>
                         {overview.calm.map((c) => (
-                          <span key={c.category} className='inline-flex items-center gap-1.5 rounded-full bg-white/5 px-2.5 py-1 text-xs text-zinc-200 ring-1 ring-white/10'>
+                          <span key={c.category} className='inline-flex items-center gap-1.5 rounded-full bg-black/5 dark:bg-white/5 px-2.5 py-1 text-xs text-zinc-800 dark:text-zinc-200 ring-1 ring-black/10 dark:ring-white/10'>
                             <Icon name={categoryIcon(c.category)} size={13} />{tp(`cat.${c.category}`)}
                           </span>
                         ))}
@@ -275,10 +275,10 @@ export function CommunityExplorer({ cities, lang, initialCity }: { cities: Commu
               <ul className='grid grid-cols-1 gap-2 sm:grid-cols-2'>
                 {overview.hot.map((p) => (
                   <li key={p.id} className='min-w-0'>
-                    <Link href={`/map?place=${p.id}`} className='flex items-center gap-3 rounded-xl px-3 py-2.5 ring-1 ring-white/10 transition hover:bg-white/5'>
-                      <span className='grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/5 text-zinc-300'><Icon name={categoryIcon(p.category)} size={17} /></span>
+                    <Link href={`/map?place=${p.id}`} className='flex items-center gap-3 rounded-xl px-3 py-2.5 ring-1 ring-black/10 dark:ring-white/10 transition hover:bg-black/5 dark:hover:bg-white/5'>
+                      <span className='grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-black/5 dark:bg-white/5 text-zinc-700 dark:text-zinc-300'><Icon name={categoryIcon(p.category)} size={17} /></span>
                       <span className='min-w-0 flex-1'>
-                        <span className='block truncate text-sm font-medium text-zinc-100'>{name(p)}</span>
+                        <span className='block truncate text-sm font-medium text-zinc-900 dark:text-zinc-100'>{name(p)}</span>
                         <span className='text-xs text-zinc-500'>{tp(`cat.${p.category}`)}</span>
                       </span>
                       {levelChip(p.level, p.source === 'live')}
@@ -295,11 +295,11 @@ export function CommunityExplorer({ cities, lang, initialCity }: { cities: Commu
           <Reveal>
             <Spotlight className='p-6 sm:p-7'>
               {label(t('photos.label'))}
-              {media.length === 0 ? <p className='text-zinc-400'>{t('photos.none', { city: cityName })}</p> : (
+              {media.length === 0 ? <p className='text-zinc-600 dark:text-zinc-400'>{t('photos.none', { city: cityName })}</p> : (
                 <div className='grid grid-cols-2 gap-3 sm:grid-cols-3'>
                   {media.map((m) => (
                     <Link key={m.id} href={`/map?place=${m.place_id}`}
-                          className='group relative aspect-square overflow-hidden rounded-xl bg-zinc-900 ring-1 ring-white/10'>
+                          className='group relative aspect-square overflow-hidden rounded-xl bg-zinc-200 dark:bg-zinc-900 ring-1 ring-black/10 dark:ring-white/10'>
                       {m.kind === 'video'
                         ? <video src={m.url} muted playsInline preload='metadata' className='h-full w-full object-cover transition-transform duration-500 group-hover:scale-105' />
                         // eslint-disable-next-line @next/next/no-img-element
@@ -323,32 +323,32 @@ export function CommunityExplorer({ cities, lang, initialCity }: { cities: Commu
           <Reveal>
             <Spotlight className='p-6 sm:p-7'>
               {label(t('posts.label'))}
-              {posts.length === 0 ? <p className='text-zinc-400'>{t('posts.none', { city: cityName })}</p> : (
+              {posts.length === 0 ? <p className='text-zinc-600 dark:text-zinc-400'>{t('posts.none', { city: cityName })}</p> : (
                 <ul className='space-y-2'>
                   {posts.map((p) => (
-                    <li key={`${p.type}-${p.id}`} className='flex gap-3 rounded-xl px-3 py-3 ring-1 ring-white/10'>
-                      <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${p.type === 'alert' ? 'bg-amber-500/15 text-amber-300' : 'bg-blue-500/15 text-blue-300'}`}>
+                    <li key={`${p.type}-${p.id}`} className='flex gap-3 rounded-xl px-3 py-3 ring-1 ring-black/10 dark:ring-white/10'>
+                      <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${p.type === 'alert' ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300' : 'bg-blue-500/15 text-blue-700 dark:text-blue-300'}`}>
                         <Icon name={p.type === 'alert' ? quickIcon(p.kind) : 'comment'} size={16} />
                       </span>
                       <div className='min-w-0 flex-1 text-sm'>
                         {p.type === 'comment' ? (
                           <>
-                            <p className='text-zinc-400'>
-                              <Link href={`/map?place=${p.place_id}`} className='hover:text-white'>{t('posts.said', { name: p.author, place: p.place })}</Link>
-                              <span className='text-zinc-600'> · {ago(p.at)}</span>
+                            <p className='text-zinc-600 dark:text-zinc-400'>
+                              <Link href={`/map?place=${p.place_id}`} className='hover:text-zinc-900 dark:hover:text-white'>{t('posts.said', { name: p.author, place: p.place })}</Link>
+                              <span className='text-zinc-500 dark:text-zinc-600'> · {ago(p.at)}</span>
                             </p>
-                            <p className='mt-0.5 break-words text-zinc-100'>{p.body}</p>
+                            <p className='mt-0.5 break-words text-zinc-900 dark:text-zinc-100'>{p.body}</p>
                           </>
                         ) : (
                           <>
-                            <p className='text-zinc-400'>
-                              {p.place_id ? <Link href={`/map?place=${p.place_id}`} className='hover:text-white'>{t('posts.alert', { place: p.place ?? '' })}</Link> : t('posts.alertCity')}
-                              <span className='text-zinc-600'> · {ago(p.at)}{p.active ? '' : ` · ${t('posts.ended')}`}</span>
+                            <p className='text-zinc-600 dark:text-zinc-400'>
+                              {p.place_id ? <Link href={`/map?place=${p.place_id}`} className='hover:text-zinc-900 dark:hover:text-white'>{t('posts.alert', { place: p.place ?? '' })}</Link> : t('posts.alertCity')}
+                              <span className='text-zinc-500 dark:text-zinc-600'> · {ago(p.at)}{p.active ? '' : ` · ${t('posts.ended')}`}</span>
                             </p>
-                            <p className='mt-0.5 text-zinc-100'>
+                            <p className='mt-0.5 text-zinc-900 dark:text-zinc-100'>
                               {tq(`kind.${p.kind}`)}
                               {p.still_there > 0 && <span className='text-zinc-500'> · {t('posts.still', { n: p.still_there })}</span>}
-                              {p.sample && <span className='ml-2 rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300'>{t('photos.sample')}</span>}
+                              {p.sample && <span className='ml-2 rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300'>{t('photos.sample')}</span>}
                             </p>
                           </>
                         )}

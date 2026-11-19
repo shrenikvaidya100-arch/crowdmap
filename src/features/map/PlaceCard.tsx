@@ -4,7 +4,7 @@
 // the current crowd level. Back: address, opening hours, best time today, today's
 // pattern as plain text, the reminder, and More details (the full place panel).
 // Tapping or dragging the card turns it; buttons never do.
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import CardFlip from '@/components/core/card-flip';
 import { Icon } from '@/components/icons/Icon';
 import { Reminder } from '@/features/alerts/Reminder';
@@ -26,14 +26,18 @@ const levelColor = (l: number) => config.crowd.levels.find((x) => x.level === l)
 // Hours shown in "today's pattern".
 const PATTERN_HOURS = [6, 9, 12, 15, 18, 21];
 
-export function PlaceCard({ placeId, lang, onMore, onClose, onGo, me, restoreFocus }: {
+export function PlaceCard({ placeId, lang, onMore, onClose, onGo, me, restoreFocus, extra, version = 0 }: {
   placeId: string; lang: Language; onMore: () => void; onClose: () => void;
+  /** Shown under the card (admin controls). */
+  extra?: (name: string) => ReactNode;
   /** Directions to this place (drawn on the map). */
   onGo: (dest: GoDest) => void;
   /** The viewer's position, if known (Uber pickup). */
   me?: { lat: number; lng: number } | null;
   /** Focus the card again (after the full panel closes). */
   restoreFocus?: number;
+  /** Bumped when this place changes live (new report, people arriving): the crowd level reloads. */
+  version?: number;
 }) {
   const t = translator(messages, lang);
   const tp = translator(placeMessages, lang);
@@ -43,6 +47,15 @@ export function PlaceCard({ placeId, lang, onMore, onClose, onGo, me, restoreFoc
   const [forecast, setForecast] = useState<Forecast | null>(null);
   const [failed, setFailed] = useState(false);
   const box = useRef<HTMLDivElement>(null);
+
+  // Live change at this place: refresh just the crowd level (photos and the flip stay put).
+  useEffect(() => {
+    if (!version) return;
+    let cancelled = false;
+    fetch(`/api/places/${placeId}`, { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (!cancelled && d) setData(d); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [placeId, version]);
 
   useEffect(() => {
     let cancelled = false;
@@ -182,6 +195,7 @@ export function PlaceCard({ placeId, lang, onMore, onClose, onGo, me, restoreFoc
                   className='w-[220px] sm:w-[260px]'
                   faceClassName='border-zinc-800 bg-zinc-950 text-zinc-100' />
       )}
+      {data && extra?.(name)}
     </div>
   );
 }

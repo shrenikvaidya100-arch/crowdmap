@@ -21,7 +21,7 @@ export default function GettingStartedPage() {
         <ol className="space-y-5">
           {STEPS.map((s, i) => (
             <li key={s.title} className="relative pl-12">
-              <span aria-hidden className="absolute left-0 top-6 grid h-8 w-8 place-items-center rounded-full bg-black font-mono text-xs font-semibold text-white ring-1 ring-[#0894FF]/60 shadow-[0_0_18px_rgba(8,148,255,0.45)]">{i + 1}</span>
+              <span aria-hidden className="absolute left-0 top-6 grid h-8 w-8 place-items-center rounded-full bg-white dark:bg-black font-mono text-xs font-semibold text-zinc-900 dark:text-white ring-1 ring-[#0894FF]/60 shadow-[0_0_18px_rgba(8,148,255,0.45)]">{i + 1}</span>
               <Reveal delay={Math.min(i, 4) * 80}>
                 <Spotlight className="p-6">
                   <div className={PROSE}>
