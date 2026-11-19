@@ -113,3 +113,21 @@ textarea,
   33% { transform: translate(60px, 40px) scale(1.08); }
   66% { transform: translate(-40px, 70px) scale(0.95); }
 }
+
+/* Every button lifts a little under the pointer and presses in when clicked.
+   Not the map dock (it magnifies on its own), map markers (MapLibre positions them
+   with transform) or anything marked data-no-hover. Uses `transform`, which Tailwind's
+   translate/scale utilities (separate CSS properties) don't touch. */
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  :where(button, [role="button"], a[class*="rounded-full"], a[class*="rounded-lg"], a[class*="rounded-xl"]):where(:not(:disabled, [data-no-hover], [data-no-hover] *, .maplibregl-marker, .maplibregl-ctrl *)) {
+    transition-property: transform, color, background-color, border-color, opacity, box-shadow;
+    transition-duration: 160ms;
+    transition-timing-function: cubic-bezier(.2, .9, .3, 1.2);
+  }
+  :where(button, [role="button"], a[class*="rounded-full"], a[class*="rounded-lg"], a[class*="rounded-xl"]):where(:not(:disabled, [data-no-hover], [data-no-hover] *, .maplibregl-marker, .maplibregl-ctrl *)):hover {
+    transform: translateY(-1px) scale(1.04);
+  }
+  :where(button, [role="button"], a[class*="rounded-full"], a[class*="rounded-lg"], a[class*="rounded-xl"]):where(:not(:disabled, [data-no-hover], [data-no-hover] *, .maplibregl-marker, .maplibregl-ctrl *)):active {
+    transform: scale(0.97);
+  }
+}

@@ -142,3 +142,23 @@ export async function deleteAlert(alertId: unknown): Promise<AdminResult> {
   if (res.ok) revalidatePath("/admin", "layout");
   return res;
 }
+
+/** Two-person rule: push "is it crowded?" to people near a place now. */
+export async function pushConfirm(placeId: unknown): Promise<AdminResult & { asked?: number }> {
+  if (typeof placeId !== "string" || !UUID_RE.test(placeId)) return { ok: false, reason: "invalid" };
+  if (!(await unlocked())) return { ok: false, reason: "locked" };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("admin_push_confirm", { p_place: placeId });
+  const res = fromRpc(data, error);
+  if (res.ok) revalidatePath("/admin");
+  return res.ok ? { ok: true, asked: (data as { asked: number }).asked } : res;
+}
+
+/** A test notification to this admin's own devices. */
+export async function testPush(): Promise<AdminResult & { devices?: number }> {
+  if (!(await unlocked())) return { ok: false, reason: "locked" };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("admin_test_push");
+  const res = fromRpc(data, error);
+  return res.ok ? { ok: true, devices: (data as { devices: number }).devices } : res;
+}

@@ -16,7 +16,7 @@ export const messages = {
     "sidebar.menu": "Admin menu",
     "insights.searches": "Searches",
     "insights.searchesNote": "{n} searches in this range. A search is a pick or Enter in a search box. Who searched is never stored.",
-    "insights.range.30": "30 days", "insights.range.90": "90 days", "insights.range.365": "1 year",
+    "insights.range.month": "This month", "insights.range.30": "30 days", "insights.range.90": "90 days", "insights.range.365": "1 year",
     "insights.query": "Search", "insights.city": "City", "insights.results": "Results", "insights.who": "By",
     "insights.signedIn": "Signed-in user", "insights.visitor": "Visitor",
     "insights.interests": "Interests",

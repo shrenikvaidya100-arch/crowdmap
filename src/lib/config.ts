@@ -74,7 +74,7 @@ export const config = {
     // A report goes live only once a second person agrees (see migration 3013).
     // People within this distance of a place with a waiting report are asked to confirm.
     confirmRadiusM: 400,
-    confirmCheckMs: 20_000,  // backup check; live city updates trigger one straight away
+    confirmCheckMs: 5_000,   // the map looks for nearby reports waiting for a second person every 5 s
     // 5-level scale. Colour per level; level 0 = no data.
     levels: [
       { level: 1, key: "empty", color: "#16a34a" },

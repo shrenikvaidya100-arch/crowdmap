@@ -25,6 +25,11 @@ export function notificationText(kind: string, data: NotificationData, lang: Lan
       ? { title: `क्या ${name} में अभी भीड़ है?`, body: `पास में किसी ने इसे ${level} बताया। आप वहीं हैं तो एक टैप में पुष्टि करें।` }
       : { title: `Is ${name} crowded right now?`, body: `Someone there says it's ${level}. You're nearby: tap to confirm or correct it.` };
   }
+  if (kind === "admin_test") {
+    return lang === "hi"
+      ? { title: "CrowdMap परीक्षण सूचना", body: "इस डिवाइस पर सूचनाएँ काम कर रही हैं।" }
+      : { title: "CrowdMap test notification", body: "Notifications are working on this device." };
+  }
   return lang === "hi"
     ? { title: `${name}: अलर्ट समाप्त`, body: "आपके चुने समय में भीड़ कम नहीं हुई।" }
     : { title: `${name}: alert ended`, body: "It didn't get quiet in the time you picked." };
