@@ -41,6 +41,8 @@ setWorkerUrl("/maplibre-gl-worker.js");
 
 const TILE_ORIGIN = new URL(config.map.styleUrl).origin;
 const OWN_LAYER_IDS = new Set(OWN_LAYERS);
+// Basemap label layers that name areas, roads or water rather than a place you can visit.
+const NOT_PLACE_LABELS = new Set(["place", "transportation_name", "water_name", "waterway", "boundary", "mountain_peak", "housenumber"]);
 
 export type MapCity = { id: string; name: string; name_hi: string | null; state?: string | null; lat: number; lng: number; default_zoom: number };
 /** Kept for the home page's props; places are now loaded per city from /api/crowd. */
@@ -172,8 +174,9 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
     const here = { lat: e.lngLat.lat, lng: e.lngLat.lng };
     const close = placesRef.current.map((p) => ({ p, d: metres(here, p) })).filter((x) => x.d < 800).sort((a, b) => a.d - b.d);
     // 1. A map label under the finger whose name matches one of our places ("Indian Institute of Management Indore").
+    // Labels of places and buildings only: not city or area names, roads or water.
     const labels = m.queryRenderedFeatures(box).filter((f) => f.layer.type === "symbol" && !OWN_LAYER_IDS.has(f.layer.id)
-      && typeof (f.properties?.["name:en"] ?? f.properties?.name) === "string");
+      && !NOT_PLACE_LABELS.has(f.sourceLayer ?? "") && typeof (f.properties?.["name:en"] ?? f.properties?.name) === "string");
     const names = labels.flatMap((f) => [f.properties?.["name:en"], f.properties?.name])
       .filter((n): n is string => typeof n === "string" && n.trim().length > 2).map((n) => n.toLowerCase().trim());
     for (const label of names) {
@@ -181,7 +184,10 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
       if (exact) return exact.p.id;
     }
     for (const label of names) {
-      const part = close.find((x) => { const n = x.p.name.toLowerCase(); return n.includes(label) || label.includes(n); });
+      const part = close.find((x) => {
+        const n = x.p.name.toLowerCase();
+        return x.d < 400 && Math.min(n.length, label.length) >= 5 && (n.includes(label) || label.includes(n));
+      });
       if (part) return part.p.id;
     }
     // 2. A near miss on one of our dots.
