@@ -11,10 +11,11 @@ import { Reminder } from '@/features/alerts/Reminder';
 import { messages as placeMessages } from '@/features/places/messages';
 import { config, type Language } from '@/lib/config';
 import { translator } from '@/lib/i18n';
+import { GoButtons, type GoDest } from './GoPanel';
 import { messages } from './messages';
 
 type Details = {
-  place: { id: string; name: string; name_hi: string | null; category: string; address: string | null };
+  place: { id: string; name: string; name_hi: string | null; category: string; address: string | null; lat: number; lng: number };
   crowd: { level: number; source: 'live' | 'estimated' };
 };
 type Photo = { id: string; kind: string; url: string | null; caption: string | null; credit?: string };
@@ -25,8 +26,12 @@ const levelColor = (l: number) => config.crowd.levels.find((x) => x.level === l)
 // Hours shown in "today's pattern".
 const PATTERN_HOURS = [6, 9, 12, 15, 18, 21];
 
-export function PlaceCard({ placeId, lang, onMore, onClose, restoreFocus }: {
+export function PlaceCard({ placeId, lang, onMore, onClose, onGo, me, restoreFocus }: {
   placeId: string; lang: Language; onMore: () => void; onClose: () => void;
+  /** Directions to this place (drawn on the map). */
+  onGo: (dest: GoDest) => void;
+  /** The viewer's position, if known (Uber pickup). */
+  me?: { lat: number; lng: number } | null;
   /** Focus the card again (after the full panel closes). */
   restoreFocus?: number;
 }) {
@@ -76,10 +81,12 @@ export function PlaceCard({ placeId, lang, onMore, onClose, restoreFocus }: {
 
   const name = data ? (lang === 'hi' && data.place.name_hi) || data.place.name : '';
   const shown = photos[main];
+  const dest: GoDest | null = data ? { lat: data.place.lat, lng: data.place.lng, name } : null;
+  const go = dest && <GoButtons dest={dest} from={me} lang={lang} onGo={() => onGo(dest)} />;
 
   const front = (
     <div className='flex h-full flex-col'>
-      <div className='relative h-[58%] shrink-0 overflow-hidden bg-zinc-900'>
+      <div className='relative h-[50%] shrink-0 overflow-hidden bg-zinc-900'>
         {shown?.url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={shown.url} alt={shown.caption ?? name} draggable={false} referrerPolicy='no-referrer'
@@ -104,7 +111,7 @@ export function PlaceCard({ placeId, lang, onMore, onClose, restoreFocus }: {
           </div>
         )}
       </div>
-      <div className='flex flex-1 flex-col justify-between p-4'>
+      <div className='flex flex-1 flex-col justify-between gap-2 p-3.5'>
         <div>
           <p className='text-lg font-semibold leading-snug text-white'>{name}</p>
           <p className='text-sm text-zinc-400'>{data ? tp(`cat.${data.place.category}`) : ''}</p>
@@ -116,7 +123,10 @@ export function PlaceCard({ placeId, lang, onMore, onClose, restoreFocus }: {
             {data.crowd.source !== 'live' && <span className='text-xs text-zinc-500'>{t('card.estimate')}</span>}
           </p>
         )}
-        <p className='text-[11px] text-zinc-500'>{t('card.turn')}</p>
+        <div className='space-y-1.5'>
+          {go}
+          <p className='hidden text-center text-[11px] text-zinc-500 sm:block'>{t('card.turn')}</p>
+        </div>
       </div>
     </div>
   );
@@ -149,6 +159,7 @@ export function PlaceCard({ placeId, lang, onMore, onClose, restoreFocus }: {
       </dl>
       <div className='mt-auto space-y-2'>
         {data && <Reminder placeId={placeId} placeName={name} lang={lang} compact tone='dark' />}
+        {go}
         <button type='button' onClick={onMore} className='w-full rounded-lg bg-blue-600 px-3 py-2 font-medium text-white hover:bg-blue-500'>
           {t('card.more')}
         </button>

@@ -31,6 +31,25 @@ export const config = {
     wikiRadiusKm: 2,       // a matching Wikipedia article must be this close
     commonsRadiusM: 150,   // Commons photos must be taken this close to the place
   },
+  // Directions drawn on the map (FOSSGIS OSRM servers: free, no key, fair use) and
+  // hand-offs to other apps for turn-by-turn and rides.
+  routing: {
+    routeUrl: (mode: "drive" | "walk", from: [number, number], to: [number, number]) =>
+      `https://routing.openstreetmap.de/${mode === "walk" ? "routed-foot" : "routed-car"}/route/v1/driving/${from[0]},${from[1]};${to[0]},${to[1]}?overview=full&geometries=geojson`,
+    timeoutMs: 10000,
+    walkUpToM: 1500,      // closer than this, directions start in walking mode
+    arrivedM: 40,         // "You've arrived" within this distance
+    googleUrl: (lat: number, lng: number, mode: "drive" | "walk") =>
+      `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=${mode === "walk" ? "walking" : "driving"}`,
+    // Uber's universal link: opens the app (or m.uber.com) with the drop-off filled in. No key needed.
+    uberUrl: (to: { lat: number; lng: number; name: string }, from?: { lat: number; lng: number } | null) => {
+      const q = new URLSearchParams({ action: "setPickup" });
+      if (from) { q.set("pickup[latitude]", String(from.lat)); q.set("pickup[longitude]", String(from.lng)); }
+      else q.set("pickup", "my_location");
+      q.set("dropoff[latitude]", String(to.lat)); q.set("dropoff[longitude]", String(to.lng)); q.set("dropoff[nickname]", to.name);
+      return `https://m.uber.com/ul/?${q}`;
+    },
+  },
   crowd: {
     // 5-level scale. Colour per level; level 0 = no data.
     levels: [
