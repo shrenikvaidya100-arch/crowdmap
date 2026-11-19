@@ -36,6 +36,7 @@ import { ZoomSlider } from "./controls/ZoomSlider";
 import { CityPicker } from "./controls/CityPicker";
 import { LoadingBar } from "@/components/LoadingBar";
 import { PlaceCard } from "./PlaceCard";
+import { LocationAsk, locationPermission, type LocationReason } from "./LocationAsk";
 import { GoButtons, GoPanel, type GoDest, type GoMode, type GoStatus } from "./GoPanel";
 
 // Worker file is copied into public/ by scripts/copy-map-worker.mjs.
@@ -103,9 +104,27 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
   preconnect(TILE_ORIGIN, { crossOrigin: "anonymous" });
 
   // Restore "share my location" after the page has loaded (browser-only setting).
-  useEffect(() => { queueMicrotask(() => setSharing(signedIn && loadPresencePreference())); }, [signedIn]);
+  // Signed-in people share by default: silently if location is already allowed, otherwise
+  // after our popup ("Not now" turns it off on this device).
+  useEffect(() => {
+    if (!signedIn || !loadPresencePreference()) return;
+    void (async () => {
+      const perm = await locationPermission();
+      if (perm === "granted") setSharing(true);
+      else if (perm !== "denied") setLocAsk({ reason: "share", blocked: false, run: () => setSharing(true), onNo: () => savePresencePreference(false) });
+    })();
+  }, [signedIn]);
+  // Location: our own popup first (why, Allow / Not now), then the browser's prompt.
+  const [mobileMenu, setMobileMenu] = useState(false);
+  const [locAsk, setLocAsk] = useState<{ reason: LocationReason; blocked: boolean; run: () => void; onNo?: () => void } | null>(null);
+  async function withLocation(reason: LocationReason, run: () => void, onNo?: () => void) {
+    const perm = await locationPermission();
+    if (perm === "granted") run();
+    else setLocAsk({ reason, blocked: perm === "denied", run, onNo });
+  }
   function toggleSharing() {
-    setSharing((on) => { savePresencePreference(!on); return !on; });
+    if (sharing) { savePresencePreference(false); setSharing(false); return; }
+    void withLocation("share", () => { savePresencePreference(true); setSharing(true); });
   }
   // Start in the linked place's city, else the city nearest the requested spot, else the default.
   const focusCity = initialFocus ? cities.reduce<MapCity | null>((b, c) =>
@@ -836,6 +855,11 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
     setGoMode(me && metres(me, dest) <= config.routing.walkUpToM ? "walk" : "drive");
     setGo(dest);
   }
+  /** Directions, asking for location first through our popup when we don't have it yet. */
+  function goTo(dest: GoDest) {
+    if (me) startGo(dest);
+    else void withLocation("route", () => startGo(dest), () => startGo(dest));
+  }
   function stopGo() {
     setGo(null); setFollowing(false); setGoRoute(null);
   }
@@ -960,7 +984,13 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
         <div className="flex items-center gap-2">
           <SearchBox lang={lang} city={activeCity} cityNames={cityNames} onPick={(h: SearchHit) => openPlace(h)}
                      onPickPoint={pickPoint} center={centre} pins={markers} popular={popular} />
-          <button type="button" className={toolBtn(panel === "filters")} aria-expanded={panel === "filters"}
+          {/* Phones: one menu button opens a popup with these. */}
+          <button type="button" onClick={() => { closeOthers(); setPanel(null); setMobileMenu(true); }} aria-label={t("menu.open")} aria-haspopup="dialog"
+                  className={`${toolBtn(mobileMenu)} sm:hidden`}>
+            <Icon name="menu" size={18} />
+            {activeFilters > 0 && <span className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full bg-red-600 text-[11px] text-white">{activeFilters}</span>}
+          </button>
+          <button type="button" className={`${toolBtn(panel === "filters")} max-sm:hidden`} aria-expanded={panel === "filters"}
                   aria-label={activeFilters ? `${ts("filters")} (${activeFilters})` : ts("filters")}
                   onClick={() => { closeOthers(); setPanel(panel === "filters" ? null : "filters"); }}>
             <Icon name="filters" size={16} /> <span className="hidden sm:inline">{ts("filters")}</span>
@@ -968,11 +998,11 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
               <span className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full bg-red-600 text-[11px] text-white">{activeFilters}</span>
             )}
           </button>
-          <button type="button" className={toolBtn(panel === "list")} aria-expanded={panel === "list"} aria-label={ts("list")}
+          <button type="button" className={`${toolBtn(panel === "list")} max-sm:hidden`} aria-expanded={panel === "list"} aria-label={ts("list")}
                   onClick={() => { closeOthers(); setPanel(panel === "list" ? null : "list"); }}>
             <Icon name="list" size={16} /> <span className="hidden sm:inline">{ts("list")}</span>
           </button>
-          <button type="button" className={toolBtn(adding)} aria-label={tp("addButton")}
+          <button type="button" className={`${toolBtn(adding)} max-sm:hidden`} aria-label={tp("addButton")}
                   onClick={() => { closeOthers(); setPanel(null); setAdding(true); }}>
             <Icon name="plus" size={16} /> <span className="hidden lg:inline">{tp("addButton")}</span>
           </button>
@@ -1022,7 +1052,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
                 className={sharing ? "grid h-10 w-10 place-items-center rounded-full bg-blue-600 text-white shadow-lg ring-4 ring-blue-400/40" : roundBtn}>
           <Icon name="live" size={18} />
         </button>
-        <button type="button" onClick={() => locate()} title={t("locate")}
+        <button type="button" onClick={() => void withLocation("locate", () => locate())} title={t("locate")}
                 className={roundBtn}>
           <Icon name="locate" size={18} /><span className="sr-only">{t("locate")}</span>
         </button>
@@ -1125,7 +1155,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
                     className="grid h-8 w-8 place-items-center rounded-full text-neutral-400 hover:bg-neutral-800 hover:text-red-400"><Icon name="close" size={16} /></button>
           </div>
           <GoButtons dest={{ lat: pinPick.lat, lng: pinPick.lng, name: pinPick.name || tc("unnamed") }} from={me} lang={lang}
-                     onGo={() => startGo({ lat: pinPick.lat, lng: pinPick.lng, name: pinPick.name || tc("unnamed") })} />
+                     onGo={() => goTo({ lat: pinPick.lat, lng: pinPick.lng, name: pinPick.name || tc("unnamed") })} />
         </section>
       )}
       {go && !selected && (
@@ -1138,15 +1168,50 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
       {selected && !details && (
         <div data-map-ui className="pointer-events-none absolute inset-x-0 top-[6.5rem] bottom-[4.5rem] z-30 flex items-center justify-center print:hidden sm:top-24">
           <div className="pointer-events-auto">
-            <PlaceCard placeId={selected} lang={lang} me={me} onGo={startGo}
+            <PlaceCard placeId={selected} lang={lang} me={me} onGo={goTo}
                        onClose={() => setSelected(null)} onMore={() => setDetails(true)} />
           </div>
         </div>
       )}
+      {mobileMenu && (
+        <div className="fixed inset-0 z-[65] flex items-end bg-black/40 backdrop-blur-[2px] sm:hidden" onClick={() => setMobileMenu(false)}>
+          <section role="dialog" aria-modal="true" aria-label={t("menu.title")} onClick={(e) => e.stopPropagation()}
+                   className="w-full rounded-t-3xl bg-white px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 text-zinc-800 shadow-2xl motion-safe:animate-[sheetup_220ms_ease-out] dark:bg-zinc-900 dark:text-zinc-100">
+            <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+            <div className="grid grid-cols-3 gap-2">
+              {([
+                ["filters", ts("filters"), () => setPanel("filters")],
+                ["list", ts("list"), () => setPanel("list")],
+                ["plus", tp("addButton"), () => setAdding(true)],
+                ["live", t(sharing ? "shareOn" : "share"), () => toggleSharing()],
+                ["locate", t("locate"), () => void withLocation("locate", () => locate())],
+                ["layers", tc("dock.layers"), () => setDockPanel("layers")],
+              ] as const).map(([icon, label, run]) => (
+                <button key={icon} type="button" onClick={() => { setMobileMenu(false); run(); }}
+                        className={`flex flex-col items-center gap-1.5 rounded-2xl px-2 py-3.5 text-xs font-medium active:scale-95 ${icon === "live" && sharing ? "bg-blue-600 text-white" : "bg-zinc-100 dark:bg-zinc-800"}`}>
+                  <Icon name={icon} size={22} />
+                  <span className="line-clamp-2 text-center leading-tight">{label}</span>
+                </button>
+              ))}
+            </div>
+            {(quickCount > 0 || clearedPins) && (
+              <button type="button" onClick={() => { setMobileMenu(false); if (clearedPins) undoClear(); else clearPins(); }}
+                      className="mt-2 w-full rounded-2xl bg-zinc-100 py-3 text-sm font-medium dark:bg-zinc-800">
+                {clearedPins ? `${tc("pinsCleared")} · ${tc("undo")}` : `${tc("clearPins")} (${quickCount})`}
+              </button>
+            )}
+          </section>
+        </div>
+      )}
+      {locAsk && (
+        <LocationAsk lang={lang} reason={locAsk.reason} blocked={locAsk.blocked}
+                     onAllow={() => { const r = locAsk.run; setLocAsk(null); r(); }}
+                     onClose={() => { const n = locAsk.onNo; setLocAsk(null); n?.(); }} />
+      )}
       {selected && details && (
         <PlaceSheet key={selected} placeId={selected} version={placeVersion} lang={lang}
                     onClose={() => { setDetails(false); setSelected(null); }}
-                    onChanged={() => activeCity && void loadCity(activeCity, true)} onGo={startGo} />
+                    onChanged={() => activeCity && void loadCity(activeCity, true)} onGo={goTo} />
       )}
     </div>
   );
@@ -1176,7 +1241,7 @@ function Legend({ lang, shown, places, live, sample }: { lang: Language; shown: 
         ))}
       </div>
       {places > 0 && (
-        <p className="mt-1 text-[11px] text-gray-500">
+        <p className="mt-1 hidden text-[11px] text-gray-500 sm:block">
           {shown < places ? t("legend.filtered", { shown, places, live }) : t("legend.counts", { places, live })}
         </p>
       )}

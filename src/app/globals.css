@@ -91,6 +91,11 @@ textarea,
   from { opacity: 0; transform: translate(24px, -16px) scale(0.96); }
   to { opacity: 1; transform: none; }
 }
+/* Phone menus slide up from the bottom. */
+@keyframes sheetup {
+  from { transform: translateY(100%); }
+  to { transform: none; }
+}
 @keyframes pop {
   from { opacity: 0; transform: translateY(-4px) scale(0.98); }
   to { opacity: 1; transform: none; }
