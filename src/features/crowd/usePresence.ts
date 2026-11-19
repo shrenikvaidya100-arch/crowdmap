@@ -23,7 +23,9 @@ export function savePresencePreference(on: boolean) {
   try { localStorage.setItem(STORAGE_KEY, on ? "1" : "0"); } catch { /* ignore */ }
 }
 
-export function usePresence(enabled: boolean): PresenceState {
+export function usePresence(enabled: boolean, onPosition?: (p: { lat: number; lng: number }) => void): PresenceState {
+  const onPos = useRef(onPosition);
+  useEffect(() => { onPos.current = onPosition; }, [onPosition]);
   const [status, setStatus] = useState<PresenceState>({ state: "off" });
   const latest = useRef<GeolocationCoordinates | null>(null);
 
@@ -49,6 +51,7 @@ export function usePresence(enabled: boolean): PresenceState {
     const watch = navigator.geolocation.watchPosition(
       (pos) => {
         latest.current = pos.coords;
+        onPos.current?.({ lat: pos.coords.latitude, lng: pos.coords.longitude });
         if (!sentOnce) { sentOnce = true; void beat(); }
       },
       (err) => setStatus({ state: "error", reason: err.code === err.PERMISSION_DENIED ? "gps.denied" : "gps.timeout" }),

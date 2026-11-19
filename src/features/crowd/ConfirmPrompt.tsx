@@ -22,8 +22,30 @@ const DISMISSED = 'crowdmap-confirm-dismissed';
 const readDismissed = (): string[] => { try { return JSON.parse(sessionStorage.getItem(DISMISSED) ?? '[]'); } catch { return []; } };
 const addDismissed = (id: string) => { try { sessionStorage.setItem(DISMISSED, JSON.stringify([...readDismissed(), id].slice(-50))); } catch { /* private mode */ } };
 
-export function ConfirmPrompt({ lang, me, onLocated, onConfirmed, hidden }: {
+/** A short two-note "ting" (made in the browser, no sound file). */
+function ting() {
+  try {
+    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    void ctx.resume();
+    [[880, 0], [1318.5, 0.14]].forEach(([f, at]) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'sine'; o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, ctx.currentTime + at);
+      g.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + at + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + at + 0.45);
+      o.connect(g).connect(ctx.destination);
+      o.start(ctx.currentTime + at); o.stop(ctx.currentTime + at + 0.5);
+    });
+    setTimeout(() => void ctx.close(), 1200);
+  } catch { /* no sound available */ }
+}
+
+export function ConfirmPrompt({ lang, me, onLocated, onConfirmed, hidden, nudge = 0 }: {
   lang: Language; me: LatLng | null; onLocated: (p: LatLng) => void; onConfirmed: () => void; hidden?: boolean;
+  /** Bumped when something changes in the city: look again right away. */
+  nudge?: number;
 }) {
   const t = translator(messages, lang);
   const tm = translator(mapMessages, lang);
@@ -64,6 +86,18 @@ export function ConfirmPrompt({ lang, me, onLocated, onConfirmed, hidden }: {
     return () => { clearTimeout(first); clearInterval(id); };
   }, [check]);
   // Check again as soon as a position becomes known.
+  // Something changed in the city (e.g. a new report): check at once.
+  useEffect(() => {
+    if (!nudge) return;
+    const id = setTimeout(() => void check(), 0);
+    return () => clearTimeout(id);
+  }, [nudge, check]);
+  // A new question appeared: play the ting (once per place).
+  const lastTing = useRef<string | null>(null);
+  useEffect(() => {
+    if (item && !hidden && lastTing.current !== item.id) { lastTing.current = item.id; ting(); }
+  }, [item, hidden]);
+
   useEffect(() => {
     if (!me) return;
     const id = setTimeout(() => void check(), 0);

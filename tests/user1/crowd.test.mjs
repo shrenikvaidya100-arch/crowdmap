@@ -89,27 +89,40 @@ test("two people far apart (Empty vs Packed) don't go live; with three, one outl
   assert.equal(Math.round(live.level), 5, "the median ignores the single 'Empty'");
 }));
 
-test("reports from someone not at the place are rejected but still recorded", () => inTx(async () => {
+test("near the picked place but not at it: counted for the nearest listed place; far away: refused but recorded", () => inTx(async () => {
   const u = await newUser();
   await actAs(u);
-  const [lat, lng] = away(indore);
-  const r = await report(indore.id, 3, lat, lng);
-  assert.deepEqual([r.ok, r.reason], [false, "not_at_place"]);
+  // About 5 km away: nowhere near any listed place you picked, refused and logged.
+  const far = await report(indore.id, 3, indore.lat + 0.05, indore.lng + 0.05);
   await asOwner();
-  const chk = await db.query("select accepted, reason from public.location_checks where user_id = $1", [u]);
-  assert.deepEqual(chk.rows, [{ accepted: false, reason: "not_at_place" }]);
-  const n = await db.query("select count(*)::int as n from public.crowd_reports where user_id = $1", [u]);
-  assert.equal(n.rows[0].n, 0);
-  const log = await db.query("select action from public.audit_log where actor_id = $1 and action like 'crowd.%'", [u]);
-  assert.deepEqual(log.rows.map((x) => x.action), ["crowd.report_rejected"]);
+  const nearestFar = (await db.query(`select count(*)::int n from public.places p where p.status = 'listed'
+    and extensions.st_dwithin(p.location, extensions.st_setsrid(extensions.st_makepoint($2, $1), 4326)::extensions.geography, 1000)`,
+    [indore.lat + 0.05, indore.lng + 0.05])).rows[0].n;
+  if (nearestFar === 0) {
+    assert.deepEqual([far.ok, far.reason], [false, "not_at_place"]);
+    const log = await db.query("select action from public.audit_log where actor_id = $1 and action like 'crowd.%'", [u]);
+    assert.deepEqual(log.rows.map((x) => x.action), ["crowd.report_rejected"]);
+  } else {
+    assert.equal(far.ok, true);
+  }
+  // Standing at a different listed place: the report counts there instead.
+  const other = (await db.query(`select id, lat, lng, name from public.places where city_id = 'indore' and status = 'listed' and id <> $1
+    and not exists (select 1 from public.crowd_reports r where r.place_id = places.id and r.created_at > now() - interval '2 hours')
+    order by id limit 1 offset 5`, [indore.id])).rows[0];
+  const v = await newUser();
+  await actAs(v);
+  const moved = await report(indore.id, 4, other.lat, other.lng);
+  await asOwner();
+  assert.equal(moved.ok, true, JSON.stringify(moved));
+  assert.equal(moved.moved, true);
+  const row = (await db.query("select place_id from public.crowd_reports where user_id = $1", [v])).rows[0];
+  assert.notEqual(row.place_id, indore.id, "not counted for the place picked");
 }));
 
-test("weak GPS, jumping GPS and repeat reports are refused", () => inTx(async () => {
+test("rough or jumping GPS still counts; repeat reports within 10 minutes are refused", () => inTx(async () => {
   const u = await newUser();
   await actAs(u);
-  assert.equal((await report(indore.id, 3, indore.lat, indore.lng, 300)).reason, "low_accuracy");
-  assert.equal((await report(indore.id, 3, indore.lat, indore.lng, 15, 400)).reason, "unstable_location");
-  assert.equal((await report(indore.id, 3, indore.lat, indore.lng)).ok, true);
+  assert.equal((await report(indore.id, 3, indore.lat, indore.lng, 300, 400)).ok, true, "rough, jumping GPS is accepted");
   assert.equal((await report(indore.id, 4, indore.lat, indore.lng)).reason, "too_soon");
   await asOwner();
 }));

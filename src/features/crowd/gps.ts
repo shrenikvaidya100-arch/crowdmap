@@ -26,11 +26,19 @@ export function getGpsFix(): Promise<GpsFix> {
       done = true;
       navigator.geolocation.clearWatch(watch);
       clearTimeout(timer);
-      if (readings.length === 0) return reject(new GpsError("timeout"));
+      if (readings.length === 0) {
+        // No fresh reading in time: fall back to any recent position the phone has.
+        navigator.geolocation.getCurrentPosition(
+          (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: Math.max(1, Math.round(pos.coords.accuracy)), spread: 0 }),
+          () => reject(new GpsError("timeout")),
+          { enableHighAccuracy: false, maximumAge: 300_000, timeout: 8000 },
+        );
+        return;
+      }
       const best = readings.reduce((a, b) => (b.accuracy < a.accuracy ? b : a));
       if (best.accuracy > maxAccuracyM) return reject(new GpsError("inaccurate"));
       const spread = Math.max(0, ...readings.map((r) => metresBetween(r, best)));
-      resolve({ lat: best.latitude, lng: best.longitude, accuracy: Math.round(best.accuracy), spread: Math.round(spread) });
+      resolve({ lat: best.latitude, lng: best.longitude, accuracy: Math.max(1, Math.round(best.accuracy)), spread: Math.round(spread) });
     };
 
     const watch = navigator.geolocation.watchPosition(

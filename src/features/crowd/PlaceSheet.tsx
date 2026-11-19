@@ -53,7 +53,7 @@ export function PlaceSheet({
   const [data, setData] = useState<Details | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [busy, setBusy] = useState<"gps" | "sending" | null>(null);
-  const [notice, setNotice] = useState<{ ok: boolean; key: string } | null>(null);
+  const [notice, setNotice] = useState<{ ok: boolean; key: string; vars?: Record<string, string> } | null>(null);
   const [editing, setEditing] = useState(false);
   // "Now" is captured when data arrives, so times stay stable between renders.
   const [now, setNow] = useState<number | null>(null);
@@ -94,7 +94,8 @@ export function PlaceSheet({
       const fix = await getGpsFix();
       setBusy("sending");
       const res = await run(fix);
-      setNotice({ ok: res.ok, key: res.ok ? okKey : `result.${res.reason}` });
+      setNotice({ ok: res.ok, key: res.ok ? okKey : `result.${res.reason}`, vars: res.movedTo ? { place: res.movedTo } : undefined });
+      if (res.movedTo) setNotice({ ok: true, key: "result.moved", vars: { place: res.movedTo } });
       if (res.ok) { await load(); onChanged(); }
     } catch (err) {
       setNotice({ ok: false, key: err instanceof GpsError ? `gps.${err.code}` : "result.error" });
@@ -181,7 +182,7 @@ export function PlaceSheet({
           {notice && (
             <p role={notice.ok ? "status" : "alert"}
                className={`rounded-md px-3 py-2 text-sm ${notice.ok ? "bg-green-50 text-green-800 dark:bg-green-950 dark:text-green-200" : "bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-200"}`}>
-              {t(notice.key)}
+              {t(notice.key, notice.vars)}
             </p>
           )}
           {busy && <p className="text-sm text-blue-600" aria-live="polite">{t(busy === "gps" ? "gettingGps" : "sending")}</p>}

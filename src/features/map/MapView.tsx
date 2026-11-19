@@ -99,7 +99,9 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
   const [adding, setAdding] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [placeVersion, setPlaceVersion] = useState(0);
-  const presence = usePresence(sharing);
+  // While sharing, its GPS readings also become "my location" (so Locate works at once, without a second GPS request).
+  const presence = usePresence(sharing, (pos) => setMeRef.current?.(pos));
+  const setMeRef = useRef<((p: LatLng) => void) | null>(null);
   // Start connecting to the map server while the page is still loading.
   preconnect(TILE_ORIGIN, { crossOrigin: "anonymous" });
 
@@ -150,6 +152,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
   const [panel, setPanel] = useState<"filters" | "list" | null>(null);
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [me, setMe] = useState<LatLng | null>(null);
+  useEffect(() => { setMeRef.current = setMe; }, []);
   const [centre, setCentre] = useState<LatLng | null>(startCity ? { lat: startCity.lat, lng: startCity.lng } : null);
   const [locError, setLocError] = useState("");
 
@@ -431,7 +434,9 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
   }, [activeCity, loadCity]);
 
   // Instant updates: reload the city when anything changes, and the open panel if it's affected.
+  const [cityNudge, setCityNudge] = useState(0);
   useCityUpdates(activeCity, (ids) => {
+    setCityNudge((n) => n + 1);
     if (activeCity) void loadCity(activeCity, true);
     if (selected && ids.has(selected)) setPlaceVersion((v) => v + 1);
   });
@@ -835,17 +840,20 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
 
   function locate(fly = true) {
     setLocError("");
+    const show = (lat: number, lng: number) => {
+      setMe({ lat, lng });
+      const near = nearestCity(lat, lng);
+      if (near) setActiveCity(near.id);
+      if (fly) map.current?.flyTo({ center: [lng, lat], zoom: 16, essential: true });
+    };
+    // Sharing location already tracks you: use that position straight away.
+    if (sharing && me) { show(me.lat, me.lng); return; }
     if (!navigator.geolocation) { setLocError(t("locate.unsupported")); return; }
+    // A recent or rough position is fine (and doesn't fight the sharing GPS watch).
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude: lat, longitude: lng } = pos.coords;
-        setMe({ lat, lng });
-        const near = nearestCity(lat, lng);
-        if (near) setActiveCity(near.id);
-        if (fly) map.current?.flyTo({ center: [lng, lat], zoom: 15 });
-      },
-      () => setLocError(t("locate.denied")),
-      { enableHighAccuracy: true, timeout: 10000 },
+      (pos) => show(pos.coords.latitude, pos.coords.longitude),
+      () => { if (me) show(me.lat, me.lng); else setLocError(t("locate.denied")); },
+      { enableHighAccuracy: false, maximumAge: 60_000, timeout: 15_000 },
     );
   }
 
@@ -1023,7 +1031,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
 
       {/* Right edge: zoom slider at the top, round buttons at the bottom (above the dock).
           Moves left of the place panel when it's open. */}
-      <div data-map-ui className={`pointer-events-none absolute right-2.5 top-[var(--legend-bottom,13.5rem)] z-10 flex flex-col items-end gap-2 print:hidden ${details ? "sm:right-[25.5rem]" : ""}`}>
+      <div data-map-ui className={`pointer-events-none absolute right-2.5 top-[8.5rem] z-10 flex flex-col items-end gap-2 print:hidden ${details ? "sm:right-[25.5rem]" : ""}`}>
         <div className={`pointer-events-auto flex flex-col items-end gap-2 ${details ? "hidden sm:flex" : ""}`}>
           <button type="button" onClick={() => setZoomOpen((o) => !o)} aria-expanded={zoomOpen} aria-label={tc("zoom")} title={tc("zoom")}
                   className={`${roundBtn} w-auto px-3 text-xs font-semibold tabular-nums`}>
@@ -1080,7 +1088,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
       )}
 
       {/* Someone nearby reported a crowd level: ask people who are there to confirm it. */}
-      <ConfirmPrompt lang={lang} me={me} onLocated={setMe} hidden={!!selected || !!go || !!dockPanel || !!panel || adding}
+      <ConfirmPrompt lang={lang} me={me} onLocated={setMe} nudge={cityNudge} hidden={!!selected || !!go || !!dockPanel || !!panel || adding}
                      onConfirmed={() => { if (activeCity) void loadCity(activeCity, true); }} />
 
       <Legend lang={lang} shown={visible.length} places={cityPlaces.length} live={liveCount} sample={sampleCount} />
@@ -1232,7 +1240,7 @@ function Legend({ lang, shown, places, live, sample }: { lang: Language; shown: 
     return () => ro.disconnect();
   }, []);
   return (
-    <div ref={ref} data-map-ui className="absolute right-3 top-[8.75rem] z-10 max-w-[15rem] rounded-xl bg-neutral-950/90 px-3 py-2 text-xs text-neutral-200 shadow-lg ring-1 ring-white/10 backdrop-blur print:top-3">
+    <div ref={ref} data-map-ui className="absolute left-3 top-[10rem] z-10 max-w-[15rem] rounded-xl bg-neutral-950/90 px-3 py-2 text-xs text-neutral-200 shadow-lg ring-1 ring-white/10 backdrop-blur print:top-3">
       <div className="flex flex-wrap gap-x-3 gap-y-1">
         {config.crowd.levels.map((l) => (
           <span key={l.level} className="flex items-center gap-1.5">
