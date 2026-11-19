@@ -797,7 +797,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
   // Plain letters and numbers go to the search box (see SearchBox).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const el = e.target as HTMLElement | null;
+      const el = e.target instanceof Element ? e.target : null;
       if (el?.closest('input, textarea, select, [contenteditable="true"], [role="slider"]') || e.metaKey || e.ctrlKey) return;
       // Alt+L / Alt+T (by key position, since Alt changes the letter on a Mac).
       if (e.altKey) {
@@ -1335,7 +1335,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
       {selected && !details && (
         <div data-map-ui className="pointer-events-none absolute inset-x-0 top-[6.5rem] bottom-[4.5rem] z-30 flex items-center justify-center print:hidden sm:top-24">
           <div className="pointer-events-auto">
-            <PlaceCard key={`${selected}-${cardVersion}`} placeId={selected} lang={lang} me={me} onGo={goTo}
+            <PlaceCard key={`${selected}-${cardVersion}`} placeId={selected} lang={lang} me={me} onGo={goTo} version={placeVersion}
                        onClose={() => setSelected(null)} onMore={() => setDetails(true)}
                        extra={isAdmin ? (name) => (
                          <AdminPlaceClear placeId={selected} placeName={name} lang={lang}

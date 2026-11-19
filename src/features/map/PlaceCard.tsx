@@ -26,7 +26,7 @@ const levelColor = (l: number) => config.crowd.levels.find((x) => x.level === l)
 // Hours shown in "today's pattern".
 const PATTERN_HOURS = [6, 9, 12, 15, 18, 21];
 
-export function PlaceCard({ placeId, lang, onMore, onClose, onGo, me, restoreFocus, extra }: {
+export function PlaceCard({ placeId, lang, onMore, onClose, onGo, me, restoreFocus, extra, version = 0 }: {
   placeId: string; lang: Language; onMore: () => void; onClose: () => void;
   /** Shown under the card (admin controls). */
   extra?: (name: string) => ReactNode;
@@ -36,6 +36,8 @@ export function PlaceCard({ placeId, lang, onMore, onClose, onGo, me, restoreFoc
   me?: { lat: number; lng: number } | null;
   /** Focus the card again (after the full panel closes). */
   restoreFocus?: number;
+  /** Bumped when this place changes live (new report, people arriving): the crowd level reloads. */
+  version?: number;
 }) {
   const t = translator(messages, lang);
   const tp = translator(placeMessages, lang);
@@ -45,6 +47,15 @@ export function PlaceCard({ placeId, lang, onMore, onClose, onGo, me, restoreFoc
   const [forecast, setForecast] = useState<Forecast | null>(null);
   const [failed, setFailed] = useState(false);
   const box = useRef<HTMLDivElement>(null);
+
+  // Live change at this place: refresh just the crowd level (photos and the flip stay put).
+  useEffect(() => {
+    if (!version) return;
+    let cancelled = false;
+    fetch(`/api/places/${placeId}`, { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (!cancelled && d) setData(d); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [placeId, version]);
 
   useEffect(() => {
     let cancelled = false;

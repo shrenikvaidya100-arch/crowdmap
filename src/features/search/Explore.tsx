@@ -32,7 +32,7 @@ export function FilterSheet({
 
   return (
     <section aria-label={t("filters")}
-             className="absolute inset-x-0 bottom-0 z-30 max-h-[80%] overflow-y-auto rounded-t-2xl bg-white p-4 shadow-2xl sm:inset-x-auto sm:bottom-auto sm:left-3 sm:top-28 sm:max-h-[calc(100%-8rem)] sm:w-96 sm:rounded-2xl dark:bg-gray-900">
+             className="absolute inset-x-0 bottom-0 z-30 max-h-[80%] overflow-y-auto rounded-t-2xl bg-white p-4 shadow-2xl sm:inset-x-auto sm:bottom-auto sm:left-3 sm:top-[9.5rem] sm:max-h-[calc(100%-10.5rem)] sm:w-96 sm:rounded-2xl dark:bg-gray-900">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-lg font-semibold">{t("filters")}</h2>
         <button type="button" className="text-sm text-blue-600 hover:underline" onClick={() => onChange({ ...DEFAULT_FILTERS })}>{t("reset")}</button>
@@ -117,7 +117,7 @@ export function PlaceList<T extends FilterablePlace & { distanceKm: number | nul
   const [shown, setShown] = useState(PAGE);
   return (
     <section aria-label={t("list")}
-             className="absolute inset-x-0 bottom-0 top-28 z-20 flex flex-col bg-white shadow-xl sm:inset-x-auto sm:bottom-3 sm:left-3 sm:w-96 sm:rounded-2xl dark:bg-gray-900">
+             className="absolute inset-x-0 bottom-0 top-[9.5rem] z-20 flex flex-col bg-white shadow-xl sm:inset-x-auto sm:bottom-3 sm:left-3 sm:w-96 sm:rounded-2xl dark:bg-gray-900">
       <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2.5 text-sm dark:border-gray-800">
         <span aria-live="polite">{t("showing", { n: items.length, total })}</span>
         <button type="button" onClick={onClose} className="text-blue-600 hover:underline sm:hidden">{t("map")}</button>
