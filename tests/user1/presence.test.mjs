@@ -69,15 +69,15 @@ test("teleporting between cities is refused and recorded for bot detection", () 
 
 test("many people at once raise the level; a few never lower it", () => inTx(async () => {
   assert.equal(await live(temple.id), undefined, "no reports, no presence: not live");
-  for (let i = 0; i < 4; i++) { await actAs(await newUser()); await beat(temple); }
+  for (let i = 0; i < 3; i++) { await actAs(await newUser()); await beat(temple); }
   await asOwner();
-  assert.equal(await live(temple.id), undefined, "4 people at a temple prove nothing");
+  assert.equal(await live(temple.id), undefined, "3 people at a temple prove nothing");
   await actAs(await newUser());
   await beat(temple);
   await asOwner();
   const l = await live(temple.id);
-  assert.equal(l.here, 5);
-  assert.ok(l.level >= 3, `5 people at a temple: at least moderate, got ${l.level}`);
+  assert.equal(l.here, 4);
+  assert.ok(l.level >= 3, `4 people at a temple: at least moderate, got ${l.level}`);
 }));
 
 test("presence floors a low report-based level but doesn't cap a high one", () => inTx(async () => {

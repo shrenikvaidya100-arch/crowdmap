@@ -79,10 +79,12 @@ function metres(a: LatLng, b: LatLng) {
 /** A place to open on load (from /?place=<id>). */
 export type LinkedPlace = { id: string; lat: number; lng: number; city_id: string };
 
-export function MapView({ lang, cities, initialPlace = null, initialFocus = null, openDetails = false }: {
+export function MapView({ lang, cities, initialPlace = null, initialFocus = null, openDetails = false, signedIn = false }: {
   lang: Language; cities: MapCity[]; places?: MapPlace[]; initialPlace?: LinkedPlace | null;
   /** Open the linked place's full panel (report buttons) straight away, e.g. from a "please confirm" notification. */
   openDetails?: boolean;
+  /** Signed-in people share their location by default (so a room full of people shows as busy). */
+  signedIn?: boolean;
   /** Centre here on load (from the home page search). */
   initialFocus?: { lat: number; lng: number; zoom: number } | null;
 }) {
@@ -101,7 +103,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
   preconnect(TILE_ORIGIN, { crossOrigin: "anonymous" });
 
   // Restore "share my location" after the page has loaded (browser-only setting).
-  useEffect(() => { queueMicrotask(() => setSharing(loadPresencePreference())); }, []);
+  useEffect(() => { queueMicrotask(() => setSharing(signedIn && loadPresencePreference())); }, [signedIn]);
   function toggleSharing() {
     setSharing((on) => { savePresencePreference(!on); return !on; });
   }

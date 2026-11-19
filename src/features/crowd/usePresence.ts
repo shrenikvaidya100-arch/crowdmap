@@ -15,11 +15,12 @@ export type PresenceState =
   | { state: "error"; reason: string };
 
 /** Remembered per browser; storage can be unavailable (private mode), so failures are ignored. */
+/** On unless this device turned it off ("0"): signed-in people share by default. */
 export function loadPresencePreference() {
-  try { return localStorage.getItem(STORAGE_KEY) === "1"; } catch { return false; }
+  try { return localStorage.getItem(STORAGE_KEY) !== "0"; } catch { return false; }
 }
 export function savePresencePreference(on: boolean) {
-  try { if (on) localStorage.setItem(STORAGE_KEY, "1"); else localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
+  try { localStorage.setItem(STORAGE_KEY, on ? "1" : "0"); } catch { /* ignore */ }
 }
 
 export function usePresence(enabled: boolean): PresenceState {
