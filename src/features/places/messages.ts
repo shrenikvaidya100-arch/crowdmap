@@ -36,7 +36,7 @@ export const messages = {
     "cat.mall": "Mall", "cat.park": "Park / garden", "cat.tourist": "Sight / monument",
     "cat.hospital": "Hospital / clinic", "cat.station": "Station / bus stand", "cat.bank": "Bank / ATM",
     "cat.government": "Government office", "cat.education": "School / college",
-    "cat.entertainment": "Cinema / stadium", "cat.other": "Other",
+    "cat.entertainment": "Cinema / stadium", "cat.hostel": "Hostel / residence", "cat.other": "Other",
     // Confirmation, edit, delete (place panel)
     unconfirmed: "New place: not confirmed yet ({yes}/2)",
     unconfirmedHint: "Added by a user. Are you here right now?",

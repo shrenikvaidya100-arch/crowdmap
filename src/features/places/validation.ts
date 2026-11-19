@@ -4,7 +4,7 @@ import { gpsFixSchema } from "@/features/crowd/validation";
 
 export const PLACE_CATEGORIES = [
   "temple", "religious", "market", "restaurant", "cafe", "street_food", "mall", "park",
-  "tourist", "hospital", "station", "bank", "government", "education", "entertainment", "other",
+  "tourist", "hospital", "station", "bank", "government", "education", "entertainment", "hostel", "other",
 ] as const;
 
 export const placeNameSchema = z.string().trim()
