@@ -225,3 +225,20 @@ test("IIM Indore campus is mapped in detail (hostels, messes, blocks) with crowd
   const hostels = campus.filter((p) => p.category === "hostel");
   assert.ok(hostels.length >= 25 && hostels.every((p) => p.level >= 1 && p.level <= 5));
 }));
+
+test("the first report asks people at the place to confirm (notification), not the reporter or people far away", () => inTx(async () => {
+  const [reporter, nearby, far] = [await newUser(), await newUser(), await newUser()];
+  await db.query("insert into public.presence (user_id, lat, lng, accuracy_m, city_id) values ($1, $2, $3, 10, 'indore'), ($4, $5, $6, 10, 'indore')",
+    [nearby, indore.lat + 0.001, indore.lng, far, indore.lat + 0.05, indore.lng]);
+  await actAs(reporter);
+  assert.equal((await report(indore.id, 4, indore.lat, indore.lng)).ok, true);
+  await asOwner();
+  const notes = (await db.query("select user_id, kind, data from public.notifications where place_id = $1 and kind = 'confirm_crowd'", [indore.id])).rows;
+  assert.deepEqual(notes.map((n) => n.user_id), [nearby], "only the person at the place is asked");
+  assert.equal(notes[0].data.level, 4);
+  // The second person's report confirms it; nobody else is asked again.
+  await actAs(nearby);
+  assert.equal((await report(indore.id, 4, indore.lat, indore.lng)).ok, true);
+  await asOwner();
+  assert.equal((await db.query("select count(*)::int n from public.notifications where place_id = $1 and kind = 'confirm_crowd'", [indore.id])).rows[0].n, 1);
+}));

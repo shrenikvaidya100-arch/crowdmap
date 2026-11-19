@@ -23,9 +23,6 @@ export function GoButtons({ dest, from, lang, onGo, tone = 'dark' }: {
   dest: GoDest; from?: { lat: number; lng: number } | null; lang: Language; onGo: () => void; tone?: 'dark' | 'light';
 }) {
   const t = translator(messages, lang);
-  const ghost = tone === 'dark'
-    ? 'bg-white/10 text-zinc-100 ring-1 ring-white/15 hover:bg-white/20'
-    : 'bg-white text-zinc-800 ring-1 ring-zinc-300 hover:bg-zinc-50 dark:bg-zinc-900 dark:text-zinc-100 dark:ring-zinc-700 dark:hover:bg-zinc-800';
   return (
     <div className='flex gap-2'>
       <button type='button' onClick={onGo}
@@ -33,8 +30,8 @@ export function GoButtons({ dest, from, lang, onGo, tone = 'dark' }: {
         <Icon name='compass' size={15} />{t('go.directions')}
       </button>
       <UberButton dest={dest} from={from} title={t('go.uberTitle')}
-                  className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold ${ghost}`}>
-        {t('go.uber')}
+                  className='flex items-center justify-center rounded-lg bg-black px-3.5 py-2 text-white ring-1 ring-white/20 hover:bg-zinc-800'>
+        <span className='sr-only'>{t('go.uberTitle')}</span>
       </UberButton>
     </div>
   );
@@ -67,7 +64,7 @@ export function UberButton({ dest, from, className, title, children }: {
   return (
     <button type='button' onClick={go} title={title}
             className={`relative overflow-hidden transition active:scale-[0.97] ${className}`}>
-      <UberMark />{children}
+      {children}<UberMark />
       {driving > 0 && (
         <span key={driving} aria-hidden className='pointer-events-none absolute inset-y-0 flex items-center motion-safe:animate-[drive_700ms_cubic-bezier(0.5,0,0.2,1)_forwards] motion-reduce:hidden'>
           <svg viewBox='0 0 48 20' className='h-5 w-12 drop-shadow'>
@@ -83,9 +80,13 @@ export function UberButton({ dest, from, className, title, children }: {
   );
 }
 
-/** The word mark is a plain black square with "U" so we don't copy Uber's logo. */
-function UberMark() {
-  return <span aria-hidden className='grid h-4 w-4 place-items-center rounded-[4px] bg-black text-[10px] font-bold leading-none text-white ring-1 ring-white/30'>U</span>;
+/** The Uber wordmark (Simple Icons, CC0), in the button's text colour, linking out to Uber. */
+export function UberMark({ className = 'h-3.5' }: { className?: string }) {
+  return (
+    <svg role='img' aria-label='Uber' viewBox='0 7.6 24 8.8' className={`w-auto shrink-0 ${className}`} fill='currentColor'>
+      <path d='M0 7.97v4.958c0 1.867 1.302 3.101 3 3.101.826 0 1.562-.316 2.094-.87v.736H6.27V7.97H5.082v4.888c0 1.257-.85 2.106-1.947 2.106-1.11 0-1.946-.827-1.946-2.106V7.971H0zm7.44 0v7.925h1.13v-.725c.521.532 1.257.86 2.06.86a3.006 3.006 0 0 0 3.034-3.01 3.01 3.01 0 0 0-3.033-3.024 2.86 2.86 0 0 0-2.049.861V7.971H7.439zm9.869 2.038c-1.687 0-2.965 1.37-2.965 3 0 1.72 1.334 3.01 3.066 3.01 1.053 0 1.913-.463 2.49-1.233l-.826-.611c-.43.577-.996.847-1.664.847-.973 0-1.753-.7-1.912-1.64h4.697v-.373c0-1.72-1.222-3-2.886-3zm6.295.068c-.634 0-1.098.294-1.381.758v-.713h-1.131v5.774h1.142V12.61c0-.894.544-1.47 1.291-1.47H24v-1.065h-.396zm-6.319.928c.85 0 1.564.588 1.756 1.47H15.52c.203-.882.916-1.47 1.765-1.47zm-6.732.012c1.086 0 1.98.883 1.98 2.004a1.993 1.993 0 0 1-1.98 2.001A1.989 1.989 0 0 1 8.56 13.02a1.99 1.99 0 0 1 1.992-2.004z' />
+    </svg>
+  );
 }
 
 export function GoPanel({ dest, lang, mode, onMode, status, distance, duration, remaining, following, onFollow, from, onClose, onRetry }: {

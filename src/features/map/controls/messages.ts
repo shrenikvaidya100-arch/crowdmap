@@ -37,7 +37,7 @@ export const messages = {
     export: "Export as PNG", share: "Copy share link", copied: "Link copied.", print: "Print view",
     shortcuts: "Keyboard shortcuts",
     "key.zoom": "Zoom in and out", "key.pan": "Move the map", "key.esc": "Close panels", "key.help": "Show this list",
-    "key.layers": "Layers", "key.tools": "Tools",
+    "key.layers": "Layers", "key.tools": "Tools", "key.search": "Start typing to search",
   },
   hi: {
     "dock.home": "होम", "dock.map": "नक्शा", "dock.layers": "परतें", "dock.customize": "रूप बदलें",

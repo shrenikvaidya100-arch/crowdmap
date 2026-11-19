@@ -13,7 +13,15 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    // Big static files (globe images, cursor, map worker) are cached by browsers for a day
+    // and refreshed in the background for a week, so repeat visits load instantly.
+    const longCache = [{ key: "Cache-Control", value: "public, max-age=86400, stale-while-revalidate=604800" }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      { source: "/textures/:file*", headers: longCache },
+      { source: "/cursors/:file*", headers: longCache },
+      { source: "/maplibre-gl-worker.js", headers: longCache },
+    ];
   },
   // Every page depends on who is signed in, so pages render per request.
   turbopack: {

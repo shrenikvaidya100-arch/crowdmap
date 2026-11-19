@@ -60,7 +60,9 @@ export function SavedView({ lang, notes, watches, saved }: { lang: Language; not
                   {n.kind === "place_quiet" && <p className="mt-0.5 text-xs font-medium text-green-700 dark:text-green-400">{t("reminderSent")}</p>}
                   <p className="mt-1 flex gap-3 text-xs text-gray-500">
                     {fmt(n.created_at)}
-                    {n.place_id && <Link href={`/map?place=${n.place_id}`} className="text-blue-600 hover:underline">{t("open")}</Link>}
+                    {n.place_id && (n.kind === "confirm_crowd"
+                      ? <Link href={`/map?place=${n.place_id}&confirm=1`} className="font-semibold text-blue-600 hover:underline">{t("confirmNow")}</Link>
+                      : <Link href={`/map?place=${n.place_id}`} className="text-blue-600 hover:underline">{t("open")}</Link>)}
                   </p>
                 </li>
               );

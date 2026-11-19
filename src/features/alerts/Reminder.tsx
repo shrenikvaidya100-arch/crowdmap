@@ -94,7 +94,7 @@ export function Reminder({ placeId, placeName, lang, compact = false, tone = "li
           <fieldset>
             <legend className="mb-1.5 text-xs opacity-70">{t("tellMeWhen")}</legend>
             {[{ v: 2, k: "level.quietOrBetter" }, { v: 3, k: "level.moderateOrBetter" }, { v: 1, k: "level.emptyOnly" }].map((o) => (
-              <label key={o.v} className="flex cursor-pointer items-center gap-2 py-0.5">
+              <label key={o.v} className="flex cursor-crosshair items-center gap-2 py-0.5">
                 <input type="radio" name={`target-${placeId}`} checked={target === o.v} onChange={() => setTarget(o.v)} className="accent-blue-600" />
                 {t(o.k)}
               </label>
