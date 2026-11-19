@@ -37,7 +37,7 @@ export default async function AdminBots({ searchParams }: PageProps<"/admin/bots
 
   return (
     <>
-      <section className="space-y-3 border border-zinc-900/20 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+      <section className="space-y-3 rounded-2xl border border-zinc-200 bg-white shadow-sm p-4 dark:border-zinc-800 dark:bg-zinc-900">
         <p className="text-sm text-gray-600 dark:text-gray-400">{t("bots.intro", { remove: 100, flag: 40 })}</p>
         <RunSweep lang={lang} />
       </section>
@@ -47,13 +47,13 @@ export default async function AdminBots({ searchParams }: PageProps<"/admin/bots
           <h2 className="mr-2 font-medium">{t("bots.findings")}</h2>
           {VIEWS.map((v) => (
             <Link key={v} href={`/admin/bots?view=${v}`} aria-current={view === v ? "page" : undefined}
-                  className={`border px-3 py-1 text-sm font-medium ${view === v ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900" : "border-zinc-900/25 text-zinc-700 hover:border-zinc-900 dark:border-zinc-700 dark:text-zinc-300"}`}>
+                  className={`rounded-full border px-3 py-1 text-sm font-medium ${view === v ? "border-zinc-900 bg-zinc-900 text-white dark:border-white dark:bg-white dark:text-zinc-900" : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300"}`}>
               {v === "open" ? t("bots.open") : t("bots.allFindings")}
             </Link>
           ))}
         </div>
         {flags.length === 0 ? <p className="text-sm text-gray-500">{t("noneYet")}</p> : (
-          <ul className="divide-y divide-gray-100 border border-zinc-900/20 bg-white dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-900">
+          <ul className="divide-y divide-gray-100 rounded-2xl border border-zinc-200 bg-white shadow-sm dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-900">
             {flags.map((f) => (
               <li key={f.id} className="flex flex-wrap items-start justify-between gap-3 p-3 text-sm">
                 <div className="min-w-0 flex-1 space-y-1">
@@ -80,7 +80,7 @@ export default async function AdminBots({ searchParams }: PageProps<"/admin/bots
 
       <section>
         <h2 className="mb-2 font-medium">{t("bots.rules")}</h2>
-        <div className="overflow-x-auto border border-zinc-900/20 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="overflow-x-auto rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
           <table className="w-full min-w-[560px] text-left text-sm">
             <thead className="bg-gray-50 text-xs text-gray-600 dark:bg-gray-900 dark:text-gray-400">
               <tr>

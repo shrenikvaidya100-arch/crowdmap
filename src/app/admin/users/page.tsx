@@ -58,7 +58,7 @@ export default async function AdminUsers({ searchParams }: PageProps<"/admin/use
         </Field>
       </FilterBar>
 
-      <div className="overflow-x-auto border border-zinc-900/20 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="overflow-x-auto rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
         <table className="w-full min-w-[760px] text-left text-sm">
           <thead className="bg-gray-50 text-xs text-gray-600 dark:bg-gray-900 dark:text-gray-400">
             <tr>

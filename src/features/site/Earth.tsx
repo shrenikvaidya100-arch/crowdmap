@@ -1,6 +1,7 @@
 'use client';
 // The rotating Earth behind the home page hero (Three.js).
-// Night-lights texture (NASA, public domain): the bright parts are where people are.
+// Night-lights texture (NASA, public domain), lit by a sun: a day side, a soft
+// fade into night and warm city lights on the night side.
 // Rotates slowly all the time and spins with the scroll wheel or trackpad (and a
 // swipe on phones): down spins it forward, up spins it back, then it eases back
 // to the slow spin. The home page doesn't scroll, so this reads wheel and touch
@@ -22,12 +23,18 @@ const ATMOSPHERE_VERTEX = `
 const ATMOSPHERE_FRAGMENT = `
   varying vec3 vNormal;
   void main() {
-    float intensity = pow(0.74 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.6);
-    gl_FragColor = vec4(0.25, 0.6, 1.0, 1.0) * intensity * 1.15;
+    float intensity = pow(0.72 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.4);
+    // Sky blue on the sunlit side, a warm dawn tint where the light fades.
+    vec3 sun = normalize(vec3(0.95, 0.3, -0.15));
+    float lit = smoothstep(-0.4, 0.6, dot(vNormal, sun));
+    vec3 tint = mix(vec3(0.3, 0.42, 0.75), vec3(0.45, 0.72, 1.0), lit);
+    gl_FragColor = vec4(tint, 1.0) * intensity * (0.35 + 0.75 * lit);
   }`;
 
-// Earth surface: the night lights brightened, a faint blue for the land and sea,
-// and a glow towards the edge so the globe reads clearly against the black page.
+// Earth surface, lit like the real thing: a sunlit half in deep ocean blue and
+// muted land, a soft fade where day meets night, and on the night side the
+// city lights in warm sodium amber (brightest where people are). The texture is
+// the NASA night-lights map, so land shows faintly and cities glow.
 const EARTH_VERTEX = `
   varying vec2 vUv;
   varying vec3 vNormal;
@@ -41,10 +48,25 @@ const EARTH_FRAGMENT = `
   varying vec2 vUv;
   varying vec3 vNormal;
   void main() {
-    vec3 c = texture2D(map, vUv).rgb;
-    c = pow(c, vec3(0.85)) * 2.1;
+    vec3 tex = texture2D(map, vUv).rgb;
+    float lum = dot(tex, vec3(0.299, 0.587, 0.114));
+    vec3 sun = normalize(vec3(0.95, 0.3, -0.15));
+    float ndl = dot(vNormal, sun);
+    float day = smoothstep(-0.12, 0.35, ndl);
+    // Day side: ocean blue, with land a little greener and lighter where the texture shows it.
+    float land = smoothstep(0.015, 0.09, lum);
+    vec3 ocean = vec3(0.02, 0.09, 0.2);
+    vec3 ground = vec3(0.13, 0.17, 0.11);
+    vec3 dayCol = mix(ocean, ground, land) * (0.25 + 0.75 * max(ndl, 0.0));
+    // Night side: deep navy plus warm city lights.
+    vec3 lights = pow(max(lum - 0.02, 0.0), 1.15) * vec3(1.0, 0.74, 0.42) * 3.6;
+    vec3 nightCol = vec3(0.008, 0.016, 0.035) + mix(vec3(0.0), vec3(0.03, 0.035, 0.03), smoothstep(0.015, 0.09, lum)) + lights;
+    vec3 c = mix(nightCol, dayCol, day);
+    // Faint lights still visible at dusk.
+    c += lights * 0.25 * (1.0 - smoothstep(0.1, 0.5, ndl));
+    // Thin atmosphere at the rim, blue on the lit side.
     float rim = pow(1.0 - max(dot(vNormal, vec3(0.0, 0.0, 1.0)), 0.0), 3.0);
-    c += vec3(0.008, 0.018, 0.04) + vec3(0.12, 0.38, 0.95) * rim * 0.35;
+    c += vec3(0.35, 0.6, 1.0) * rim * (0.08 + 0.32 * day);
     gl_FragColor = vec4(c, 1.0);
     #include <colorspace_fragment>
   }`;
@@ -118,7 +140,7 @@ export function Earth({ className }: { className?: string }) {
     starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
     const stars = new THREE.Points(
       starGeometry,
-      new THREE.PointsMaterial({ color: 0x9fbfff, size: 0.1, transparent: true, opacity: 0.75, depthWrite: false }),
+      new THREE.PointsMaterial({ color: 0xfff1dc, size: 0.09, transparent: true, opacity: 0.7, depthWrite: false }),
     );
     scene.add(stars);
 

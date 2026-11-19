@@ -68,7 +68,7 @@ export function AdminSidebar({ lang, children }: { lang: Language; children: Rea
   const toggleButton = (
     <button type="button" onClick={toggle} aria-label={t("sidebar.toggle")} aria-expanded={mobileOpen || !collapsed}
             aria-controls="admin-sidebar"
-            className="group/tip relative grid h-9 w-9 shrink-0 place-items-center text-zinc-500 outline-none hover:bg-white hover:text-zinc-900 focus-visible:ring-2 focus-visible:ring-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100">
+            className="group/tip relative grid h-9 w-9 shrink-0 place-items-center text-zinc-500 outline-none rounded-lg hover:bg-zinc-100 hover:text-zinc-900 focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100">
       <Icon name="sidebar_toggle" size={18} className={rail ? "" : "md:rotate-180"} />
       <Tip show>{t("sidebar.toggle")}</Tip>
     </button>
@@ -80,10 +80,10 @@ export function AdminSidebar({ lang, children }: { lang: Language; children: Rea
       {mobileOpen && <div aria-hidden className="fixed inset-0 top-16 z-30 bg-black/40 backdrop-blur-[2px] md:hidden" onClick={() => setMobileOpen(false)} />}
 
       <aside id="admin-sidebar" aria-label={t("sidebar.menu")}
-             className={`fixed bottom-0 left-0 top-16 z-40 flex flex-col border-r border-zinc-900/15 bg-[#f3efe4] transition-[width,transform] duration-200 ease-out dark:border-zinc-800 dark:bg-zinc-900
+             className={`fixed bottom-0 left-0 top-16 z-40 flex flex-col border-r border-zinc-200 bg-white transition-[width,transform] duration-200 ease-out dark:border-zinc-800 dark:bg-zinc-900
                          md:sticky md:top-16 md:h-[calc(100svh-4rem)] md:translate-x-0 ${mobileOpen ? "w-60 translate-x-0" : "w-60 -translate-x-full"} ${rail ? "md:w-14" : "md:w-60"}`}>
-        <div className={`flex h-14 items-center gap-2 border-b border-zinc-900/15 px-3 dark:border-zinc-800 ${rail ? "md:justify-center md:px-2" : ""}`}>
-          <span className={`min-w-0 flex-1 truncate font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-600 dark:text-zinc-400 ${rail ? "md:hidden" : ""}`}>{t("sidebar.workspace")}</span>
+        <div className={`flex h-14 items-center gap-2 border-b border-zinc-200 px-3 dark:border-zinc-800 ${rail ? "md:justify-center md:px-2" : ""}`}>
+          <span className={`min-w-0 flex-1 truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100 ${rail ? "md:hidden" : ""}`}>{t("sidebar.workspace")}</span>
           {toggleButton}
         </div>
         <nav aria-label={t("title")} className={`flex flex-1 flex-col gap-0.5 overflow-y-auto p-2 ${rail ? "md:overflow-visible" : ""}`}>
@@ -91,8 +91,8 @@ export function AdminSidebar({ lang, children }: { lang: Language; children: Rea
             const active = href === "/admin" ? path === href : path.startsWith(href);
             return (
               <Link key={href} href={href} aria-current={active ? "page" : undefined}
-                    className={`group/tip relative flex h-9 items-center gap-3 border-l-[3px] px-2.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-zinc-900
-                                ${active ? "border-zinc-900 bg-white font-semibold text-zinc-900 dark:border-zinc-100 dark:bg-zinc-950 dark:text-zinc-50" : "border-transparent text-zinc-600 hover:border-zinc-400 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"}
+                    className={`group/tip relative flex h-9 items-center gap-3 rounded-lg px-2.5 text-sm font-medium outline-none transition focus-visible:ring-2 focus-visible:ring-blue-500
+                                ${active ? "bg-zinc-900 text-white shadow-sm dark:bg-white dark:text-zinc-900" : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"}
                                 ${rail ? "md:justify-center md:px-0" : ""}`}>
                 <Icon name={icon} size={18} className="shrink-0" />
                 <span className={rail ? "md:sr-only" : ""}>{t(key)}</span>
@@ -105,7 +105,7 @@ export function AdminSidebar({ lang, children }: { lang: Language; children: Rea
 
       <div className="min-w-0 flex-1">
         {/* Phone: the menu button that opens the sidebar */}
-        <div className="flex items-center gap-2 border-b border-zinc-900/15 px-3 py-2 md:hidden dark:border-zinc-800">
+        <div className="flex items-center gap-2 border-b border-zinc-200 px-3 py-2 md:hidden dark:border-zinc-800">
           {toggleButton}
           <span className="text-sm font-medium">{t(TABS.find(([href]) => (href === "/admin" ? path === href : path.startsWith(href)))?.[1] ?? "title")}</span>
         </div>

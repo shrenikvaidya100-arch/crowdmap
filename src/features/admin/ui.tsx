@@ -9,9 +9,9 @@ export function FilterBar({ action, children, applyLabel, clearLabel }: {
   action: string; children: ReactNode; applyLabel: string; clearLabel: string;
 }) {
   return (
-    <form action={action} method="get" className="flex flex-wrap items-end gap-2 border border-zinc-900/20 bg-[#f3efe4] p-3 dark:border-zinc-800 dark:bg-zinc-900">
+    <form action={action} method="get" className="flex flex-wrap items-end gap-2 rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
       {children}
-      <button className="border border-zinc-900 bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-700">{applyLabel}</button>
+      <button className="rounded-lg bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-zinc-700 dark:bg-white dark:text-zinc-900">{applyLabel}</button>
       <Link href={action} className="px-2 py-1.5 text-sm text-gray-600 hover:underline dark:text-gray-400">{clearLabel}</Link>
     </form>
   );

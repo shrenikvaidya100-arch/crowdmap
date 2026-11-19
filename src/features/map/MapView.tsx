@@ -12,6 +12,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { preconnect } from "react-dom";
 import { crowdConfig, quickIcon } from "@/features/crowd/config";
+import { ConfirmPrompt } from "@/features/crowd/ConfirmPrompt";
 import { PlaceSheet } from "@/features/crowd/PlaceSheet";
 import { loadPresencePreference, savePresencePreference, usePresence } from "@/features/crowd/usePresence";
 import { AddPlaceSheet } from "@/features/places/AddPlaceSheet";
@@ -266,7 +267,12 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
     m.on("contextmenu", pin);
     // Scrolling the map shows the zoom control for a moment.
     m.on("wheel", () => flashZoom());
-    m.on("load", () => {
+    // Set up our layers as soon as the style is ready, not after every first tile has
+    // downloaded ("load"), so a slow connection doesn't leave the loading screen up.
+    let initialised = false;
+    const init = () => {
+      if (initialised) return;
+      initialised = true;
       // The route for Directions, under the crowd dots.
       m.addSource("cm-route", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
       m.addLayer({ id: "cm-route-casing", type: "line", source: "cm-route", layout: { "line-cap": "round", "line-join": "round" },
@@ -363,7 +369,9 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
       m.on("mouseenter", "places", () => { m.getCanvas().style.cursor = "pointer"; });
       m.on("mouseleave", "places", () => { m.getCanvas().style.cursor = ""; });
       setReady(true);
-    });
+    };
+    m.once("style.load", init);
+    m.once("load", init);
     return () => { cancelAnimationFrame(raf); m.remove(); map.current = null; };
     // The map is created once; data updates are handled below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -993,6 +1001,10 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
           </button>
         </div>
       )}
+
+      {/* Someone nearby reported a crowd level: ask people who are there to confirm it. */}
+      <ConfirmPrompt lang={lang} me={me} onLocated={setMe} hidden={!!selected || !!go || !!dockPanel || !!panel || adding}
+                     onConfirmed={() => { if (activeCity) void loadCity(activeCity); }} />
 
       <Legend lang={lang} shown={visible.length} places={cityPlaces.length} live={liveCount} sample={sampleCount} />
 
