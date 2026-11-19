@@ -6,8 +6,8 @@ import type { Map as MLMap, StyleSpecification } from "maplibre-gl";
 import { contoursSourceUrl, MAPTILER_ATTRIBUTION, mapTilerKey, terrainSourceUrl, type BasemapId, type OverlayId } from "./basemaps";
 
 /** Our own sources and layers; carried over when the basemap changes. */
-export const OWN_SOURCES = ["cm-cities", "places", "cm-shapes", "cm-measure"];
-export const OWN_LAYERS = ["city-live", "city-bubbles", "presence", "places", "cm-shapes-fill", "cm-shapes-line", "cm-shapes-point", "cm-measure-line", "cm-measure-point"];
+export const OWN_SOURCES = ["cm-route", "cm-cities", "places", "cm-shapes", "cm-measure"];
+export const OWN_LAYERS = ["cm-route-casing", "cm-route-line", "cm-route-walk", "city-live", "city-bubbles", "presence", "places", "cm-shapes-fill", "cm-shapes-line", "cm-shapes-point", "cm-measure-line", "cm-measure-point"];
 
 export type MapPrefs = {
   palette: "light" | "dark" | "sepia" | "contrast";

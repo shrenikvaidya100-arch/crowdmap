@@ -34,6 +34,7 @@ import { clearPrefs, loadMarkers, loadPrefs, loadShapes, newId, saveMarkers, sav
 import { ZoomSlider } from "./controls/ZoomSlider";
 import { CityPicker } from "./controls/CityPicker";
 import { PlaceCard } from "./PlaceCard";
+import { GoButtons, GoPanel, type GoDest, type GoMode, type GoStatus } from "./GoPanel";
 
 // Worker file is copied into public/ by scripts/copy-map-worker.mjs.
 setWorkerUrl("/maplibre-gl-worker.js");
@@ -62,6 +63,13 @@ const BUBBLE_FADE: [number, number] = [8, 9.5];
 const BUBBLE_R = ["+", 7, ["*", 0.55, ["sqrt", ["get", "places"]]]];
 // Load the dots of up to this many other cities that are on screen when zoomed in.
 const MAX_NEARBY = 3;
+
+/** Straight-line distance in metres. */
+function metres(a: LatLng, b: LatLng) {
+  const r = Math.PI / 180;
+  const x = Math.sin(((b.lat - a.lat) * r) / 2) ** 2 + Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.sin(((b.lng - a.lng) * r) / 2) ** 2;
+  return 2 * 6371000 * Math.asin(Math.sqrt(x));
+}
 
 /** A place to open on load (from /?place=<id>). */
 export type LinkedPlace = { id: string; lat: number; lng: number; city_id: string };
@@ -143,6 +151,17 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
   useEffect(() => { toolRef.current = toolMode; }, [toolMode]);
   const userMarkerEls = useRef<Marker[]>([]);
 
+  // ---- Directions ("Go") ------------------------------------------------------
+  const [go, setGo] = useState<GoDest | null>(null);
+  const [goMode, setGoMode] = useState<GoMode>("drive");
+  const [goStatus, setGoStatus] = useState<GoStatus>("locating");
+  const [goRoute, setGoRoute] = useState<{ distance: number; duration: number; from: LatLng } | null>(null);
+  const [goTry, setGoTry] = useState(0);
+  const [following, setFollowing] = useState(false);
+  /** A dropped pin the viewer tapped (shows Directions / Uber for it). */
+  const [pinPick, setPinPick] = useState<UserMarker | null>(null);
+  const meMarker = useRef<Marker | null>(null);
+
   // Create the map once.
   useEffect(() => {
     if (!box.current) return;
@@ -186,7 +205,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
       if (mode === "line" || mode === "area") { setDrawPts((p) => [...p, pt]); return; }
       // Clicks on a place open the place; a tap on an empty spot closes everything.
       if (m.getLayer("places") && m.queryRenderedFeatures(e.point, { layers: ["places"] }).length) return;
-      selectPlace(null); setPanel(null); setDockPanel(null); setNewMarker(null);
+      selectPlace(null); setPanel(null); setDockPanel(null); setNewMarker(null); setPinPick(null);
     });
     // Double tap or right click drops a pin right there (no form, no colour picker).
     const pin = (e: MapMouseEvent) => {
@@ -199,6 +218,18 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
     // Scrolling the map shows the zoom control for a moment.
     m.on("wheel", () => flashZoom());
     m.on("load", () => {
+      // The route for Directions, under the crowd dots.
+      m.addSource("cm-route", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      m.addLayer({ id: "cm-route-casing", type: "line", source: "cm-route", layout: { "line-cap": "round", "line-join": "round" },
+        paint: { "line-color": "#1e3a8a", "line-width": ["interpolate", ["linear"], ["zoom"], 10, 6, 16, 12], "line-opacity": 0.9 } });
+      m.addLayer({ id: "cm-route-line", type: "line", source: "cm-route", filter: ["!=", ["get", "mode"], "walk"],
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: { "line-color": "#3b82f6", "line-width": ["interpolate", ["linear"], ["zoom"], 10, 3.5, 16, 8] } });
+      // Walking: dotted cyan line.
+      m.addLayer({ id: "cm-route-walk", type: "line", source: "cm-route", filter: ["==", ["get", "mode"], "walk"],
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: { "line-color": "#22d3ee", "line-width": ["interpolate", ["linear"], ["zoom"], 10, 3.5, 16, 8], "line-dasharray": [0.6, 1.6] } });
+
       // Every city as one crowd bubble when zoomed out: colour = typical crowd now,
       // size = number of places, blue ring = live reports there.
       m.addSource("cm-cities", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
@@ -500,6 +531,11 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
       el.className = "h-4 w-4 rounded-full ring-2 ring-white shadow-md";
       el.style.background = mk.color;
       el.title = mk.name || tc("unnamed");
+      // Tap a pin: Directions or an Uber to it.
+      el.style.cursor = "pointer";
+      el.setAttribute("role", "button");
+      el.setAttribute("aria-label", mk.name || tc("unnamed"));
+      el.addEventListener("click", (e) => { e.stopPropagation(); if (!toolRef.current) { setSelected(null); setPinPick(mk); } });
       return new Marker({ element: el }).setLngLat([mk.lng, mk.lat]).addTo(m);
     });
   }, [markers, overlays.saved, ready, tc]);
@@ -674,7 +710,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
   }
 
   /** One window at a time: closes the dock panel, the place card and Add place. */
-  function closeOthers() { setDockPanel(null); setSelected(null); setDetails(false); setAdding(false); setNewMarker(null); }
+  function closeOthers() { setDockPanel(null); setSelected(null); setDetails(false); setAdding(false); setNewMarker(null); setPinPick(null); setGo(null); setFollowing(false); }
 
   function closeAdding() {
     setAdding(false);
@@ -704,6 +740,88 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
       { enableHighAccuracy: true, timeout: 10000 },
     );
   }
+
+  /** Directions to a place or pin: closes the card, draws the route from where you are. */
+  function startGo(dest: GoDest) {
+    setSelected(null); setDetails(false); setDockPanel(null); setPanel(null); setPinPick(null); setFollowing(false);
+    setGoMode(me && metres(me, dest) <= config.routing.walkUpToM ? "walk" : "drive");
+    setGo(dest);
+  }
+  function stopGo() {
+    setGo(null); setFollowing(false); setGoRoute(null);
+  }
+
+  // Find the route whenever the destination, the mode or a retry changes.
+  const meRef = useRef<LatLng | null>(null);
+  useEffect(() => { meRef.current = me; }, [me]);
+  useEffect(() => {
+    const m = map.current;
+    const src = () => m?.getSource("cm-route") as GeoJSONSource | undefined;
+    if (!go) { src()?.setData({ type: "FeatureCollection", features: [] }); return; }
+    let cancelled = false;
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), config.routing.timeoutMs);
+    const route = async (from: LatLng) => {
+      if (cancelled) return;
+      setGoStatus("routing");
+      try {
+        const res = await fetch(config.routing.routeUrl(goMode, [from.lng, from.lat], [go.lng, go.lat]), { signal: ctrl.signal });
+        const j = res.ok ? await res.json() : null;
+        const r = j?.routes?.[0];
+        if (cancelled) return;
+        if (!r) { setGoStatus("error"); return; }
+        setGoRoute({ distance: r.distance, duration: r.duration, from });
+        src()?.setData({ type: "FeatureCollection", features: [{ type: "Feature", geometry: r.geometry, properties: { mode: goMode } }] });
+        // Show the whole route, clear of the panel at the bottom.
+        const pts = r.geometry.coordinates as [number, number][];
+        const lngs = pts.map((p) => p[0]), lats = pts.map((p) => p[1]);
+        m?.fitBounds([[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
+          { padding: { top: 150, bottom: 400, left: 50, right: 70 }, maxZoom: 17, duration: 800 });
+        setGoStatus("ready");
+      } catch {
+        if (!cancelled) setGoStatus("error");
+      }
+    };
+    queueMicrotask(() => { if (!cancelled) { setGoRoute(null); setGoStatus("locating"); } });
+    if (meRef.current) void route(meRef.current);
+    else if (!navigator.geolocation) queueMicrotask(() => { if (!cancelled) setGoStatus("noLocation"); });
+    else navigator.geolocation.getCurrentPosition(
+      (pos) => { const p = { lat: pos.coords.latitude, lng: pos.coords.longitude }; setMe(p); void route(p); },
+      () => { if (!cancelled) setGoStatus("noLocation"); },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+    );
+    return () => { cancelled = true; ctrl.abort(); clearTimeout(timer); };
+  }, [go, goMode, goTry]);
+
+  // Start: follow the viewer along the way (the map keeps them in the middle).
+  useEffect(() => {
+    if (!following || !navigator.geolocation) return;
+    const id = navigator.geolocation.watchPosition((pos) => {
+      const p = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      setMe(p);
+      map.current?.easeTo({ center: [p.lng, p.lat], zoom: Math.max(map.current.getZoom(), 16), duration: 600 });
+    }, () => setFollowing(false), { enableHighAccuracy: true, maximumAge: 2000 });
+    return () => navigator.geolocation.clearWatch(id);
+  }, [following]);
+
+  // A blue dot where the viewer is, once we know.
+  useEffect(() => {
+    const m = map.current;
+    if (!ready || !m || !me) return;
+    if (!meMarker.current) {
+      const el = document.createElement("div");
+      el.className = "h-4 w-4 rounded-full bg-blue-500 ring-4 ring-white shadow-[0_0_0_8px_rgba(59,130,246,0.25)]";
+      el.setAttribute("aria-hidden", "true");
+      meMarker.current = new Marker({ element: el }).setLngLat([me.lng, me.lat]).addTo(m);
+    } else meMarker.current.setLngLat([me.lng, me.lat]);
+  }, [me, ready]);
+
+  // Distance left by road: the route length, scaled by how much of the straight line is left.
+  const goRemaining = go && me ? (() => {
+    const left = metres(me, go);
+    const total = goRoute?.from ? metres(goRoute.from, go) : 0;
+    return goRoute && total > 0 ? Math.min(goRoute.distance, goRoute.distance * (left / total)) : left;
+  })() : null;
 
   const cityNames = Object.fromEntries(cities.map((c) => [c.id, lang === "hi" && c.name_hi ? c.name_hi : c.name]));
   const activeFilters = countActive(filters);
@@ -872,10 +990,33 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
                        }} />
       )}
 
+      {pinPick && !go && !selected && (
+        <section data-map-ui aria-label={pinPick.name || tc("unnamed")}
+                 className="absolute inset-x-2 bottom-[4.75rem] z-40 rounded-2xl bg-neutral-950/95 p-4 text-sm text-neutral-200 shadow-2xl ring-1 ring-white/10 backdrop-blur motion-safe:animate-[pop_180ms_ease-out] print:hidden sm:inset-x-0 sm:mx-auto sm:w-[340px]">
+          <div className="mb-3 flex items-center gap-3">
+            <span className="h-3.5 w-3.5 shrink-0 rounded-full ring-2 ring-white" style={{ background: pinPick.color }} />
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-semibold text-white">{pinPick.name || tc("unnamed")}</p>
+              <p className="text-xs text-neutral-500">{pinPick.lat.toFixed(5)}, {pinPick.lng.toFixed(5)}{me ? ` · ${(metres(me, pinPick) / 1000).toFixed(1)} km` : ""}</p>
+            </div>
+            <button type="button" onClick={() => { deleteMarker(pinPick.id); setPinPick(null); }} title={t("pin.delete")} aria-label={t("pin.delete")}
+                    className="grid h-8 w-8 place-items-center rounded-full text-neutral-400 hover:bg-neutral-800 hover:text-red-400"><Icon name="close" size={16} /></button>
+          </div>
+          <GoButtons dest={{ lat: pinPick.lat, lng: pinPick.lng, name: pinPick.name || tc("unnamed") }} from={me} lang={lang}
+                     onGo={() => startGo({ lat: pinPick.lat, lng: pinPick.lng, name: pinPick.name || tc("unnamed") })} />
+        </section>
+      )}
+      {go && !selected && (
+        <GoPanel dest={go} lang={lang} mode={goMode} onMode={(md) => { setFollowing(false); setGoMode(md); }} status={goStatus}
+                 distance={goRoute?.distance ?? null} duration={goRoute?.duration ?? null}
+                 remaining={goRemaining} following={following} onFollow={() => setFollowing((f) => !f)} from={me}
+                 onClose={stopGo} onRetry={() => setGoTry((n) => n + 1)} />
+      )}
+
       {selected && !details && (
         <div data-map-ui className="pointer-events-none absolute inset-x-0 top-[6.5rem] bottom-[4.5rem] z-30 flex items-center justify-center print:hidden sm:top-24">
           <div className="pointer-events-auto">
-            <PlaceCard placeId={selected} lang={lang}
+            <PlaceCard placeId={selected} lang={lang} me={me} onGo={startGo}
                        onClose={() => setSelected(null)} onMore={() => setDetails(true)} />
           </div>
         </div>
@@ -883,7 +1024,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
       {selected && details && (
         <PlaceSheet key={selected} placeId={selected} version={placeVersion} lang={lang}
                     onClose={() => { setDetails(false); setSelected(null); }}
-                    onChanged={() => activeCity && void loadCity(activeCity)} />
+                    onChanged={() => activeCity && void loadCity(activeCity)} onGo={startGo} />
       )}
     </div>
   );

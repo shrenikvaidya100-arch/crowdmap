@@ -58,6 +58,7 @@ export const messages = {
     "gps.timeout": "Could not get your location in time. Try again.",
     "gps.inaccurate": "Your GPS signal is too weak. Step outside or turn on precise location.",
     openInMaps: "Directions",
+    uber: "Book an Uber",
     "ago.now": "just now", "ago.min": "{n} min ago", "ago.hour": "{n} h ago",
   },
   hi: {
@@ -107,6 +108,7 @@ export const messages = {
     "gps.denied": "लोकेशन की अनुमति बंद है। रिपोर्ट करने के लिए ब्राउज़र सेटिंग में चालू करें।",
     "gps.timeout": "समय पर लोकेशन नहीं मिली। फिर कोशिश करें।",
     openInMaps: "रास्ता",
+    uber: "Uber बुक करें",
     "ago.now": "अभी", "ago.min": "{n} मिनट पहले", "ago.hour": "{n} घंटे पहले",
   },
 } satisfies Messages;

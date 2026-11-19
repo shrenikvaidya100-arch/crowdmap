@@ -35,7 +35,7 @@ type Details = {
 const levelColor = (l: number) => config.crowd.levels.find((x) => x.level === l)?.color ?? config.crowd.noDataColor;
 
 export function PlaceSheet({
-  placeId, version = 0, lang, onClose, onChanged,
+  placeId, version = 0, lang, onClose, onChanged, onGo,
 }: {
   placeId: string;
   /** Bumped by the map when a live update touches this place. */
@@ -43,6 +43,8 @@ export function PlaceSheet({
   lang: Language;
   onClose: () => void;
   onChanged: () => void;
+  /** Directions drawn on the map (else Google Maps opens). */
+  onGo?: (dest: { lat: number; lng: number; name: string }) => void;
 }) {
   const t = translator(messages, lang);
   const [data, setData] = useState<Details | null>(null);
@@ -263,11 +265,23 @@ export function PlaceSheet({
             </section>
           )}
 
-          <a href={`https://www.google.com/maps/dir/?api=1&destination=${data.place.lat},${data.place.lng}`}
-             target="_blank" rel="noopener noreferrer"
-             className="block rounded-md border border-gray-300 px-3 py-2 text-center text-sm font-medium hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800">
-            {t("openInMaps")}
-          </a>
+          <div className="grid grid-cols-2 gap-2">
+            {onGo ? (
+              <button type="button" onClick={() => onGo({ lat: data.place.lat, lng: data.place.lng, name: (lang === "hi" && data.place.name_hi) || data.place.name })}
+                      className="rounded-md bg-blue-600 px-3 py-2 text-center text-sm font-semibold text-white hover:bg-blue-500">
+                {t("openInMaps")}
+              </button>
+            ) : (
+              <a href={config.routing.googleUrl(data.place.lat, data.place.lng, "drive")} target="_blank" rel="noopener noreferrer"
+                 className="rounded-md bg-blue-600 px-3 py-2 text-center text-sm font-semibold text-white hover:bg-blue-500">
+                {t("openInMaps")}
+              </a>
+            )}
+            <a href={config.routing.uberUrl({ lat: data.place.lat, lng: data.place.lng, name: data.place.name })} target="_blank" rel="noopener noreferrer"
+               className="rounded-md bg-black px-3 py-2 text-center text-sm font-semibold text-white ring-1 ring-white/20 hover:bg-zinc-900">
+              {t("uber")}
+            </a>
+          </div>
         </div>
       )}
     </aside>
