@@ -40,11 +40,6 @@ export function Header({ lang, viewer }: { lang: Language; viewer: Viewer }) {
           {viewer ? (
             <>
               <div className={`${bubble} p-0.5`}><NotificationBell label={t("nav.notifications")} /></div>
-              <Link href="/saved" aria-label={t("nav.saved")} title={t("nav.saved")}
-                    className={`${bubble} group gap-1.5 px-2.5 py-2 text-sm font-medium text-zinc-100 transition-[background-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:bg-zinc-900 hover:shadow-blue-500/30 hover:ring-blue-400/50 motion-reduce:hover:translate-y-0`}>
-                <span className="text-blue-400 group-hover:motion-safe:animate-[nudge_500ms_ease-in-out]"><Icon name="bookmark" size={17} /></span>
-                <span className="hidden md:inline">{t("nav.saved")}</span>
-              </Link>
               <div className="pointer-events-auto rounded-full transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:scale-105 hover:shadow-[0_0_0_3px_rgba(59,130,246,0.55),0_8px_24px_rgba(37,99,235,0.35)] motion-reduce:hover:transform-none"><AccountMenu viewer={viewer} labels={{
                 profile: t("menu.profile"), settings: t("menu.settings"), saved: t("menu.saved"),
                 reminders: t("menu.reminders"), admin: t("nav.admin"), setupAvatar: t("menu.setupAvatar"),

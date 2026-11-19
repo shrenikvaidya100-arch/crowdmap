@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
   const sent: number[] = [], failed: number[] = [], gone: string[] = [];
   await Promise.all(((data ?? []) as Pending[]).map(async (n) => {
     const text = notificationText(n.kind, n.data, n.lang);
-    const payload = JSON.stringify({ ...text, url: n.place_id ? `/map?place=${n.place_id}` : "/saved", tag: `place-${n.place_id}` });
+    const payload = JSON.stringify({ ...text, url: n.place_id ? `/map?place=${n.place_id}${n.kind === "confirm_crowd" ? "&confirm=1" : ""}` : "/saved", tag: `place-${n.place_id}` });
     let delivered = 0;
     await Promise.all(n.devices.map(async (d) => {
       try {

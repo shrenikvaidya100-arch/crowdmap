@@ -97,7 +97,7 @@ export function ZoomSlider({ value, onChange, labels, className }: {
         onPointerUp={() => { setDragging(false); setDragValue(null); }}
         onPointerCancel={() => { setDragging(false); setDragValue(null); }}
         onKeyDown={onKeyDown}
-        className='relative h-[clamp(88px,calc(100svh-31rem),220px)] w-11 cursor-pointer touch-none overflow-hidden rounded-full bg-neutral-800 outline-none focus-visible:ring-2 focus-visible:ring-blue-400 sm:h-[220px]'
+        className='relative h-[clamp(88px,calc(100svh-31rem),220px)] w-11 cursor-crosshair touch-none overflow-hidden rounded-full bg-neutral-800 outline-none focus-visible:ring-2 focus-visible:ring-blue-400 sm:h-[220px]'
       >
         <div className='pointer-events-none absolute inset-0 flex flex-col items-center justify-between py-4'>{dots}</div>
         <div

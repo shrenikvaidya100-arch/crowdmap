@@ -170,7 +170,7 @@ export default function ThemeSwitch({ theme, onThemeChange, labels, className }:
         title={!mounted ? labels.toNight : dark ? labels.toDay : labels.toNight}
         onClick={onClick}
         className={cn(
-          'group/switch relative inline-flex h-7 w-[3.25rem] shrink-0 cursor-pointer items-center rounded-full p-[3px]',
+          'group/switch relative inline-flex h-7 w-[3.25rem] shrink-0 cursor-crosshair items-center rounded-full p-[3px]',
           'outline-none focus-visible:ring-2 focus-visible:ring-[#0894FF] focus-visible:ring-offset-2 focus-visible:ring-offset-black',
           className,
         )}

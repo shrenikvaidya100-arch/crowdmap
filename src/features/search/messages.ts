@@ -2,7 +2,10 @@ import type { Messages } from "@/lib/i18n";
 
 export const messages = {
   en: {
-    placeholder: "Search places, e.g. Sarafa, India Gate",
+    placeholder: "Search places, streets, shops… or just start typing",
+    "sec.places": "CrowdMap places", "sec.pins": "Your pins", "sec.points": "On the map",
+    "sec.recent": "Recent searches", "sec.popular": "Busy right now", "pin": "Pin",
+    "clearRecent": "Clear",
     label: "Search places",
     clear: "Clear search",
     noResults: "No places match “{q}”.",
@@ -43,7 +46,10 @@ export const messages = {
     "locate.denied": "Location permission was denied.",
   },
   hi: {
-    placeholder: "जगह खोजें, जैसे सराफ़ा, इंडिया गेट",
+    placeholder: "जगह, सड़क, दुकान खोजें… या बस टाइप करें",
+    "sec.places": "CrowdMap की जगहें", "sec.pins": "आपके पिन", "sec.points": "नक्शे पर",
+    "sec.recent": "हाल की खोजें", "sec.popular": "अभी भीड़ वाली जगहें", "pin": "पिन",
+    "clearRecent": "साफ़ करें",
     label: "जगह खोजें",
     clear: "खोज साफ़ करें",
     noResults: "“{q}” से कोई जगह नहीं मिली।",

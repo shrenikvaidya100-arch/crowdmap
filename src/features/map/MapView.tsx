@@ -6,7 +6,7 @@ import { iconSvg } from "@/components/icons/Icon";
 // filters and a sortable list sit on top. User 1 feature.
 import "maplibre-gl/dist/maplibre-gl.css";
 import {
-  Map as MLMap, Marker, ScaleControl, setWorkerUrl,
+  AttributionControl, Map as MLMap, Marker, ScaleControl, setWorkerUrl,
   type GeoJSONSource, type MapLayerMouseEvent, type MapMouseEvent,
 } from "maplibre-gl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -20,7 +20,7 @@ import { messages as placeMessages } from "@/features/places/messages";
 import { FilterSheet, PlaceList } from "@/features/search/Explore";
 import { applyFilters, countActive, DEFAULT_FILTERS, type Filters } from "@/features/search/filters";
 import { messages as searchMessages } from "@/features/search/messages";
-import { SearchBox, type SearchHit } from "@/features/search/SearchBox";
+import { SearchBox, type SearchHit, type SearchPoint } from "@/features/search/SearchBox";
 import { config, type Language } from "@/lib/config";
 import { translator } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme";
@@ -34,6 +34,7 @@ import { messages as controlMessages } from "./controls/messages";
 import { clearPrefs, loadMarkers, loadPrefs, loadShapes, newId, saveMarkers, savePrefs, saveShapes, type Shape, type UserMarker } from "./controls/store";
 import { ZoomSlider } from "./controls/ZoomSlider";
 import { CityPicker } from "./controls/CityPicker";
+import { LoadingBar } from "@/components/LoadingBar";
 import { PlaceCard } from "./PlaceCard";
 import { GoButtons, GoPanel, type GoDest, type GoMode, type GoStatus } from "./GoPanel";
 
@@ -78,8 +79,10 @@ function metres(a: LatLng, b: LatLng) {
 /** A place to open on load (from /?place=<id>). */
 export type LinkedPlace = { id: string; lat: number; lng: number; city_id: string };
 
-export function MapView({ lang, cities, initialPlace = null, initialFocus = null }: {
+export function MapView({ lang, cities, initialPlace = null, initialFocus = null, openDetails = false }: {
   lang: Language; cities: MapCity[]; places?: MapPlace[]; initialPlace?: LinkedPlace | null;
+  /** Open the linked place's full panel (report buttons) straight away, e.g. from a "please confirm" notification. */
+  openDetails?: boolean;
   /** Centre here on load (from the home page search). */
   initialFocus?: { lat: number; lng: number; zoom: number } | null;
 }) {
@@ -107,11 +110,13 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
     !b || (c.lat - initialFocus.lat) ** 2 + (c.lng - initialFocus.lng) ** 2 < (b.lat - initialFocus.lat) ** 2 + (b.lng - initialFocus.lng) ** 2 ? c : b, null) : null;
   const startCity = cities.find((c) => c.id === (initialPlace?.city_id ?? focusCity?.id ?? config.defaultCity)) ?? cities[0] ?? null;
   const [ready, setReady] = useState(false);
+  // Map tiles still downloading (for the loading bar).
+  const [tilesLoading, setTilesLoading] = useState(true);
   const [activeCity, setActiveCity] = useState<string | null>(startCity?.id ?? null);
   const [data, setData] = useState<CrowdData | null>(null);
   const [selected, setSelected] = useState<string | null>(initialPlace?.id ?? null);
   // The picked place shows as a flip card; "More details" opens the full panel.
-  const [details, setDetails] = useState(false);
+  const [details, setDetails] = useState(openDetails);
   const selectedRef = useRef<string | null>(null);
   useEffect(() => { selectedRef.current = selected; }, [selected]);
   /** Shows a place as a card (never straight into the full panel). */
@@ -218,14 +223,19 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
       center: initialPlace ? [initialPlace.lng, initialPlace.lat] : initialFocus ? [initialFocus.lng, initialFocus.lat]
         : startCity ? [startCity.lng, startCity.lat] : config.map.worldCenter,
       zoom: initialPlace ? 16 : initialFocus ? initialFocus.zoom : startCity ? startCity.default_zoom : config.map.worldZoom,
-      attributionControl: { compact: true },
+      // Credits go bottom-left (the corner on the right holds the buttons).
+      attributionControl: false,
       // Double tap drops a pin instead of zooming.
       doubleClickZoom: false,
       // Terrain looks across the hills, so allow a steeper tilt than the default 60°.
       maxPitch: 75,
+      // Faster first paint: labels appear without a long fade, expired tiles aren't refetched mid-view.
+      fadeDuration: 100,
+      refreshExpiredTiles: false,
     });
     map.current = m;
     m.addControl(new ScaleControl({ maxWidth: 100, unit: "metric" }), "bottom-left");
+    m.addControl(new AttributionControl({ compact: true }), "bottom-left");
     m.on("moveend", () => {
       const c = m.getCenter();
       setCentre({ lat: c.lat, lng: c.lng });
@@ -243,6 +253,8 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
     m.on("move", sync);
     m.on("movestart", () => setNewMarker(null));
     m.on("style.load", () => setStyleVersion((v) => v + 1));
+    m.on("dataloading", () => setTilesLoading(true));
+    m.on("idle", () => setTilesLoading(false));
     m.on("click", (e: MapMouseEvent) => {
       const pt: [number, number] = [e.lngLat.lng, e.lngLat.lat];
       const mode = toolRef.current;
@@ -315,7 +327,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
         setActiveCity(p.id);
         m.flyTo({ center: [Number(p.lng), Number(p.lat)], zoom: Number(p.zoom) || 12, essential: true });
       });
-      m.on("mouseenter", "city-bubbles", () => { m.getCanvas().style.cursor = "pointer"; });
+      m.on("mouseenter", "city-bubbles", () => { m.getCanvas().style.cursor = "crosshair"; });
       m.on("mouseleave", "city-bubbles", () => { m.getCanvas().style.cursor = ""; });
 
       m.addSource("places", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
@@ -366,7 +378,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
         const id = e.features?.[0]?.properties?.id;
         if (typeof id === "string") selectPlace(id);
       });
-      m.on("mouseenter", "places", () => { m.getCanvas().style.cursor = "pointer"; });
+      m.on("mouseenter", "places", () => { m.getCanvas().style.cursor = "crosshair"; });
       m.on("mouseleave", "places", () => { m.getCanvas().style.cursor = ""; });
       setReady(true);
     };
@@ -377,9 +389,10 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const loadCity = useCallback(async (city: string) => {
+  const loadCity = useCallback(async (city: string, fresh = false) => {
     try {
-      const res = await fetch(`/api/crowd?city=${encodeURIComponent(city)}`, { cache: "no-store" });
+      // Normal loads may come from the edge cache (20 s); after a change we ask for fresh data.
+      const res = await fetch(`/api/crowd?city=${encodeURIComponent(city)}${fresh ? "&fresh=1" : ""}`, { cache: fresh ? "no-store" : "default" });
       if (res.ok) setData({ city, ...(await res.json()) });
     } catch {
       // Keep showing the last data; the next poll will retry.
@@ -398,7 +411,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
 
   // Instant updates: reload the city when anything changes, and the open panel if it's affected.
   useCityUpdates(activeCity, (ids) => {
-    if (activeCity) void loadCity(activeCity);
+    if (activeCity) void loadCity(activeCity, true);
     if (selected && ids.has(selected)) setPlaceVersion((v) => v + 1);
   });
 
@@ -599,7 +612,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
       el.style.background = mk.color;
       el.title = mk.name || tc("unnamed");
       // Tap a pin: Directions or an Uber to it.
-      el.style.cursor = "pointer";
+      el.style.cursor = "crosshair";
       el.setAttribute("role", "button");
       el.setAttribute("aria-label", mk.name || tc("unnamed"));
       el.addEventListener("click", (e) => { e.stopPropagation(); if (!toolRef.current) { setSelected(null); setPinPick(mk); } });
@@ -623,11 +636,20 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
     else void rootRef.current?.requestFullscreen?.();
   }
 
-  // Keyboard shortcuts (not while typing): + - zoom, arrows pan, L layers, T tools, ? help, Esc closes.
+  // Keyboard shortcuts (not while typing): + - zoom, arrows pan, Alt+L layers, Alt+T tools, Esc closes.
+  // Plain letters and numbers go to the search box (see SearchBox).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement | null;
-      if (el?.closest('input, textarea, select, [contenteditable="true"], [role="slider"]') || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (el?.closest('input, textarea, select, [contenteditable="true"], [role="slider"]') || e.metaKey || e.ctrlKey) return;
+      // Alt+L / Alt+T (by key position, since Alt changes the letter on a Mac).
+      if (e.altKey) {
+        if (e.code === "KeyL") setDockPanel((p) => (p === "layers" ? null : "layers"));
+        else if (e.code === "KeyT") setDockPanel((p) => (p === "tools" ? null : "tools"));
+        else return;
+        e.preventDefault();
+        return;
+      }
       const m = map.current;
       if (!m) return;
       if (e.key === "Escape") { setDockPanel(null); setNewMarker(null); setToolMode(null); return; }
@@ -639,8 +661,6 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
       else if (e.key === "ArrowDown") m.panBy([0, step]);
       else if (e.key === "ArrowLeft") m.panBy([-step, 0]);
       else if (e.key === "ArrowRight") m.panBy([step, 0]);
-      else if (e.key === "l" || e.key === "L") setDockPanel((p) => (p === "layers" ? null : "layers"));
-      else if (e.key === "t" || e.key === "T" || e.key === "?") setDockPanel((p) => (p === "tools" ? null : "tools"));
       else return;
       e.preventDefault();
     };
@@ -890,6 +910,25 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
     return goRoute && total > 0 ? Math.min(goRoute.distance, goRoute.distance * (left / total)) : left;
   })() : null;
 
+  // Search suggestions while the box is empty: places busy right now in this city (live first).
+  const popular: SearchHit[] = useMemo(() => [...cityPlaces]
+    .sort((a, b) => (b.source === "live" ? 1 : 0) - (a.source === "live" ? 1 : 0) || b.level - a.level)
+    .slice(0, 5)
+    .map((p) => ({ ...p, city_id: activeCity ?? "" })), [cityPlaces, activeCity]);
+
+  // A map point picked in search (a shop, street, landmark or pin): fly there, mark it,
+  // and show the same Directions / Uber card as a pin.
+  const searchMarker = useRef<Marker | null>(null);
+  function pickPoint(p: SearchPoint) {
+    const m = map.current;
+    if (!m) return;
+    closeOthers();
+    searchMarker.current?.remove();
+    searchMarker.current = new Marker({ color: "#2563eb" }).setLngLat([p.lng, p.lat]).addTo(m);
+    m.flyTo({ center: [p.lng, p.lat], zoom: Math.max(m.getZoom(), 16.5), essential: true });
+    setPinPick({ id: `search:${p.lat},${p.lng}`, name: p.name, color: "#2563eb", lat: p.lat, lng: p.lng, at: Date.now() });
+  }
+
   const cityNames = Object.fromEntries(cities.map((c) => [c.id, lang === "hi" && c.name_hi ? c.name_hi : c.name]));
   const activeFilters = countActive(filters);
   const liveCount = cityPlaces.filter((p) => p.source === "live" && !p.sample).length;
@@ -905,6 +944,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
     <div ref={rootRef} className="relative flex-1 bg-neutral-950">
       {/* Inline style: MapLibre's CSS sets position: relative on this element. */}
       <div ref={box} style={{ position: "absolute", inset: 0 }} aria-label={t("mapLabel")} role="region" />
+      <LoadingBar busy={!ready || !data || tilesLoading} label={t("loadingMap")} />
       {(!ready || !data) && (
         <div role="status" className="absolute inset-0 z-[5] grid place-items-center bg-gray-100/80 dark:bg-gray-900/80">
           <p className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm shadow dark:bg-gray-800">
@@ -916,7 +956,8 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
 
       <div className="absolute inset-x-0 top-16 z-30 space-y-2 px-3">
         <div className="flex items-center gap-2">
-          <SearchBox lang={lang} city={activeCity} cityNames={cityNames} onPick={(h: SearchHit) => openPlace(h)} />
+          <SearchBox lang={lang} city={activeCity} cityNames={cityNames} onPick={(h: SearchHit) => openPlace(h)}
+                     onPickPoint={pickPoint} center={centre} pins={markers} popular={popular} />
           <button type="button" className={toolBtn(panel === "filters")} aria-expanded={panel === "filters"}
                   aria-label={activeFilters ? `${ts("filters")} (${activeFilters})` : ts("filters")}
                   onClick={() => { closeOthers(); setPanel(panel === "filters" ? null : "filters"); }}>
@@ -950,7 +991,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
 
       {/* Right edge: zoom slider at the top, round buttons at the bottom (above the dock).
           Moves left of the place panel when it's open. */}
-      <div data-map-ui className={`pointer-events-none absolute bottom-[5.25rem] right-2.5 top-[var(--legend-bottom,13.5rem)] z-10 flex flex-col items-end justify-between gap-2 print:hidden ${details ? "sm:right-[25.5rem]" : ""}`}>
+      <div data-map-ui className={`pointer-events-none absolute right-2.5 top-[var(--legend-bottom,13.5rem)] z-10 flex flex-col items-end gap-2 print:hidden ${details ? "sm:right-[25.5rem]" : ""}`}>
         <div className={`pointer-events-auto flex flex-col items-end gap-2 ${details ? "hidden sm:flex" : ""}`}>
           <button type="button" onClick={() => setZoomOpen((o) => !o)} aria-expanded={zoomOpen} aria-label={tc("zoom")} title={tc("zoom")}
                   className={`${roundBtn} w-auto px-3 text-xs font-semibold tabular-nums`}>
@@ -963,6 +1004,10 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
             </div>
           )}
         </div>
+      </div>
+
+      {/* Bottom-right corner: compass, share location, locate, full screen. */}
+      <div data-map-ui className={`pointer-events-none absolute bottom-3 right-3 z-20 flex flex-col items-end print:hidden ${details ? "sm:right-[25.5rem]" : ""}`}>
         <div className="pointer-events-auto flex flex-col items-end gap-2">
         {(Math.abs(bearing) > 0.5 || pitch > 0.5) && (
           <button type="button" onClick={() => map.current?.resetNorthPitch({ duration: 500 })} title={tc("resetNorth")} aria-label={tc("resetNorth")} className={roundBtn}>
@@ -1004,7 +1049,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
 
       {/* Someone nearby reported a crowd level: ask people who are there to confirm it. */}
       <ConfirmPrompt lang={lang} me={me} onLocated={setMe} hidden={!!selected || !!go || !!dockPanel || !!panel || adding}
-                     onConfirmed={() => { if (activeCity) void loadCity(activeCity); }} />
+                     onConfirmed={() => { if (activeCity) void loadCity(activeCity, true); }} />
 
       <Legend lang={lang} shown={visible.length} places={cityPlaces.length} live={liveCount} sample={sampleCount} />
 
@@ -1055,7 +1100,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
                        onOpenPlace={(id) => { closeAdding(); selectPlace(id); }}
                        onAdded={(p) => {
                          closeAdding();
-                         if (p.cityId !== activeCity) setActiveCity(p.cityId); else void loadCity(p.cityId);
+                         if (p.cityId !== activeCity) setActiveCity(p.cityId); else void loadCity(p.cityId, true);
                          selectPlace(p.id);
                          map.current?.flyTo({ center: [p.lng, p.lat], zoom: 17, essential: true });
                        }} />
@@ -1070,7 +1115,11 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
               <p className="truncate font-semibold text-white">{pinPick.name || tc("unnamed")}</p>
               <p className="text-xs text-neutral-500">{pinPick.lat.toFixed(5)}, {pinPick.lng.toFixed(5)}{me ? ` · ${(metres(me, pinPick) / 1000).toFixed(1)} km` : ""}</p>
             </div>
-            <button type="button" onClick={() => { deleteMarker(pinPick.id); setPinPick(null); }} title={t("pin.delete")} aria-label={t("pin.delete")}
+            <button type="button" onClick={() => {
+                      if (pinPick.id.startsWith("search:")) { searchMarker.current?.remove(); searchMarker.current = null; }
+                      else deleteMarker(pinPick.id);
+                      setPinPick(null);
+                    }} title={t("pin.delete")} aria-label={t("pin.delete")}
                     className="grid h-8 w-8 place-items-center rounded-full text-neutral-400 hover:bg-neutral-800 hover:text-red-400"><Icon name="close" size={16} /></button>
           </div>
           <GoButtons dest={{ lat: pinPick.lat, lng: pinPick.lng, name: pinPick.name || tc("unnamed") }} from={me} lang={lang}
@@ -1095,7 +1144,7 @@ export function MapView({ lang, cities, initialPlace = null, initialFocus = null
       {selected && details && (
         <PlaceSheet key={selected} placeId={selected} version={placeVersion} lang={lang}
                     onClose={() => { setDetails(false); setSelected(null); }}
-                    onChanged={() => activeCity && void loadCity(activeCity)} onGo={startGo} />
+                    onChanged={() => activeCity && void loadCity(activeCity, true)} onGo={startGo} />
       )}
     </div>
   );

@@ -1,5 +1,6 @@
 // /map: the full-screen live map.
 import { MapView, type LinkedPlace, type MapCity } from "@/features/map/MapView";
+import { config } from "@/lib/config";
 import { isSupabaseConfigured } from "@/lib/env";
 import { translator } from "@/lib/i18n";
 import { common } from "@/lib/i18n/common";
@@ -43,13 +44,16 @@ export default async function MapPage({ searchParams }: PageProps<"/map">) {
   const t = translator(common, lang);
   return (
     <main className="relative flex flex-1 flex-col">
+      {/* Start fetching the map's style and worker before its code runs. */}
+      <link rel="preload" href="/maplibre-gl-worker.js" as="script" />
+      <link rel="preload" href={config.map.styleUrl} as="fetch" crossOrigin="anonymous" />
       {!isSupabaseConfigured() && (
         <div className="absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-md bg-amber-100 px-3 py-2 text-sm text-amber-900 shadow">
           <strong>{t("setup.title")}:</strong> {t("setup.body")}
         </div>
       )}
       <MapView key={linked?.id ?? (focus ? `${focus.lat},${focus.lng}` : "map")} lang={lang} cities={cities}
-               initialPlace={linked} initialFocus={focus} />
+               initialPlace={linked} initialFocus={focus} openDetails={sp.confirm === "1" && !!linked} />
     </main>
   );
 }

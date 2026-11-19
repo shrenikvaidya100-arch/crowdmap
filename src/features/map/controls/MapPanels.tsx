@@ -153,7 +153,7 @@ function ColorPicker({ value, onChange, label }: { value: string; onChange: (c: 
                 style={{ background: c }} />
       ))}
       <input type='color' value={value} onChange={(e) => onChange(e.target.value)} aria-label={label}
-             className='h-7 w-9 cursor-pointer rounded border-0 bg-transparent p-0' />
+             className='h-7 w-9 cursor-crosshair rounded border-0 bg-transparent p-0' />
     </div>
   );
 }
@@ -289,7 +289,7 @@ export function ToolsPanel({ lang, mode, onMode, measurePts, onClearMeasure, dra
       <div>
         <h3 className={heading}>{t('shortcuts')}</h3>
         <dl className='grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-xs'>
-          {[['+  -', 'key.zoom'], ['Arrow keys', 'key.pan'], ['L', 'key.layers'], ['T', 'key.tools'], ['Esc', 'key.esc'], ['?', 'key.help']].map(([k, d]) => (
+          {[['A–Z, 0–9', 'key.search'], ['+  -', 'key.zoom'], ['Arrow keys', 'key.pan'], ['Alt + L', 'key.layers'], ['Alt + T', 'key.tools'], ['Esc', 'key.esc']].map(([k, d]) => (
             <div key={d} className='contents'>
               <dt><kbd className='rounded bg-neutral-800 px-1.5 py-0.5 font-mono text-neutral-200'>{k}</kbd></dt>
               <dd className='text-neutral-400'>{t(d)}</dd>

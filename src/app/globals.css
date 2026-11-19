@@ -40,10 +40,19 @@ body {
 html {
   cursor: url("/cursors/arrow.svg") 3 3, auto;
 }
+/* Buttons, links and other things you can press show a crosshair; so do places on the map. */
+a[href], button:not(:disabled), [role="button"], [role="option"], [role="tab"], [role="switch"], summary, select,
+label[for], input[type="checkbox"], input[type="radio"], input[type="range"], input[type="submit"] {
+  cursor: crosshair;
+}
 input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="button"]):not([type="submit"]),
 textarea,
 [contenteditable="true"] {
   cursor: text;
+}
+/* Phones: the scale and map credits sit above the dock, not behind it. */
+@media (max-width: 639px) {
+  .maplibregl-ctrl-bottom-left { margin-bottom: 4.5rem; }
 }
 .maplibregl-canvas-container.maplibregl-interactive {
   cursor: grab;
@@ -71,6 +80,11 @@ textarea,
   15% { opacity: 1; }
   80% { opacity: 1; }
   100% { left: 100%; opacity: 0; }
+}
+/* Loading bar: a highlight sweeping across. */
+@keyframes loadbar {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
 }
 @keyframes pop {
   from { opacity: 0; transform: translateY(-4px) scale(0.98); }

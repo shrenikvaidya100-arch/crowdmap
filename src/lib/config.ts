@@ -25,6 +25,15 @@ export const config = {
     verifyUrl: "https://challenges.cloudflare.com/turnstile/v0/siteverify",
   },
 
+  // Search: map points (shops, streets, landmarks…) from Photon (OpenStreetMap, free,
+  // no key), fetched through our own server so visitors' IPs aren't shared.
+  geocoder: {
+    url: (q: string, lat: number, lng: number, lang: string) =>
+      `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&lat=${lat}&lon=${lng}&limit=8&lang=${lang === "hi" ? "default" : "en"}`,
+    timeoutMs: 3500,
+    maxResults: 5,
+    recentSearches: 6,     // kept in the browser for suggestions
+  },
   // Place card photos from the web when nobody has posted one (Wikipedia / Wikimedia Commons).
   webPhotos: {
     timeoutMs: 4000,

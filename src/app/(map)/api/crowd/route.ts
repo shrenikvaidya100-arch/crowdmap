@@ -15,5 +15,10 @@ export async function GET(request: NextRequest) {
     console.error("crowd_map", error.message);
     return NextResponse.json({ error: "unavailable" }, { status: 502 });
   }
-  return NextResponse.json(data, { headers: { "Cache-Control": "no-store" } });
+  // The same for everyone, so Vercel's edge can serve it for 20 s (stale up to a minute
+  // while it refreshes). ?fresh=1 skips that, after your own report or a live update.
+  const fresh = request.nextUrl.searchParams.get("fresh") === "1";
+  return NextResponse.json(data, {
+    headers: { "Cache-Control": fresh ? "no-store" : "public, max-age=0, s-maxage=20, stale-while-revalidate=60" },
+  });
 }
