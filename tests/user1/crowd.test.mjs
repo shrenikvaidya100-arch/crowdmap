@@ -259,3 +259,11 @@ test("people sharing location in the same room raise its level by themselves (3 
   }
   assert.equal(Math.round((await here()).level), 4, "6 people: Busy");
 }));
+
+test("any IIM Indore campus place goes up a stage for every 3 people there (e.g. an academic block)", () => inTx(async () => {
+  const block = (await db.query("select id, lat, lng from public.places where name = 'E-Block' and address like '%IIM Indore campus%'")).rows[0];
+  for (let i = 0; i < 6; i++) {
+    await db.query("insert into public.presence (user_id, lat, lng, accuracy_m, place_id, city_id) values ($1, $2, $3, 10, $4, 'indore')", [await newUser(), block.lat, block.lng, block.id]);
+  }
+  assert.equal(Math.round((await db.query("select * from public.live_level($1)", [block.id])).rows[0].level), 4, "6 people at a campus block: Busy");
+}));
