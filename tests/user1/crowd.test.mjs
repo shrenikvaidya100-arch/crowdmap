@@ -185,3 +185,16 @@ test("community: city_media and city_posts are public and hide user ids", () => 
   assert.ok(media.every((m) => !("user_id" in m)));
   assert.equal((await db.query("select public.city_posts('delhi', 20) as p")).rows[0].p.some((p) => p.id === mine.id), false);
 }));
+
+test("IIM Indore campus is mapped in detail (hostels, messes, blocks) with crowd levels", () => inTx(async () => {
+  await db.query("set local role anon");
+  const m = (await db.query("select public.crowd_map('indore') as m")).rows[0].m;
+  await asOwner();
+  const campus = m.places.filter((p) => p.lat > 22.622 && p.lat < 22.632 && p.lng > 75.785 && p.lng < 75.797);
+  assert.ok(campus.length >= 100, `campus places: ${campus.length}`);
+  for (const n of ["SR 01", "Mess 1", "Learning Centre (Library)", "Main Gate (Gate No. 1)", "Juicilicious Cafe"]) {
+    assert.ok(campus.some((p) => p.name === n), n);
+  }
+  const hostels = campus.filter((p) => p.category === "hostel");
+  assert.ok(hostels.length >= 25 && hostels.every((p) => p.level >= 1 && p.level <= 5));
+}));

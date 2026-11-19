@@ -28,7 +28,7 @@ export const GROUPS: { key: string; icon: IconName; categories: string[] }[] = [
   { key: "sights", icon: "tourist", categories: ["tourist", "entertainment"] },
   { key: "health", icon: "hospital", categories: ["hospital"] },
   { key: "transport", icon: "station", categories: ["station"] },
-  { key: "services", icon: "bank", categories: ["bank", "government", "education", "other"] },
+  { key: "services", icon: "bank", categories: ["bank", "government", "education", "hostel", "other"] },
 ];
 
 export const RADII_KM = [1, 3, 5, 10] as const;

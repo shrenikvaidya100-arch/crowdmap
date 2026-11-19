@@ -21,6 +21,7 @@ export const ICONS = {
   bank: '<path d="M3.5 9 12 4l8.5 5"/><path d="M4 9h16"/><path d="M6 9v8"/><path d="M10 9v8"/><path d="M14 9v8"/><path d="M18 9v8"/><path d="M3.5 20.5h17"/><path d="M4.5 17h15"/>',
   government: '<path d="M12 2.5v3"/><path d="M12 2.5h3.5l-1 1.2 1 1.3H12"/><path d="M4 10h16"/><path d="M5.5 10c0-2.8 2.9-4.8 6.5-4.8s6.5 2 6.5 4.8"/><path d="M6.5 10v8"/><path d="M10 10v8"/><path d="M14 10v8"/><path d="M17.5 10v8"/><path d="M4 21h16"/><path d="M5 18h14"/>',
   education: '<path d="m12 4-9.5 4.5L12 13l9.5-4.5L12 4Z"/><path d="M6.5 10.5V15c0 1.7 2.5 3 5.5 3s5.5-1.3 5.5-3v-4.5"/><path d="M21.5 8.5v5"/>',
+  hostel: '<path d="M3 19V6"/><path d="M3 15h18v4"/><path d="M21 15v-3a3 3 0 0 0-3-3h-7v6"/><circle cx="7" cy="11.5" r="2"/>',
   entertainment: '<rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="M7 5v14"/><path d="M17 5v14"/><path d="M3 9.5h4"/><path d="M3 14.5h4"/><path d="M17 9.5h4"/><path d="M17 14.5h4"/><path d="m10.5 9.5 4 2.5-4 2.5v-5Z"/>',
   pin: '<path d="M12 21.5s-6.5-6.2-6.5-11.5a6.5 6.5 0 0 1 13 0c0 5.3-6.5 11.5-6.5 11.5Z"/><circle cx="12" cy="10" r="2.5"/>',
 

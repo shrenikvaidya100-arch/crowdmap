@@ -36,7 +36,7 @@ const CATEGORY_ICONS: Record<string, IconName> = {
   temple: "temple", religious: "religious", market: "market", restaurant: "restaurant", cafe: "cafe",
   street_food: "street_food", mall: "mall", park: "park", tourist: "tourist", hospital: "hospital",
   station: "station", bank: "bank", government: "government", education: "education",
-  entertainment: "entertainment", other: "pin",
+  entertainment: "entertainment", hostel: "hostel", other: "pin",
 };
 /** Icon for a place category (falls back to a map pin). */
 export const categoryIcon = (category: string | null | undefined): IconName => CATEGORY_ICONS[category ?? ""] ?? "pin";
