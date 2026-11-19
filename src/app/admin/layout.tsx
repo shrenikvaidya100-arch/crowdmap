@@ -15,19 +15,19 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const t = translator(messages, lang);
   const today = new Intl.DateTimeFormat("en-IN", { weekday: "short", day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" }).format(new Date());
   return (
-    <div className="flex flex-1 flex-col bg-[#faf8f3] text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
+    <div className="flex flex-1 flex-col bg-zinc-50 text-zinc-900 dark:bg-black dark:text-zinc-100">
       <AdminSidebar lang={lang}>
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6">
-          <header className="mb-6 flex flex-wrap items-end justify-between gap-3 border-b-2 border-zinc-900 pb-3 dark:border-zinc-100">
+          <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
             <div>
-              <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-zinc-500">CrowdMap / {t("title")} · {today}</p>
-              <h1 className="mt-1 font-serif text-3xl font-semibold tracking-tight">{t("title")}</h1>
+              <p className="text-xs font-medium text-zinc-500">CrowdMap · {today}</p>
+              <h1 className="mt-1 text-3xl font-bold tracking-tight">{t("title")}</h1>
               <p className="mt-0.5 text-sm text-zinc-600 dark:text-zinc-400">{t("subtitle")}</p>
             </div>
             <form action={lockAdmin} className="flex items-center gap-3 text-sm">
               <span className="text-zinc-600 dark:text-zinc-400">{t("console.signedIn", { name: viewer.displayName })}</span>
               <button title={t("console.lockHint")}
-                      className="border border-zinc-900 px-3 py-1.5 font-medium hover:bg-zinc-900 hover:text-white dark:border-zinc-100 dark:hover:bg-zinc-100 dark:hover:text-zinc-900">
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 font-medium shadow-sm transition hover:bg-zinc-900 hover:text-white dark:border-zinc-800 dark:bg-zinc-900 dark:hover:bg-white dark:hover:text-zinc-900">
                 {t("console.lock")}
               </button>
             </form>

@@ -30,6 +30,8 @@ type Details = {
   crowd: { level: number; source: "live" | "estimated"; sample: boolean; reports: number; last_report_at: string | null; here: number };
   alerts: { id: string; kind: string; still_there: number; gone: number; created_at: string; mine: boolean; sample: boolean }[];
   my_report: { id: string; level: number; created_at: string; editable: boolean } | null;
+  /** A report waiting for a second person (none once the place is live). */
+  pending: { level: number; at: string; mine: boolean } | null;
   signed_in: boolean;
 };
 
@@ -154,6 +156,14 @@ export function PlaceSheet({
                   ? `${t("liveHint", { n: data.crowd.reports })}${data.crowd.last_report_at ? ` · ${t("updated", { ago: ago(data.crowd.last_report_at) })}` : ""}`
                   : t("estimatedHint")}
               </p>
+              {data.pending && (
+                <p className="mt-1.5 rounded-md bg-amber-50 px-2 py-1.5 text-xs text-amber-900 ring-1 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-200 dark:ring-amber-500/30"
+                   title={t("pending.why")}>
+                  {data.pending.mine
+                    ? t("pending.mine", { level: t(`level.${data.pending.level}`) })
+                    : t("pending.one", { level: t(`level.${data.pending.level}`), ago: ago(data.pending.at) })}
+                </p>
+              )}
               {data.crowd.here > 0 && (
                 <p className="mt-0.5 inline-flex items-center gap-1 text-xs font-medium text-blue-600"><Icon name="phone" size={14} /> {t(data.crowd.here === 1 ? "hereOne" : "hereMany", { n: data.crowd.here })}</p>
               )}

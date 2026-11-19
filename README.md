@@ -10,11 +10,12 @@ like a traffic map, but for how crowded a place is. IIM Indore's campus is mappe
 - **Login and sign-up** with email or Google; Cloudflare Turnstile CAPTCHA on both, checked on the server.
 - **Live map** (OpenStreetMap): 5-level crowd colours, live vs estimated, instant updates without refreshing.
 - **Report** how crowded a place is and quick alerts (police, waterlogging, long queue…), only when GPS shows you're there.
+- **Two-person rule**: one report never changes the map. A level goes live when a second person there agrees (with three or more, the median is used, so one false "Empty" or "Packed" can't drag it). People nearby with the map open get an "Is it crowded?" prompt to confirm. Quick alerts change the level only once someone confirms them.
 - **Search, filters and a sortable list**; **plan my visit** with forecasts, best time, weather and holidays.
 - **Add a missing place**, confirmed by two other people at the spot.
 - **Photos, videos and audio** recorded live at the place, with comments.
 - **My activity**: everything you've posted, with edit and delete; profile and language (English / हिन्दी).
-- **Admin dashboard**: users, content moderation, audit log with tamper check, bot findings.
+- **Admin dashboard** (Watermelon UI cards and charts): reports vs GPS rejections, new people and uploads, searches/alerts/admin actions, what people reported, most active cities, and the two-person rule at work; plus users, content moderation, audit log with tamper check, bot findings.
 - **Automatic bot detection** every 10 minutes; removals are logged and can be undone by an admin.
 - **Append-only audit log** of every action, hash-chained so tampering shows.
 - **Privacy**: privacy policy and terms pages (accepted with a checkbox at sign-up); people can delete their own account from My activity.

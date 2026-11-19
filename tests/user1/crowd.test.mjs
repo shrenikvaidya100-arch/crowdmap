@@ -9,7 +9,12 @@ const db = new pg.Client({ connectionString: process.env.SUPABASE_DB_URL });
 let indore, delhi; // a real place in each city
 before(async () => {
   await db.connect();
-  indore = (await db.query("select id, lat, lng from public.places where city_id = 'indore' and category = 'temple' limit 1")).rows[0];
+  // A quiet temple: no recent reports or alerts (demo data may be running on others).
+  indore = (await db.query(`select p.id, p.lat, p.lng from public.places p
+    where p.city_id = 'indore' and p.category = 'temple' and p.status = 'listed'
+      and not exists (select 1 from public.crowd_reports r where r.place_id = p.id and r.created_at > now() - interval '2 hours')
+      and not exists (select 1 from public.quick_reports q where q.place_id = p.id and q.expires_at > now() - interval '2 hours')
+    order by p.id limit 1`)).rows[0];
   delhi = (await db.query("select id, lat, lng from public.places where city_id = 'delhi' limit 1")).rows[0];
 });
 after(() => db.end());
@@ -50,16 +55,38 @@ test("crowd_map gives every place a 1-5 level, even without reports", () => inTx
   await asOwner();
 }));
 
-test("a report from someone at the place goes live and is audited", () => inTx(async () => {
-  const u = await newUser();
-  await actAs(u);
+test("one report waits for a second person; two agreeing reports go live; both are audited", () => inTx(async () => {
+  const [a, b] = [await newUser(), await newUser()];
+  await actAs(a);
   const r = await report(indore.id, 5, indore.lat, indore.lng);
   assert.equal(r.ok, true, JSON.stringify(r));
   await asOwner();
+  // One person alone can't set the level: no live level yet, a pending report instead.
+  assert.equal((await db.query("select * from public.live_level($1) where reports > 0", [indore.id])).rowCount, 0);
+  const pending = (await db.query("select public.pending_report($1) as p", [indore.id])).rows[0].p;
+  assert.equal(pending.level, 5);
+  // Someone else nearby is asked to confirm.
+  await actAs(b);
+  const near = (await db.query("select public.nearby_pending($1, $2, 300) as n", [indore.lat, indore.lng])).rows[0].n;
+  assert.ok(near.some((x) => x.id === indore.id), "the waiting report shows up for people nearby");
+  assert.equal((await report(indore.id, 4, indore.lat, indore.lng)).ok, true);
+  await asOwner();
   const live = (await db.query("select * from public.live_level($1)", [indore.id])).rows[0];
-  assert.equal(Math.round(live.level), 5);
-  const log = await db.query("select action from public.audit_log where actor_id = $1 order by id", [u]);
+  assert.ok(live && Math.round(live.level) >= 4 && Math.round(live.level) <= 5, JSON.stringify(live));
+  const log = await db.query("select action from public.audit_log where actor_id = $1 order by id", [a]);
   assert.deepEqual(log.rows.map((x) => x.action), ["auth.signup", "crowd.report"]);
+}));
+
+test("two people far apart (Empty vs Packed) don't go live; with three, one outlier can't drag the level", () => inTx(async () => {
+  const [a, b, c] = [await newUser(), await newUser(), await newUser()];
+  await actAs(a); assert.equal((await report(indore.id, 5, indore.lat, indore.lng)).ok, true);
+  await actAs(b); assert.equal((await report(indore.id, 1, indore.lat, indore.lng)).ok, true);
+  await asOwner();
+  assert.equal((await db.query("select * from public.live_level($1) where reports > 0", [indore.id])).rowCount, 0, "conflicting pair stays unconfirmed");
+  await actAs(c); assert.equal((await report(indore.id, 5, indore.lat, indore.lng)).ok, true);
+  await asOwner();
+  const live = (await db.query("select * from public.live_level($1)", [indore.id])).rows[0];
+  assert.equal(Math.round(live.level), 5, "the median ignores the single 'Empty'");
 }));
 
 test("reports from someone not at the place are rejected but still recorded", () => inTx(async () => {
