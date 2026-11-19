@@ -42,6 +42,24 @@ async function seed(city) {
     from picked p cross join lateral generate_series(1, 2 + floor(random() * 3)::int)
     returning place_id`, [city, CATEGORIES, limit]);
 
+  // IIM Indore campus: about half its places get sample readings too, so the demo
+  // campus is lively (messes and cafés busier at meal times, by their usual pattern).
+  let campus = { rows: [], rowCount: 0 };
+  if (city === "indore") {
+    campus = await db.query(`
+      with picked as (
+        select id, public.estimated_level(id, category) as e from public.places
+        where city_id = 'indore' and status = 'listed' and address like '%IIM Indore campus%'
+          and not exists (select 1 from public.crowd_reports r where r.place_id = places.id and r.is_sample)
+        order by random() limit 55
+      )
+      insert into public.crowd_reports (place_id, level, is_sample, created_at)
+      select p.id, greatest(1, least(5, round(p.e + (random() * 2 - 1))))::smallint, true,
+             now() - (5 + random() * 55) * interval '1 minute'
+      from picked p cross join lateral generate_series(1, 2 + floor(random() * 2)::int)
+      returning place_id`);
+  }
+
   // A few one-tap alerts at the busiest sample places.
   const alerts = await db.query(`
     with busy as (
@@ -58,7 +76,8 @@ async function seed(city) {
     join public.quick_report_kinds k on k.kind = ($2::text[])[1 + (b.i - 1) % array_length($2::text[], 1)]
     returning id`, [city, ALERTS]);
 
-  return { places: new Set(reports.rows.map((r) => r.place_id)).size, reports: reports.rowCount, alerts: alerts.rowCount };
+  const placeIds = new Set([...reports.rows, ...campus.rows].map((r) => r.place_id));
+  return { places: placeIds.size, reports: reports.rowCount + campus.rowCount, campus: new Set(campus.rows.map((r) => r.place_id)).size, alerts: alerts.rowCount };
 }
 
 try {
@@ -73,7 +92,7 @@ try {
     for (const city of cities) {
       const removed = await clear(city);
       const s = await seed(city);
-      console.log(`${city}: removed ${removed} old sample rows; added ${s.reports} sample reports at ${s.places} places and ${s.alerts} alerts`);
+      console.log(`${city}: removed ${removed} old sample rows; added ${s.reports} sample reports at ${s.places} places${s.campus ? ` (${s.campus} on the IIM campus)` : ""} and ${s.alerts} alerts`);
       await db.query("select public.log_event_as(null, 'system', 'system.demo_data', 'city', $1, $2)", [city, s]);
     }
   }

@@ -1,7 +1,7 @@
 # CrowdMap
 
-Live crowd levels for temples, markets, restaurants and more in Indore, Delhi and Mumbai:
-like a traffic map, but for how crowded a place is. Spec: `docs/SPEC.md`.
+Live crowd levels for temples, markets, restaurants, hostels and more in 50+ Indian cities:
+like a traffic map, but for how crowded a place is. IIM Indore's campus is mapped building by building. Spec: `docs/SPEC.md`.
 
 **Live site:** https://crowdmap-kappa.vercel.app (deploys automatically from `main`)
 
@@ -17,7 +17,21 @@ like a traffic map, but for how crowded a place is. Spec: `docs/SPEC.md`.
 - **Admin dashboard**: users, content moderation, audit log with tamper check, bot findings.
 - **Automatic bot detection** every 10 minutes; removals are logged and can be undone by an admin.
 - **Append-only audit log** of every action, hash-chained so tampering shows.
-- **Privacy**: privacy policy and terms pages; people can delete their own account from My activity.
+- **Privacy**: privacy policy and terms pages (accepted with a checkbox at sign-up); people can delete their own account from My activity.
+- **Directions and rides**: route drawn on the map (drive or walk, follow along), Google Maps hand-off, and Uber with pickup and drop-off filled in.
+- **Community page**: closest quiet place to you, city overview, community photos and posts.
+- **Map types**: street, Felt-style, 3D buildings, Terrain (real hills and mountains, free elevation data) and satellite.
+- **Admin check**: admins type a code from a distorted picture before the admin area opens.
+
+## Demo (IIM Indore)
+
+1. About 30 minutes before, add sample live readings (they count as live for 90 minutes and are labelled "Sample"):
+   `node --env-file=.env.local scripts/user1/demo-data.mjs indore`. About half of the campus places get readings.
+2. Open the map and search "IIM" (or tap the IIM Indore label): the campus card has photos, Directions and Uber.
+3. Zoom into the campus: every hostel (SR 01–20), mess, block, café and court is its own dot; tap any of them.
+4. Directions from your location, then Start; Uber opens with both points filled in.
+5. `/community?city=indore`: closest quiet place, city overview, photos and posts.
+6. Afterwards, remove the sample data: `node --env-file=.env.local scripts/user1/demo-data.mjs --clear`.
 
 Course requirements: authentication + CAPTCHA (login, sign-up), client + server validation (shared zod
 schemas, re-checked in the database), CRUD (reports, places, uploads, comments, plans, profile), and
