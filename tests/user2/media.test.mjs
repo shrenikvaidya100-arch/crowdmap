@@ -225,3 +225,27 @@ test("location rule switched off: uploads work without a location (or away from 
   await refused(() => db.query("select public.admin_set_media_location(true)"), /admins only/);
   await db.query("reset role");
 }));
+
+test("comments can be reported; the admin sees them in a queue and removes them (logged)", () => inTx(async () => {
+  await setLocationRule(false);
+  const [poster, troll, reporter] = [await newUser(), await newUser(), await newUser()];
+  const mediaId = await postPhoto(poster);
+  await actAs(troll);
+  const c = await comment(mediaId, "this is a planted rude comment");
+  assert.equal(c.ok, true, JSON.stringify(c));
+  assert.equal((await db.query("select public.report_comment($1) as r", [c.id])).rows[0].r.reason, "own_comment");
+  await actAs(reporter);
+  assert.equal((await db.query("select public.report_comment($1) as r", [c.id])).rows[0].r.ok, true);
+  assert.equal((await db.query("select public.report_comment($1) as r", [c.id])).rows[0].r.reason, "already_reported");
+  await refused(() => db.query("select * from public.admin_comment_report_queue()"), /admins only/);
+  await db.query("reset role");
+  const admin = (await db.query("select id from public.profiles where role = 'admin' and status = 'active' limit 1")).rows[0]?.id;
+  assert.ok(admin, "an admin exists");
+  await actAs(admin);
+  const queue = (await db.query("select * from public.admin_comment_report_queue()")).rows;
+  assert.ok(queue.some((q) => q.comment_id === c.id && q.reports === 1));
+  assert.equal((await db.query("select public.admin_resolve_comment_reports($1, 'remove') as r", [c.id])).rows[0].r.ok, true);
+  await db.query("reset role");
+  assert.equal((await db.query("select status from public.comments where id = $1", [c.id])).rows[0].status, "removed");
+  assert.equal((await db.query("select count(*)::int n from public.audit_log where target_id = $1 and action = 'admin.comment_reports'", [c.id])).rows[0].n, 1);
+}));

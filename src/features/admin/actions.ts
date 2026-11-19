@@ -105,3 +105,14 @@ export async function setMediaLocationRequired(form: FormData): Promise<void> {
   if (error) console.error("admin media location", error.message);
   revalidatePath("/admin");
 }
+
+/** Reported comment: keep it (dismiss the reports) or remove it. */
+export async function resolveCommentReports(commentId: string, action: "keep" | "remove"): Promise<AdminResult> {
+  if (!/^[0-9a-f-]{36}$/i.test(commentId) || (action !== "keep" && action !== "remove")) return { ok: false, reason: "invalid" };
+  if (!(await unlocked())) return { ok: false, reason: "locked" };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("admin_resolve_comment_reports", { p_comment: commentId, p_action: action });
+  const res = fromRpc(data, error);
+  if (res.ok) revalidatePath("/admin", "layout");
+  return res;
+}

@@ -113,6 +113,16 @@ export async function deleteComment(commentId: unknown): Promise<MediaResult> {
   return fromRpc(data, error);
 }
 
+/** Report someone else's comment; admins review it in the Content page. */
+export async function reportComment(commentId: unknown): Promise<MediaResult> {
+  const parsed = idSchema.safeParse(commentId);
+  if (!parsed.success) return { ok: false, reason: "invalid" };
+  const supabase = await signedInClient();
+  if (!supabase) return { ok: false, reason: "signin" };
+  const { data, error } = await supabase.rpc("report_comment", { p_comment: parsed.data, p_reason: "inappropriate" });
+  return fromRpc(data, error);
+}
+
 const REPORT_REASONS = ["inappropriate", "not_this_place", "private_info", "spam", "other"] as const;
 
 /** "Report photo / video": puts the upload in the admin review queue. */

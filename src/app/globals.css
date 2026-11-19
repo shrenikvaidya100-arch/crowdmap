@@ -86,9 +86,9 @@ textarea,
   0% { transform: translateX(-100%); }
   100% { transform: translateX(300%); }
 }
-/* Notifications slide in from the top-left corner. */
+/* Notifications slide in from the top-right corner. */
 @keyframes toastin {
-  from { opacity: 0; transform: translate(-24px, -16px) scale(0.96); }
+  from { opacity: 0; transform: translate(24px, -16px) scale(0.96); }
   to { opacity: 1; transform: none; }
 }
 @keyframes pop {

@@ -143,6 +143,8 @@ export const messages = {
     "console.signedIn": "Signed in as {name}", "console.lock": "Lock admin", "console.lockHint": "Close the admin area now",
     "console.ist": "IST",
     "more": "Everything else",
+    "commentReports.title": "Reported comments", "commentReports.none": "No reported comments.",
+    "commentReports.meta": "by {author} at {place} · reported {n}×", "commentReports.remove": "Remove comment",
     "mediaLoc.title": "Photos, videos and voice notes: location check",
     "mediaLoc.on": "On: people must be at the place to post (GPS checked).",
     "mediaLoc.off": "Off for now: people can post from anywhere. Crowd reports still need GPS.",

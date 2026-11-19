@@ -556,11 +556,12 @@ export default function TopoBackground({
       ctx.strokeStyle = color;
       ctx.fillStyle = color;
       ctx.lineCap = "round";
-      ctx.globalAlpha = 0.16;
-      ctx.lineWidth = 0.75;
+      // CrowdMap: stronger lines so the contour map reads clearly behind the sign-in card.
+      ctx.globalAlpha = 0.4;
+      ctx.lineWidth = 1;
       ctx.stroke(minor);
-      ctx.globalAlpha = 0.34;
-      ctx.lineWidth = 1.1;
+      ctx.globalAlpha = 0.75;
+      ctx.lineWidth = 1.5;
       ctx.stroke(major);
       if (labels) {
         drawLabels();
