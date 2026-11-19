@@ -8,7 +8,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { Language } from "@/lib/config";
 import { translator } from "@/lib/i18n";
 import {
-  addComment, deleteComment, deleteMedia, editCaption, editComment, reportMedia, type MediaResult,
+  addComment, deleteComment, deleteMedia, editCaption, editComment, reportComment, reportMedia, type MediaResult,
 } from "./actions";
 import { CaptureMedia } from "./CaptureMedia";
 import { MEDIA_ICON, mediaConfig, type MediaKind } from "./config";
@@ -248,6 +248,12 @@ function Comments({ mediaId, t, ago, signedIn, refresh }: {
                         {t("delete")}
                       </button>
                     </>
+                  )}
+                  {!c.mine && signedIn && (
+                    <button type="button" className="text-gray-500 hover:text-red-600 hover:underline"
+                            onClick={() => { if (confirm(t("confirmReportComment"))) void act(() => reportComment(c.id), "result.commentReported"); }}>
+                      {t("reportComment")}
+                    </button>
                   )}
                 </p>
               </li>

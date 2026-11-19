@@ -5,6 +5,7 @@ import { formatWhen } from "@/features/admin/format";
 import { requireAdminPage } from "@/features/admin/guard";
 import { messages } from "@/features/admin/messages";
 import { Moderate } from "@/features/admin/Moderate";
+import { CommentReportActions } from "@/features/admin/CommentReportActions";
 import { ReportActions } from "@/features/admin/ReportActions";
 import { Badge, Field, FilterBar, inputCls, Pager } from "@/features/admin/ui";
 import { pageNumber, param, pick } from "@/features/admin/validation";
@@ -43,8 +44,10 @@ export default async function AdminContent({ searchParams }: PageProps<"/admin/c
   const [lang, supabase] = await Promise.all([getLang(), createClient()]);
   const t = translator(messages, lang);
 
-  const queue = await supabase.rpc("admin_report_queue");
+  const [queue, commentQueue] = await Promise.all([supabase.rpc("admin_report_queue"), supabase.rpc("admin_comment_report_queue")]);
   if (queue.error) console.error("admin report queue", queue.error.message);
+  if (commentQueue.error) console.error("admin comment report queue", commentQueue.error.message);
+  const reportedComments = (commentQueue.data ?? []) as { comment_id: string; body: string; author: string; place_name: string; reports: number; first_at: string }[];
   const reported = (queue.data ?? []) as Reported[];
   const { data, error } = await supabase.rpc(type === "media" ? "admin_media" : "admin_comments", {
     p_status: status || null, p_q: q ?? null, p_limit: per, p_offset: (page - 1) * per,
@@ -56,6 +59,23 @@ export default async function AdminContent({ searchParams }: PageProps<"/admin/c
 
   return (
     <>
+      <section className="rounded-2xl border border-red-300/60 bg-red-50/40 p-4 dark:border-red-900 dark:bg-red-950/20">
+        <h2 className="mb-2 font-medium">{t("commentReports.title")}</h2>
+        {reportedComments.length === 0 ? <p className="text-sm text-gray-500">{t("commentReports.none")}</p> : (
+          <ul className="space-y-2">
+            {reportedComments.map((c) => (
+              <li key={c.comment_id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-white p-3 text-sm dark:border-zinc-800 dark:bg-zinc-900">
+                <div className="min-w-0 flex-1">
+                  <p className="break-words font-medium">“{c.body}”</p>
+                  <p className="text-xs text-zinc-500">{t("commentReports.meta", { author: c.author, place: c.place_name, n: c.reports })}</p>
+                </div>
+                <CommentReportActions commentId={c.comment_id} keepLabel={t("reports.keep")} removeLabel={t("commentReports.remove")} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
       <section className="border border-amber-700/40 bg-amber-50/40 p-4 dark:border-amber-900 dark:bg-amber-950/20">
         <h2 className="mb-2 font-medium">{t("reports.title")}</h2>
         {reported.length === 0 ? <p className="text-sm text-gray-500">{t("reports.none")}</p> : (

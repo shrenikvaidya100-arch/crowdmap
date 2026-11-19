@@ -99,9 +99,9 @@ export function ConfirmPrompt({ lang, me, onLocated, onConfirmed, hidden }: {
   }
 
   return (
-    // A notification that slides in from the top-left corner, like a phone push.
+    // A notification that slides in from the top-right corner, like a phone push.
     <section data-map-ui role='alertdialog' aria-labelledby='confirm-title' aria-describedby='confirm-body'
-             className='fixed left-3 top-3 z-[55] w-[calc(100%-1.5rem)] max-w-[360px] overflow-hidden rounded-2xl bg-white/95 text-sm text-zinc-800 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.35)] ring-1 ring-black/10 backdrop-blur-xl motion-safe:animate-[toastin_320ms_cubic-bezier(0.2,0.9,0.3,1.2)] dark:bg-zinc-900/95 dark:text-zinc-100 dark:ring-white/10 print:hidden'>
+             className='fixed right-3 top-3 z-[55] w-[calc(100%-1.5rem)] max-w-[360px] overflow-hidden rounded-2xl bg-white/95 text-sm text-zinc-800 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.35)] ring-1 ring-black/10 backdrop-blur-xl motion-safe:animate-[toastin_320ms_cubic-bezier(0.2,0.9,0.3,1.2)] dark:bg-zinc-900/95 dark:text-zinc-100 dark:ring-white/10 print:hidden'>
       <div className='flex items-center gap-2 border-b border-zinc-100 px-3.5 py-2 text-[11px] font-medium text-zinc-500 dark:border-zinc-800'>
         <span className='grid h-4 w-4 place-items-center rounded bg-blue-600 text-white'><Icon name='logo' size={11} /></span>
         CrowdMap

@@ -12,7 +12,7 @@ export function AuthShell({ children, surface = "dark" }: {
 }) {
   return (
     <main className="flex flex-1 flex-col">
-      <TopoBackground className="min-h-[calc(100svh-3.5rem)] flex-1 bg-zinc-100 px-4 py-10 text-zinc-300 dark:bg-black dark:text-zinc-700" labels={false} interactive>
+      <TopoBackground className="min-h-[calc(100svh-3.5rem)] flex-1 bg-zinc-100 px-4 py-10 text-blue-500 dark:bg-black dark:text-blue-500" labels={false} interactive>
         <div className="relative w-full max-w-sm">
           {surface === "none" ? children : (
             <div className={`rounded-2xl p-6 shadow-2xl shadow-black/60 ring-1 sm:p-8 ${surface === "auto" ? "bg-white text-zinc-900 ring-black/10 dark:bg-zinc-950 dark:text-zinc-100 dark:ring-white/10" : "bg-zinc-950 text-zinc-100 ring-white/10"}`}>
